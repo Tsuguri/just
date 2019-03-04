@@ -1,0 +1,2 @@
+# just
+Just = JS + Rust
