@@ -6,25 +6,14 @@ extern crate lazy_static;
 mod utils;
 mod communication;
 
-use cfg_if::cfg_if;
 use wasm_bindgen::prelude::*;
 use web_sys::console;
 use std::sync::Mutex;
 
-use communication::WebSocketHandler;
+use communication::ConnectionState;
 
 lazy_static! {
-    static ref DATA: Mutex<WebSocketHandler> = Mutex::new(WebSocketHandler{lol: 2});
-}
-
-cfg_if! {
-    // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
-    // allocator.
-    if #[cfg(feature = "wee_alloc")] {
-        extern crate wee_alloc;
-        #[global_allocator]
-        static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-    }
+    static ref DATA: Mutex<ConnectionState> = Mutex::new(ConnectionState::new());
 }
 
 #[wasm_bindgen]
@@ -44,7 +33,15 @@ pub fn upgr() {
     console::log_2(&"hey: ".into(), &val.lol.into());
 }
 
-#[wasm_bindgen(start)]
-pub fn starter(){
-    console::log_1(&"hey".into());
+#[wasm_bindgen]
+pub fn connect(address: &str)-> bool {
+    let mut state = DATA.lock().unwrap();
+    match state.connect("nice address") {
+        Result::Ok(_)=> true,
+        Result::Err(_) => false,
+    }
+}
+
+#[wasm_bindgen]
+pub fn close_connection() {
 }
