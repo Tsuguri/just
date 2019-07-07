@@ -1,0 +1,10 @@
+[package]
+name = "just"
+version = "0.1.0"
+authors = ["Adam Winiarczuk <adamosca@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+# js scripting engine:
+chakracore = {git="https://github.com/darfink/chakracore-rs", rev="93adef0a4ab297fbeaf228c403b8090e0979a1aa"}
+slotmap = "0.3.0"
