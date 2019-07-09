@@ -1,8 +1,10 @@
 mod scene;
 
 use slotmap;
+use nalgebra_glm as glm;
 
 fn main() {
+    let _scene = scene::Scene::new();
     let mut mn = slotmap::SlotMap::new();
     let p1 = mn.insert(12);
     let p2 = mn.insert(13);

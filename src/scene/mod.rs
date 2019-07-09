@@ -1,17 +1,19 @@
 use slotmap::SparseSecondaryMap as SecondaryMap;
 
 mod game_object;
-
+mod scripting;
+mod math;
+mod parent_child_manipulation;
+mod transform;
 
 use game_object::GameObject;
+use scripting::JsScript;
 
 struct Mesh;
 
 struct Animator;
 
 struct Audio;
-
-struct Controller;
 
 slotmap::new_key_type!(pub struct GameObjectId;);
 
@@ -24,40 +26,14 @@ pub struct Scene {
 
     object_data: Data<GameObject>,
     renderables: Data<Mesh>,
-    controllers: Data<Controller>,
+    controllers: Data<JsScript>,
 
     to_destroy: Vec<GameObjectId>,
 }
 
-enum GameObjectError {
+#[derive(Debug)]
+pub enum GameObjectError {
     IdNotExisting,
-}
-
-impl Scene {
-    pub fn set_parent(&mut self, obj: GameObjectId, new_parent: Option<GameObjectId>) -> Result<(), GameObjectError> {
-        if !self.exists(obj) {
-            return Result::Err(GameObjectError::IdNotExisting);
-        }
-        match new_parent {
-            Some(x) => {
-                if !self.exists(x) {
-                    return Result::Err(GameObjectError::IdNotExisting);
-                }
-                self.object_data[x].children.push(obj);
-            }
-            None => (),
-        }
-        match self.object_data[obj].parent {
-            None => (),
-            Some(x) => {
-                let index = self.object_data[x].children.iter().position(|y| *y == obj).unwrap();
-                self.object_data[x].children.remove(index);
-            }
-        }
-        self.object_data[obj].parent = new_parent;
-
-        Result::Ok(())
-    }
 }
 
 impl Scene {
@@ -84,7 +60,24 @@ impl Scene {
         id
     }
 
-    pub fn remove_game_object(&mut self, id: GameObjectId) {
+    pub fn mark_to_remove(&mut self, id: GameObjectId) {
+        self.to_destroy.push(id);
+    }
+
+    pub fn remove_marked(&mut self) {
+        let mut objects = vec![];
+        std::mem::swap(&mut self.to_destroy, &mut objects);
+        for obj in objects.into_iter() {
+            // might have been removed as child of other object
+            if !self.exists(obj){
+                continue;
+            }
+            self.remove_game_object(obj);
+        }
+
+    }
+
+    fn remove_game_object(&mut self, id: GameObjectId) {
         let data = &self.object_data[id];
         for child in data.children.clone() {
             self.remove_game_object(child);
@@ -108,21 +101,4 @@ mod tests {
     fn simple() {
         let mut scene = Scene::new();
     }
-
-    #[test]
-    fn simple2() {
-        let mut scene = Scene::new();
-        let obj1 = scene.create_game_object();
-        let obj2 = scene.create_game_object();
-        scene.set_parent(obj1, Option::Some(obj2));
-
-        assert_eq!(scene.object_data[obj1].parent, Option::Some(obj2));
-        assert!(scene.object_data[obj2].children.contains(&obj1));
-
-        scene.set_parent(obj1, Option::None);
-        assert_eq!(scene.object_data[obj1].parent, Option::None);
-        assert!(!scene.object_data[obj2].children.contains(&obj1));
-
-    }
-
 }
