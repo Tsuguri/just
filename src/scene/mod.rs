@@ -5,9 +5,12 @@ mod scripting;
 mod math;
 mod parent_child_manipulation;
 mod transform;
+mod components;
 
 use game_object::GameObject;
-use scripting::JsScript;
+use scripting::{JsScript, JsEngine, ScriptingEngine, Controller};
+#[cfg(test)]
+use crate::scene::scripting::test_scripting::MockEngine;
 
 struct Mesh;
 
@@ -20,7 +23,7 @@ slotmap::new_key_type!(pub struct GameObjectId;);
 type Map<T> = slotmap::HopSlotMap<GameObjectId, T>;
 type Data<T> = SecondaryMap<GameObjectId, T>;
 
-pub struct Scene {
+pub struct Scene<E: ScriptingEngine> {
     // at the same time indicates if object is active
     objects: Map<bool>,
 
@@ -29,26 +32,35 @@ pub struct Scene {
     controllers: Data<JsScript>,
 
     to_destroy: Vec<GameObjectId>,
+
+    scripting_engine: E,
 }
+
+pub type JsScene = Scene<JsEngine>;
+
+#[cfg(test)]
+pub type MockScene = Scene<MockEngine>;
+
 
 #[derive(Debug)]
 pub enum GameObjectError {
     IdNotExisting,
 }
 
-impl Scene {
-    pub fn new() -> Self {
+impl<E: ScriptingEngine> Scene<E> {
+    pub fn new(engine_config: &E::Config) -> Self {
         Scene {
             objects: Map::with_key(),
             object_data: Data::new(),
             renderables: Data::new(),
             controllers: Data::new(),
             to_destroy: vec![],
+            scripting_engine: E::create(engine_config)
         }
     }
 }
 
-impl Scene {
+impl<E: ScriptingEngine> Scene<E> {
     pub fn exists(&self, id: GameObjectId) -> bool {
         self.objects.contains_key(id)
     }
@@ -65,8 +77,7 @@ impl Scene {
     }
 
     pub fn remove_marked(&mut self) {
-        let mut objects = vec![];
-        std::mem::swap(&mut self.to_destroy, &mut objects);
+        let objects = std::mem::replace(&mut self.to_destroy, vec![]);
         for obj in objects.into_iter() {
             // might have been removed as child of other object
             if !self.exists(obj){
@@ -99,6 +110,6 @@ mod tests {
 
     #[test]
     fn simple() {
-        let mut scene = Scene::new();
+        let mut scene = MockScene::new(&(1i32.into()));
     }
 }
