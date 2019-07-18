@@ -1,9 +1,8 @@
-use super::Scene;
-use super::GameObjectId;
+use super::Engine;
 use super::GameObjectError;
-use crate::scene::scripting::ScriptingEngine;
+use crate::scene::traits::*;
 
-impl<E: ScriptingEngine> Scene<E> {
+impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
     pub fn set_parent(&mut self, obj: GameObjectId, new_parent: Option<GameObjectId>) -> Result<(), GameObjectError> {
         if !self.exists(obj) {
             return Result::Err(GameObjectError::IdNotExisting);
@@ -33,11 +32,10 @@ impl<E: ScriptingEngine> Scene<E> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use super::super::MockScene;
+    use super::super::MockEngine;
     #[test]
     fn set_parent() {
-        let mut scene = MockScene::mock();
+        let mut scene = MockEngine::mock();
         let obj1 = scene.create_game_object();
         let obj2 = scene.create_game_object();
         scene.set_parent(obj1, Option::Some(obj2)).unwrap();
@@ -53,7 +51,7 @@ mod tests {
 
     #[test]
     fn removing_objects() {
-        let mut scene = MockScene::mock();
+        let mut scene = MockEngine::mock();
         let obj1 = scene.create_game_object();
         let obj2 = scene.create_game_object();
         let obj3 = scene.create_game_object();
@@ -61,7 +59,7 @@ mod tests {
         assert!(scene.exists(obj1));
         assert!(scene.exists(obj2));
         assert!(scene.exists(obj3));
-        scene.set_parent(obj2, Option::Some(obj3));
+        scene.set_parent(obj2, Option::Some(obj3)).unwrap();
 
         scene.remove_game_object(obj3);
 

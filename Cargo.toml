@@ -10,3 +10,6 @@ chakracore = {git="https://github.com/darfink/chakracore-rs", rev="93adef0a4ab29
 slotmap = "0.3.0"
 nalgebra-glm ="0.4.0"
 serde = {version="1.0", features=["derive"]}
+rendy = {version="0.3", features=["vulkan", "rendy-shader"]}
+failure="0.1"
+lazy_static = "1.0"

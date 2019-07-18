@@ -1,9 +1,8 @@
-use super::{Scene, GameObjectId, GameObject};
-use super::math::{Vec3, Vec4, Matrix, Quat};
-use crate::scene::math::pos_vec;
-use crate::scene::scripting::ScriptingEngine;
+use super::{Engine};
+use super::math::{Vec3, Matrix, Quat};
+use crate::scene::traits::*;
 
-impl<E: ScriptingEngine> Scene<E> {
+    impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
     pub fn get_global_position(&self, id: GameObjectId) -> Vec3 {
         self.object_data[id].get_global_position(self)
     }
@@ -38,12 +37,11 @@ impl<E: ScriptingEngine> Scene<E> {
 mod tests {
     use super::*;
     use nalgebra_glm::vec3;
-    use super::super::JsScene;
-    use crate::scene::MockScene;
+    use crate::scene::MockEngine;
 
     #[test]
     fn position() {
-        let mut scene = MockScene::mock();
+        let mut scene = MockEngine::mock();
         let obj = scene.create_game_object();
         let pos =vec3(0.0,0.0,1.0) ;
         scene.set_local_position(obj, pos);
@@ -53,7 +51,7 @@ mod tests {
 
     #[test]
     fn position_with_parent() {
-        let mut scene = MockScene::mock();
+        let mut scene = MockEngine::mock();
         let obj = scene.create_game_object();
         let obj2 = scene.create_game_object();
 
@@ -71,7 +69,7 @@ mod tests {
     }
     #[test]
     fn new_parent_invalidates_global_matrix() {
-        let mut scene = MockScene::mock();
+        let mut scene = MockEngine::mock();
         let obj = scene.create_game_object();
         let obj2 = scene.create_game_object();
         let obj3 = scene.create_game_object();
@@ -86,7 +84,7 @@ mod tests {
 
     #[test]
     fn parent_rotation_applied() {
-        let mut scene = MockScene::mock();
+        let mut scene = MockEngine::mock();
         let obj = scene.create_game_object();
         let obj2 = scene.create_game_object();
 

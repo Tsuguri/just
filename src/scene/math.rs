@@ -1,6 +1,6 @@
 use crate::glm;
 
-type Fl = f32;
+pub type Fl = f32;
 
 pub type Vec3 = glm::TVec3<Fl>;
 pub type Vec4 = glm::TVec4<Fl>;

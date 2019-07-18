@@ -1,6 +1,6 @@
 use super::math::*;
 use std::cell::RefCell;
-use crate::scene::scripting::ScriptingEngine;
+use crate::scene::traits::*;
 
 
 trait Ident {
@@ -36,6 +36,7 @@ impl<T: Ident> ItemState<T> {
 }
 
 pub struct GameObject {
+    pub name: String,
     pub id: super::GameObjectId,
     pub children: Vec<super::GameObjectId>,
     pub parent: Option<super::GameObjectId>,
@@ -51,6 +52,7 @@ pub struct GameObject {
 impl GameObject {
     pub fn new(id: super::GameObjectId) -> Self {
         GameObject {
+            name: "".to_string(),
             id,
             children: vec![],
             parent: Option::None,
@@ -72,12 +74,18 @@ impl GameObject {
 }
 
 impl GameObject {
-    pub fn void_local_matrix<E: ScriptingEngine>(&self, scene: &super::Scene<E>) {
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+    pub fn set_name(&mut self, new_name: String) {
+        self.name = new_name;
+    }
+    pub fn void_local_matrix<E: ScriptingEngine, HW: Hardware>(&self, scene: &super::Engine<E,HW>) {
         self.local_matrix.borrow_mut().changed=true;
         self.void_global_matrix(scene);
 
     }
-    fn void_global_matrix<E: ScriptingEngine>(&self, scene: &super::Scene<E>) {
+    fn void_global_matrix<E: ScriptingEngine, HW: Hardware>(&self, scene: &super::Engine<E,HW>) {
         if self.global_matrix.borrow().changed {
             return;
         }
@@ -98,14 +106,14 @@ impl GameObject {
         tr.item
     }
 
-    fn get_parent_matrix<E: ScriptingEngine>(&self, scene: &super::Scene<E>) -> Matrix {
+    fn get_parent_matrix<E: ScriptingEngine, HW: Hardware>(&self, scene: &super::Engine<E,HW>) -> Matrix {
         match self.parent {
             None => Matrix::identity(),
             Some(x) => scene.get_global_matrix(x),
         }
     }
 
-    pub fn get_global_matrix<E: ScriptingEngine>(&self, scene: &super::Scene<E>) -> Matrix {
+    pub fn get_global_matrix<E: ScriptingEngine, HW: Hardware>(&self, scene: &super::Engine<E,HW>) -> Matrix {
         let mut tr = self.global_matrix.borrow_mut();
 
         if tr.changed {
@@ -116,11 +124,11 @@ impl GameObject {
         tr.item
     }
 
-    pub fn get_global_position<E: ScriptingEngine>(&self, scene: &super::Scene<E>) -> Vec3 {
+    pub fn get_global_position<E: ScriptingEngine, HW: Hardware>(&self, scene: &super::Engine<E,HW>) -> Vec3 {
         let mat = self.get_parent_matrix(scene);
         pos(&(mat*pos_vec(&self.position.borrow())))
     }
-    pub fn get_global_rotation<E: ScriptingEngine>(&self, scene: &super::Scene<E>) -> Quat {
+    pub fn get_global_rotation<E: ScriptingEngine, HW: Hardware>(&self, scene: &super::Engine<E,HW>) -> Quat {
         let parent_rotation = match self.parent {
             None => Quat::identity(),
             Some(x) => scene.get_global_rotation(x),
@@ -128,7 +136,7 @@ impl GameObject {
         parent_rotation*(*self.rotation.borrow())
     }
 
-    pub fn set_local_position<E: ScriptingEngine>(&self, scene: &super::Scene<E>, new_position: Vec3) {
+    pub fn set_local_position<E: ScriptingEngine, HW: Hardware>(&self, scene: &super::Engine<E,HW>, new_position: Vec3) {
         *self.position.borrow_mut() = new_position;
         self.void_local_matrix(scene);
     }
@@ -137,7 +145,7 @@ impl GameObject {
         *self.position.borrow()
     }
 
-    pub fn set_local_rotation<E: ScriptingEngine>(&self, scene: &super::Scene<E>, new_rotation: Quat) {
+    pub fn set_local_rotation<E: ScriptingEngine, HW: Hardware>(&self, scene: &super::Engine<E,HW>, new_rotation: Quat) {
         *self.rotation.borrow_mut() = new_rotation;
         self.void_local_matrix(scene);
     }

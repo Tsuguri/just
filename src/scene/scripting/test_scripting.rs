@@ -1,11 +1,14 @@
 pub struct MockScript;
-pub struct MockEngine;
-use super::{Controller, ScriptingEngine, GameObjectId};
-use crate::scene::MockScene;
+pub struct MockScriptEngine;
+use crate::scene::traits::{Controller, ScriptingEngine, GameObjectId};
+use crate::scene::MockEngine;
 
-impl MockScene{
+use crate::graphics::test_resources::MockResourceManager as MRM;
+
+
+impl MockEngine{
     pub fn mock()->Self{
-        MockScene::new(&MockEngineConfig(1))
+        MockEngine::new(&MockEngineConfig(1), &1i32, &1i32)
     }
 }
 
@@ -18,7 +21,7 @@ impl From<i32> for MockEngineConfig{
     }
 }
 
-impl ScriptingEngine for MockEngine {
+impl ScriptingEngine for MockScriptEngine {
     type Controller = MockScript;
     type Config = MockEngineConfig;
 
