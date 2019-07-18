@@ -17,7 +17,7 @@ fn main() {
     let renderer_config = 2i32;
     let resources = 3i32;
 
-    let mut scene = scene::JsEngine::new(&engine_config, &1i32, &"src".to_string());
+    let mut scene = scene::JsEngine::new(&engine_config, &1i32, &"dev_app/res".to_string());
 
 
 

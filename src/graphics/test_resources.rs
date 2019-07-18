@@ -25,7 +25,7 @@ impl Renderer<MockHardware> for MockRenderer {
     fn dispose(&mut self, hardware: &mut MockHardware){}
 }
 
-impl ResourceManager for MockResourceManager {
+impl ResourceManager<MockHardware> for MockResourceManager {
     type Config = i32;
     type MeshId = usize;
     type TextureId = usize;
@@ -37,9 +37,9 @@ impl ResourceManager for MockResourceManager {
     fn get_texture(&self, name: &str) -> Option<Self::TextureId> {
         None
     }
-    fn load_resources(&mut self, config: &Self::Config) {}
+    fn load_resources(&mut self, config: &Self::Config, hardware: &mut MockHardware) {}
 
-    fn create(config: &Self::Config) -> Self {
+    fn create(config: &Self::Config, hardware: &mut MockHardware) -> Self {
         Self {}
     }
 }

@@ -120,7 +120,10 @@ impl crate::scene::traits::Renderer<Hardware> for Renderer {
     }
 
     fn dispose(&mut self, hardware: &mut Hardware) {
-        self.graph.take().unwrap().dispose(&mut hardware.factory, &());
+        match self.graph.take() {
+            Some(x) => x.dispose(&mut hardware.factory, &()),
+            None => (),
+        }
     }
 }
 
@@ -129,6 +132,8 @@ pub struct Hardware {
     pub event_loop: EventsLoop,
     pub factory: ManuallyDrop<Factory<Backend>>,
     pub families: ManuallyDrop<Families<Backend>>,
+    pub surface: Option<rendy::wsi::Surface<Backend>>,
+    pub used_family: rendy::command::FamilyId,
 }
 
 impl std::ops::Drop for Hardware {
@@ -152,6 +157,7 @@ impl crate::scene::traits::Hardware for Hardware {
 }
 
 impl Hardware {
+
     pub fn new(config: Config) -> Self {
         let (mut factory, mut families): (Factory<Backend>, _) = rendy::factory::init(config).unwrap();
         let mut event_loop = EventsLoop::new();
@@ -163,19 +169,29 @@ impl Hardware {
             .with_fullscreen(Some(monitor_id))
             .build(&event_loop)
             .unwrap();
+        let surface = factory.create_surface(&window);
+        let family_id =
+            families.as_slice()
+                .iter()
+                .find(|family| factory.surface_support(family.id(), &surface))
+                .map(rendy::command::Family::id).unwrap();
 
         Self {
             factory: ManuallyDrop::new(factory),
             families: ManuallyDrop::new(families),
             window,
             event_loop,
+            surface: Option::Some(surface),
+            used_family: family_id,
         }
     }
 }
 
 pub fn fill_render_graph<'a>(hardware: &mut Hardware) -> rendy::graph::Graph<Backend, ()> {
     let mut graph_builder = GraphBuilder::<Backend, ()>::new();
-    let surface = hardware.factory.create_surface(&hardware.window);
+
+    assert!(hardware.surface.is_some());;
+    let surface = hardware.surface.take().unwrap();
 
     let size = hardware.window
         .get_inner_size()
@@ -211,5 +227,8 @@ pub fn fill_render_graph<'a>(hardware: &mut Hardware) -> rendy::graph::Graph<Bac
     let frames = present_builder.image_count();
 
     graph_builder.add_node(present_builder);
-    graph_builder.with_frames_in_flight(frames).build(&mut hardware.factory, &mut hardware.families, &()).unwrap()
+    graph_builder
+        .with_frames_in_flight(frames)
+        .build(&mut hardware.factory, &mut hardware.families, &())
+        .unwrap()
 }

@@ -5,25 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0ff2cdbb-5802-48f4-bca4-cb5948f5939d" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/src/graphics/mod.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/graphics/resources.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/graphics/test_resources.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/scene/scripting/js_scripting/math_api.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/scene/traits.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/shader.frag" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/shader.vert" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/graphics/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/graphics/resources.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/resources.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/graphics/test_resources.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/test_resources.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/components.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/components.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/game_object.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/game_object.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/math.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/math.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/scene/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/parent_child_manipulation.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/parent_child_manipulation.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/scripting/js_scripting.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/scripting/js_scripting/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/scripting/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/scripting/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/scripting/test_scripting.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/scripting/test_scripting.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/transform.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/transform.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/traits.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/traits.rs" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -32,7 +21,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="FileEditorManager">
-    <splitter split-orientation="horizontal" split-proportion="0.44986808">
+    <splitter split-orientation="horizontal" split-proportion="0.5059367">
       <split-first>
         <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
           <file pinned="false" current-in-tab="false">
@@ -51,17 +40,8 @@
           <file pinned="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/src/main.rs">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="520">
-                  <caret line="26" selection-start-line="26" selection-end-line="26" />
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/src/scene/scripting/js_scripting/math_api.rs">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="240">
-                  <caret line="12" column="19" selection-start-line="12" selection-start-column="19" selection-end-line="12" selection-end-column="19" />
+                <state relative-caret-position="200">
+                  <caret line="10" column="23" selection-start-line="10" selection-start-column="23" selection-end-line="10" selection-end-column="23" />
                 </state>
               </provider>
             </entry>
@@ -100,17 +80,17 @@
           <file pinned="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/src/scene/game_object.rs">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="250">
-                  <caret line="147" column="4" selection-start-line="147" selection-start-column="4" selection-end-line="147" selection-end-column="4" />
+                <state relative-caret-position="258">
+                  <caret line="39" column="31" selection-start-line="39" selection-start-column="31" selection-end-line="39" selection-end-column="31" />
                 </state>
               </provider>
             </entry>
           </file>
-          <file pinned="false" current-in-tab="false">
+          <file pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/src/graphics/resources.rs">
               <provider selected="true" editor-type-id="text-editor">
-                <state>
-                  <caret line="21" selection-start-line="21" selection-end-line="21" />
+                <state relative-caret-position="466">
+                  <caret line="70" column="62" selection-start-line="70" selection-start-column="62" selection-end-line="70" selection-end-column="62" />
                   <folding>
                     <element signature="e#639#640#0" expanded="true" />
                     <element signature="e#658#659#0" expanded="true" />
@@ -120,10 +100,19 @@
             </entry>
           </file>
           <file pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/Cargo.toml">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="240">
+                  <caret line="12" column="79" selection-start-line="12" selection-start-column="79" selection-end-line="12" selection-end-column="79" />
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/src/scene/scripting/test_scripting.rs">
               <provider selected="true" editor-type-id="text-editor">
                 <state relative-caret-position="120">
-                  <caret line="7" lean-forward="true" selection-start-line="7" selection-end-line="7" />
+                  <caret line="7" selection-start-line="7" selection-end-line="7" />
                   <folding>
                     <element signature="e#253#254#0" expanded="true" />
                     <element signature="e#311#312#0" expanded="true" />
@@ -132,11 +121,11 @@
               </provider>
             </entry>
           </file>
-          <file pinned="false" current-in-tab="true">
+          <file pinned="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/src/graphics/mod.rs">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="325">
-                  <caret line="113" column="18" selection-start-line="113" selection-start-column="18" selection-end-line="113" selection-end-column="18" />
+                <state relative-caret-position="380">
+                  <caret line="175" column="68" selection-start-line="175" selection-start-column="68" selection-end-line="175" selection-end-column="68" />
                 </state>
               </provider>
             </entry>
@@ -148,8 +137,8 @@
           <file pinned="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/src/scene/traits.rs">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="463">
-                  <caret line="45" column="20" selection-start-line="45" selection-start-column="20" selection-end-line="45" selection-end-column="20" />
+                <state relative-caret-position="120">
+                  <caret line="6" column="31" selection-start-line="6" selection-start-column="31" selection-end-line="6" selection-end-column="31" />
                 </state>
               </provider>
             </entry>
@@ -157,9 +146,11 @@
           <file pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/src/scene/mod.rs">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="225">
-                  <caret line="73" column="40" selection-start-line="73" selection-start-column="40" selection-end-line="73" selection-end-column="40" />
+                <state relative-caret-position="208">
+                  <caret line="78" column="20" selection-start-line="78" selection-start-column="20" selection-end-line="78" selection-end-column="20" />
                   <folding>
+                    <element signature="e#2179#2180#0" expanded="true" />
+                    <element signature="e#2236#2237#0" expanded="true" />
                     <element signature="e#2654#2655#0" expanded="true" />
                     <element signature="e#2698#2699#0" expanded="true" />
                     <element signature="e#2956#2957#0" expanded="true" />
@@ -172,8 +163,8 @@
           <file pinned="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/src/graphics/test_resources.rs">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="400">
-                  <caret line="24" column="55" selection-start-line="24" selection-start-column="55" selection-end-line="24" selection-end-column="55" />
+                <state relative-caret-position="308">
+                  <caret line="39" column="82" selection-start-line="39" selection-start-column="82" selection-end-line="39" selection-end-column="82" />
                 </state>
               </provider>
             </entry>
@@ -206,7 +197,6 @@
         <option value="$PROJECT_DIR$/src/scene/scripting.rs" />
         <option value="$PROJECT_DIR$/src/scene/scripting/js_scripting.rs" />
         <option value="$PROJECT_DIR$/src/scene/math.rs" />
-        <option value="$PROJECT_DIR$/Cargo.toml" />
         <option value="$PROJECT_DIR$/src/shader.frag" />
         <option value="$PROJECT_DIR$/src/shader.vert" />
         <option value="$PROJECT_DIR$/src/graphics.rs" />
@@ -216,17 +206,19 @@
         <option value="$PROJECT_DIR$/src/scene/scripting/mod.rs" />
         <option value="$PROJECT_DIR$/src/scene/components.rs" />
         <option value="$PROJECT_DIR$/src/scene/game_object.rs" />
-        <option value="$PROJECT_DIR$/src/graphics/resources.rs" />
         <option value="$PROJECT_DIR$/src/scene/scripting/js_scripting/math_api.rs" />
         <option value="$PROJECT_DIR$/src/scene/scripting/js_scripting/mod.rs" />
-        <option value="$PROJECT_DIR$/src/main.rs" />
         <option value="$PROJECT_DIR$/src/scene/transform.rs" />
         <option value="$PROJECT_DIR$/src/scene/parent_child_manipulation.rs" />
         <option value="$PROJECT_DIR$/src/scene/scripting/test_scripting.rs" />
+        <option value="$PROJECT_DIR$/src/main.rs" />
+        <option value="$PROJECT_DIR$/dev_app/res/teapot3.obj" />
+        <option value="$PROJECT_DIR$/Cargo.toml" />
         <option value="$PROJECT_DIR$/src/scene/traits.rs" />
         <option value="$PROJECT_DIR$/src/graphics/test_resources.rs" />
         <option value="$PROJECT_DIR$/src/scene/mod.rs" />
         <option value="$PROJECT_DIR$/src/graphics/mod.rs" />
+        <option value="$PROJECT_DIR$/src/graphics/resources.rs" />
       </list>
     </option>
   </component>
@@ -261,27 +253,6 @@
               <item name="just" type="462c0819:PsiDirectoryNode" />
               <item name="src" type="462c0819:PsiDirectoryNode" />
               <item name="graphics" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="just" type="b2602c69:ProjectViewProjectNode" />
-              <item name="just" type="462c0819:PsiDirectoryNode" />
-              <item name="src" type="462c0819:PsiDirectoryNode" />
-              <item name="scene" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="just" type="b2602c69:ProjectViewProjectNode" />
-              <item name="just" type="462c0819:PsiDirectoryNode" />
-              <item name="src" type="462c0819:PsiDirectoryNode" />
-              <item name="scene" type="462c0819:PsiDirectoryNode" />
-              <item name="scripting" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="just" type="b2602c69:ProjectViewProjectNode" />
-              <item name="just" type="462c0819:PsiDirectoryNode" />
-              <item name="src" type="462c0819:PsiDirectoryNode" />
-              <item name="scene" type="462c0819:PsiDirectoryNode" />
-              <item name="scripting" type="462c0819:PsiDirectoryNode" />
-              <item name="js_scripting" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -440,7 +411,7 @@
       <window_info id="Favorites" order="3" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.4991587" visible="true" weight="0.24922119" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.4991587" visible="true" weight="0.2647975" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -524,13 +495,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Cargo.toml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="280">
-          <caret line="14" selection-start-line="14" selection-end-line="14" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/input/mod.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-439">
@@ -546,28 +510,10 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/scene/hardware.rs" />
-    <entry file="file://$PROJECT_DIR$/src/scene/game_object.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="250">
-          <caret line="147" column="4" selection-start-line="147" selection-start-column="4" selection-end-line="147" selection-end-column="4" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/scene/scripting/mod.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="100">
           <caret line="5" column="16" selection-start-line="5" selection-start-column="16" selection-end-line="5" selection-end-column="16" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/graphics/resources.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret line="21" selection-start-line="21" selection-end-line="21" />
-          <folding>
-            <element signature="e#639#640#0" expanded="true" />
-            <element signature="e#658#659#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -600,13 +546,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="520">
-          <caret line="26" selection-start-line="26" selection-end-line="26" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/scene/transform.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="329">
@@ -624,7 +563,7 @@
     <entry file="file://$PROJECT_DIR$/src/scene/scripting/test_scripting.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="120">
-          <caret line="7" lean-forward="true" selection-start-line="7" selection-end-line="7" />
+          <caret line="7" selection-start-line="7" selection-end-line="7" />
           <folding>
             <element signature="e#253#254#0" expanded="true" />
             <element signature="e#311#312#0" expanded="true" />
@@ -632,25 +571,55 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/scene/game_object.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="258">
+          <caret line="39" column="31" selection-start-line="39" selection-start-column="31" selection-end-line="39" selection-end-column="31" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="200">
+          <caret line="10" column="23" selection-start-line="10" selection-start-column="23" selection-end-line="10" selection-end-column="23" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/dev_app/res/teapot3.obj">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="40">
+          <caret line="2" selection-start-line="2" selection-end-line="2" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Cargo.toml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="240">
+          <caret line="12" column="79" selection-start-line="12" selection-start-column="79" selection-end-line="12" selection-end-column="79" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/scene/traits.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="463">
-          <caret line="45" column="20" selection-start-line="45" selection-start-column="20" selection-end-line="45" selection-end-column="20" />
+        <state relative-caret-position="120">
+          <caret line="6" column="31" selection-start-line="6" selection-start-column="31" selection-end-line="6" selection-end-column="31" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/graphics/test_resources.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="400">
-          <caret line="24" column="55" selection-start-line="24" selection-start-column="55" selection-end-line="24" selection-end-column="55" />
+        <state relative-caret-position="308">
+          <caret line="39" column="82" selection-start-line="39" selection-start-column="82" selection-end-line="39" selection-end-column="82" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/scene/mod.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="225">
-          <caret line="73" column="40" selection-start-line="73" selection-start-column="40" selection-end-line="73" selection-end-column="40" />
+        <state relative-caret-position="208">
+          <caret line="78" column="20" selection-start-line="78" selection-start-column="20" selection-end-line="78" selection-end-column="20" />
           <folding>
+            <element signature="e#2179#2180#0" expanded="true" />
+            <element signature="e#2236#2237#0" expanded="true" />
             <element signature="e#2654#2655#0" expanded="true" />
             <element signature="e#2698#2699#0" expanded="true" />
             <element signature="e#2956#2957#0" expanded="true" />
@@ -661,8 +630,19 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/graphics/mod.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="325">
-          <caret line="113" column="18" selection-start-line="113" selection-start-column="18" selection-end-line="113" selection-end-column="18" />
+        <state relative-caret-position="380">
+          <caret line="175" column="68" selection-start-line="175" selection-start-column="68" selection-end-line="175" selection-end-column="68" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/graphics/resources.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="466">
+          <caret line="70" column="62" selection-start-line="70" selection-start-column="62" selection-end-line="70" selection-end-column="62" />
+          <folding>
+            <element signature="e#639#640#0" expanded="true" />
+            <element signature="e#658#659#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

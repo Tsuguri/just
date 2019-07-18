@@ -17,7 +17,10 @@ use scripting::{JsScript, JsScriptEngine};
 #[cfg(test)]
 use crate::scene::scripting::test_scripting::MockScriptEngine;
 
-pub struct Mesh {}
+pub struct Mesh<HW: Hardware> {
+    mesh_id:  <HW::RM as ResourceManager<HW>>::MeshId,
+    texture_id: Option<<HW::RM as ResourceManager<HW>>::TextureId>,
+}
 
 struct Animator;
 
@@ -33,7 +36,7 @@ pub struct Engine<E: ScriptingEngine, HW: Hardware> {
     pub objects: Map<bool>,
 
     pub object_data: Data<GameObject>,
-    pub renderables: Data<Mesh>,
+    pub renderables: Data<Mesh<HW>>,
     controllers: Data<JsScript>,
 
     to_destroy: Vec<GameObjectId>,
@@ -61,8 +64,10 @@ pub enum GameObjectError {
 impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
     //type HWA = i32;
     //use <HW as traits::Hardware> as HW;
-    pub fn new(engine_config: &E::Config, hw_config: &HW::Config, rm_config: &<HW::RM as traits::ResourceManager>::Config) -> Self {
+    pub fn new(engine_config: &E::Config, hw_config: &HW::Config, rm_config: &<HW::RM as traits::ResourceManager<HW>>::Config) -> Self {
         let mut hardware = HW::create(hw_config);
+        let mut resources = HW::RM::create(rm_config, &mut hardware);
+        let mut renderer = HW::Renderer::create(&mut hardware);
         Engine {
             objects: Map::with_key(),
             object_data: Data::new(),
@@ -70,11 +75,17 @@ impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
             controllers: Data::new(),
             to_destroy: vec![],
             scripting_engine: E::create(engine_config),
-            resources: HW::RM::create(rm_config),
-            renderer: HW::Renderer::create(&mut hardware),
+            resources,
+            renderer,
             hardware,
             keyboard: Default::default(),
             mouse: Default::default(),
+        }
+    }
+
+    fn update_scripts(&mut self) {
+        for (id, script) in &mut self.controllers {
+            script.update();
         }
     }
 }
@@ -90,16 +101,13 @@ impl JsEngine {
         use crate::input::*;
         self.hardware.event_loop.poll_events(|_| ());
 
-        //let mut graph = crate::graphics::fill_render_graph(&mut self.hardware);
-
-
         loop {
             let inputs = UserInput::poll_events_loop(&mut self.hardware.event_loop, &mut self.keyboard, &mut self.mouse);
             if inputs.end_requested {
                 break;
             }
+            self.update_scripts();
             self.renderer.run(&mut self.hardware, &self.resources);
-            //graph.run(&mut self.hardware.factory, &mut self.hardware.families, &());
         }
 
     }

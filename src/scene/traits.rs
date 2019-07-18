@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-pub trait ResourceManager {
+pub trait ResourceManager<HW: Hardware + ?Sized> {
     type Config: Deserialize<'static>;
     type MeshId: Copy + Clone;
     type TextureId: Copy + Clone;
@@ -9,8 +9,8 @@ pub trait ResourceManager {
 
     fn get_mesh(&self, name: &str) -> Option<Self::MeshId>;
     fn get_texture(&self, name: &str) -> Option<Self::TextureId>;
-    fn load_resources(&mut self, config: &Self::Config);
-    fn create(config: &Self::Config) -> Self;
+    fn load_resources(&mut self, config: &Self::Config, hardware: &mut HW);
+    fn create(config: &Self::Config, hardware: &mut HW) -> Self;
 
 }
 pub use super::GameObjectId;
@@ -47,7 +47,7 @@ pub trait Renderer<H: Hardware+ ?Sized> {
 }
 
 pub trait Hardware {
-    type RM: ResourceManager;
+    type RM: ResourceManager<Self>;
     type Renderer: Renderer<Self>;
     type Config: Deserialize<'static>;
 
