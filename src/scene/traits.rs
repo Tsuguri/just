@@ -14,6 +14,7 @@ pub trait ResourceManager<HW: Hardware + ?Sized> {
 
 }
 pub use super::GameObjectId;
+use std::sync::Arc;
 
 pub trait Controller {
     fn prepare(&mut self);
@@ -40,10 +41,14 @@ pub trait ScriptingEngine {
     fn create(config: &Self::Config) ->Self;
 }
 
+
+pub trait Data {
+
+}
 pub trait Renderer<H: Hardware+ ?Sized> {
-    fn create(hardware: &mut H)-> Self;
-    fn run(&mut self, hardware: &mut H, res: &H::RM);
-    fn dispose(&mut self, hardware: &mut H);
+    fn create(hardware: &mut H, world: &(Data+ 'static), res: Arc<H::RM>)-> Self;
+    fn run(&mut self, hardware: &mut H, res: &H::RM, world: &(Data + 'static));
+    fn dispose(&mut self, hardware: &mut H, world: &(Data + 'static));
 }
 
 pub trait Hardware {

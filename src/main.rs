@@ -4,8 +4,6 @@ mod input;
 
 
 use scene::scripting::JsEngineConfig;
-use graphics::Hardware;
-use input::{UserInput, KeyboardState, MouseState};
 
 
 use nalgebra_glm as glm;

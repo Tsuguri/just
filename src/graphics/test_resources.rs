@@ -1,4 +1,5 @@
 use crate::scene::traits::*;
+use std::sync::Arc;
 
 pub struct MockResourceManager {}
 
@@ -18,11 +19,11 @@ impl Hardware for MockHardware {
 }
 
 impl Renderer<MockHardware> for MockRenderer {
-    fn create(hardware: &mut MockHardware) -> Self {
+    fn create(hardware: &mut MockHardware, world: &Data, res: Arc<MockResourceManager>) -> Self {
         Self {}
     }
-    fn run(&mut self, hardware: &mut MockHardware, res: &MockResourceManager) {}
-    fn dispose(&mut self, hardware: &mut MockHardware){}
+    fn run(&mut self, hardware: &mut MockHardware, res: &MockResourceManager, world: &Data) {}
+    fn dispose(&mut self, hardware: &mut MockHardware, world: &Data){}
 }
 
 impl ResourceManager<MockHardware> for MockResourceManager {
@@ -39,7 +40,7 @@ impl ResourceManager<MockHardware> for MockResourceManager {
     }
     fn load_resources(&mut self, config: &Self::Config, hardware: &mut MockHardware) {}
 
-    fn create(config: &Self::Config, hardware: &mut MockHardware) -> Self {
+    fn create(config: &Self::Config, _hardware: &mut MockHardware) -> Self {
         Self {}
     }
 }

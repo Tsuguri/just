@@ -91,7 +91,7 @@ impl GameObject {
         }
         self.global_matrix.borrow_mut().changed=true;
         for child in &self.children {
-            scene.object_data[*child].void_global_matrix(scene);
+            scene.world.object_data[*child].void_global_matrix(scene);
         }
 
     }

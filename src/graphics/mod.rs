@@ -1,7 +1,6 @@
 mod resources;
 
 use rendy;
-use super::scene;
 
 #[cfg(test)]
 pub mod test_resources;
@@ -12,7 +11,7 @@ type Backend = rendy::vulkan::Backend;
 
 use failure;
 use std::mem::ManuallyDrop;
-
+use crate::scene::traits::ResourceManager as TResourceManager;
 use {
     rendy::{
         command::{DrawIndexedCommand, QueueId, RenderPassEncoder, Families},
@@ -29,6 +28,8 @@ use {
     },
 };
 use rendy::shader as rendy_shader;
+use std::sync::Arc;
+use core::borrow::Borrow;
 
 lazy_static::lazy_static! {
     static ref VERTEX: SpirvShader = SourceShaderInfo::new(
@@ -51,11 +52,26 @@ lazy_static::lazy_static! {
         .with_vertex(&*VERTEX).unwrap()
         .with_fragment(&*FRAGMENT).unwrap();
 }
-#[derive(Debug, Default)]
-struct EmptyNodeDesc {}
+#[derive(Default)]
+struct EmptyNodeDesc {
+    res: Arc<ResourceManager>,
+}
 
-#[derive(Debug)]
-struct EmptyNode {}
+impl std::fmt::Debug for EmptyNodeDesc {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(formatter, "EmptyNodeDesc")
+    }
+}
+
+struct EmptyNode {
+    res: Arc<ResourceManager>,
+}
+
+impl std::fmt::Debug for EmptyNode {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(formatter, "EmptyNode")
+    }
+}
 
 impl<B, T> SimpleGraphicsPipelineDesc<B, T> for EmptyNodeDesc
     where
@@ -82,7 +98,7 @@ impl<B, T> SimpleGraphicsPipelineDesc<B, T> for EmptyNodeDesc
         assert!(images.is_empty());
         assert!(set_layouts.is_empty());
 
-        Ok(EmptyNode {})
+        Ok(EmptyNode {res: self.res})
     }
 }
 
@@ -94,34 +110,40 @@ impl<B, T> SimpleGraphicsPipeline<B, T> for EmptyNode
 {
     type Desc = EmptyNodeDesc;
 
-    fn draw(&mut self, _layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, _aux: &T) {}
+    fn draw(&mut self, _layout: &B::PipelineLayout, encoder: RenderPassEncoder<'_, B>, _index: usize, _aux: &T) {
+        let p = self.res.get_mesh("heh");
+    }
 
     fn dispose(self, factory: &mut Factory<B>, _aux: &T) {}
 }
 
 pub struct Renderer {
-    graph: Option<rendy::graph::Graph<Backend, ()>>,
+    graph: Option<rendy::graph::Graph<Backend, Data>>,
 }
 
+type Data = crate::scene::traits::Data;
+
 impl crate::scene::traits::Renderer<Hardware> for Renderer {
-    fn create(hardware: &mut Hardware) -> Self {
-        let graph = fill_render_graph(hardware);
+    fn create(hardware: &mut Hardware, world: &Data, res: Arc<ResourceManager>) -> Self {
+        let graph = fill_render_graph(hardware, world, res);
         Self {
             graph: Some(graph),
         }
     }
-    fn run(&mut self, hardware: &mut Hardware, res: &ResourceManager) {
+    fn run(&mut self, hardware: &mut Hardware, res: &ResourceManager, world: &Data) {
         match &mut self.graph {
             Some(x) => {
-                x.run(&mut hardware.factory, &mut hardware.families, &());
+                x.run(&mut hardware.factory, &mut hardware.families, world);
             }
             None => ()
         }
     }
 
-    fn dispose(&mut self, hardware: &mut Hardware) {
+    fn dispose(&mut self, hardware: &mut Hardware, world: &Data) {
         match self.graph.take() {
-            Some(x) => x.dispose(&mut hardware.factory, &()),
+            Some(x) => {
+                x.dispose(&mut hardware.factory, world);
+            }
             None => (),
         }
     }
@@ -157,7 +179,6 @@ impl crate::scene::traits::Hardware for Hardware {
 }
 
 impl Hardware {
-
     pub fn new(config: Config) -> Self {
         let (mut factory, mut families): (Factory<Backend>, _) = rendy::factory::init(config).unwrap();
         let mut event_loop = EventsLoop::new();
@@ -187,10 +208,11 @@ impl Hardware {
     }
 }
 
-pub fn fill_render_graph<'a>(hardware: &mut Hardware) -> rendy::graph::Graph<Backend, ()> {
-    let mut graph_builder = GraphBuilder::<Backend, ()>::new();
+pub fn fill_render_graph<'a>(hardware: &mut Hardware, world: &Data, resources: Arc<ResourceManager>) -> rendy::graph::Graph<Backend, Data> {
+    let mut graph_builder = GraphBuilder::<Backend, Data>::new();
 
-    assert!(hardware.surface.is_some());;
+    assert!(hardware.surface.is_some());
+    ;
     let surface = hardware.surface.take().unwrap();
 
     let size = hardware.window
@@ -215,8 +237,9 @@ pub fn fill_render_graph<'a>(hardware: &mut Hardware) -> rendy::graph::Graph<Bac
             hal::command::ClearDepthStencil(1.0, 0),
         )),
     );
+    let desc = EmptyNodeDesc{ res: resources};
     let pass = graph_builder.add_node(
-        EmptyNode::builder()
+        desc.builder()
             .into_subpass()
             .with_color(color)
             .with_depth_stencil(depth)
@@ -229,6 +252,6 @@ pub fn fill_render_graph<'a>(hardware: &mut Hardware) -> rendy::graph::Graph<Bac
     graph_builder.add_node(present_builder);
     graph_builder
         .with_frames_in_flight(frames)
-        .build(&mut hardware.factory, &mut hardware.families, &())
+        .build(&mut hardware.factory, &mut hardware.families, world)
         .unwrap()
 }

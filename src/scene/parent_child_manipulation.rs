@@ -12,19 +12,19 @@ impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
                 if !self.exists(x) {
                     return Result::Err(GameObjectError::IdNotExisting);
                 }
-                self.object_data[x].children.push(obj);
+                self.world.object_data[x].children.push(obj);
             }
             None => (),
         }
-        match self.object_data[obj].parent {
+        match self.world.object_data[obj].parent {
             None => (),
             Some(x) => {
-                let index = self.object_data[x].children.iter().position(|y| *y == obj).unwrap();
-                self.object_data[x].children.remove(index);
+                let index = self.world.object_data[x].children.iter().position(|y| *y == obj).unwrap();
+                self.world.object_data[x].children.remove(index);
             }
         }
-        self.object_data[obj].parent = new_parent;
-        self.object_data[obj].void_local_matrix(self);
+        self.world.object_data[obj].parent = new_parent;
+        self.world.object_data[obj].void_local_matrix(self);
 
         Result::Ok(())
     }
@@ -40,12 +40,12 @@ mod tests {
         let obj2 = scene.create_game_object();
         scene.set_parent(obj1, Option::Some(obj2)).unwrap();
 
-        assert_eq!(scene.object_data[obj1].parent, Option::Some(obj2));
-        assert!(scene.object_data[obj2].children.contains(&obj1));
+        assert_eq!(scene.world.object_data[obj1].parent, Option::Some(obj2));
+        assert!(scene.world.object_data[obj2].children.contains(&obj1));
 
         scene.set_parent(obj1, Option::None).unwrap();
-        assert_eq!(scene.object_data[obj1].parent, Option::None);
-        assert!(!scene.object_data[obj2].children.contains(&obj1));
+        assert_eq!(scene.world.object_data[obj1].parent, Option::None);
+        assert!(!scene.world.object_data[obj2].children.contains(&obj1));
 
     }
 
