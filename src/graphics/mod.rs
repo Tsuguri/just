@@ -7,7 +7,7 @@ pub mod test_resources;
 
 pub use resources::ResourceManager;
 
-type Backend = rendy::vulkan::Backend;
+//type Backend = rendy::vulkan::Backend;
 
 use failure;
 use std::mem::ManuallyDrop;
@@ -21,7 +21,7 @@ use {
         },
         hal::{self, Device as _, PhysicalDevice as _},
         memory::Dynamic,
-        mesh::{Mesh, Model, PosColorNorm, AsVertex},
+        mesh::{Mesh, Model, PosNormTex, AsVertex},
         resource::{Buffer, BufferInfo, DescriptorSet, DescriptorSetLayout, Escape, Handle},
         wsi::winit::{Event, EventsLoop, WindowBuilder, WindowEvent, Window},
         shader::{ShaderKind, SourceLanguage, SourceShaderInfo, SpirvShader},
@@ -53,11 +53,11 @@ lazy_static::lazy_static! {
         .with_fragment(&*FRAGMENT).unwrap();
 }
 #[derive(Default)]
-struct EmptyNodeDesc {
-    res: Arc<ResourceManager>,
+struct EmptyNodeDesc<B: hal::Backend> {
+    res: Arc<ResourceManager<B>>,
 }
 
-impl std::fmt::Debug for EmptyNodeDesc {
+impl<B: hal::Backend> std::fmt::Debug for EmptyNodeDesc<B> {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(formatter, "EmptyNodeDesc")
     }
@@ -65,7 +65,7 @@ impl std::fmt::Debug for EmptyNodeDesc {
 
 struct EmptyNode<B: hal::Backend> {
     vertex: Option<Escape<Buffer<B>>>,
-    res: Arc<ResourceManager>,
+    res: Arc<ResourceManager<B>>,
 }
 
 impl<B: hal::Backend> std::fmt::Debug for EmptyNode<B> {
@@ -74,7 +74,7 @@ impl<B: hal::Backend> std::fmt::Debug for EmptyNode<B> {
     }
 }
 
-impl<B, T> SimpleGraphicsPipelineDesc<B, T> for EmptyNodeDesc
+impl<B, T> SimpleGraphicsPipelineDesc<B, T> for EmptyNodeDesc<B>
     where
         B: hal::Backend,
         T: ?Sized,
@@ -86,7 +86,7 @@ impl<B, T> SimpleGraphicsPipelineDesc<B, T> for EmptyNodeDesc
         hal::pso::ElemStride,
         hal::pso::VertexInputRate,
     )> {
-        return vec![PosColorNorm::vertex().gfx_vertex_input_desc(hal::pso::VertexInputRate::Vertex)];
+        return vec![PosNormTex::vertex().gfx_vertex_input_desc(hal::pso::VertexInputRate::Vertex)];
     }
 
     fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &T) -> rendy_shader::ShaderSet<B> {
@@ -117,7 +117,7 @@ impl<B, T> SimpleGraphicsPipeline<B, T> for EmptyNode<B>
         B: hal::Backend,
         T: ?Sized,
 {
-    type Desc = EmptyNodeDesc;
+    type Desc = EmptyNodeDesc<B>;
 
     fn prepare(
         &mut self,
@@ -128,11 +128,8 @@ impl<B, T> SimpleGraphicsPipeline<B, T> for EmptyNode<B>
         _aux: &T,
     ) -> PrepareResult {
         if self.vertex.is_none() {
-            #[cfg(feature = "spirv-reflection")]
-                let vbuf_size = SHADER_REFLECTION.attributes_range(..).unwrap().stride as u64 * 3;
 
-            #[cfg(not(feature = "spirv-reflection"))]
-                let vbuf_size = PosColorNorm::vertex().stride as u64 * 3;
+                let vbuf_size = PosNormTex::vertex().stride as u64 * 6;
 
             let mut vbuf = factory
                 .create_buffer(
@@ -151,21 +148,41 @@ impl<B, T> SimpleGraphicsPipeline<B, T> for EmptyNode<B>
                         &mut vbuf,
                         0,
                         &[
-                            PosColorNorm {
+                            PosNormTex {
                                 position: [0.0, -0.5, 0.0].into(),
-                                color: [1.0, 0.0, 0.0, 1.0].into(),
+                                tex_coord: [1.0, 0.0].into(),
                                 normal: [1.0, 1.0, 1.0].into(),
                             },
-                            PosColorNorm {
+                            PosNormTex {
                                 position: [0.5, 0.5, 0.0].into(),
-                                color: [0.0, 1.0, 0.0, 1.0].into(),
+                                tex_coord: [1.0, 0.0].into(),
                                 normal: [1.0, 0.0, 1.0].into(),
                             },
-                            PosColorNorm {
-                                position: [-0.5, 0.5, 0.0].into(),
-                                color: [0.0, 0.0, 1.0, 1.0].into(),
+                            PosNormTex {
+                                position: [0.0, 0.5, 0.0].into(),
+                                tex_coord: [1.0, 0.0].into(),
                                 normal: [0.0, 1.0, 1.0].into(),
                             },
+
+
+
+                            PosNormTex {
+                                position: [0.0, -0.5, 0.0].into(),
+                                normal: [1.0, 1.0, 1.0].into(),
+                                tex_coord: [1.0, 0.0].into(),
+                            },
+                            PosNormTex {
+                                position: [0.5, 0.9, 0.0].into(),
+                                normal: [1.0, 0.0, 1.0].into(),
+                                tex_coord: [1.0, 0.0].into(),
+                            },
+                            PosNormTex {
+                                position: [0.0, 0.5, 0.0].into(),
+                                normal: [0.0, 1.0, 1.0].into(),
+                                tex_coord: [1.0, 0.0].into(),
+                            },
+
+
                         ],
                     )
                     .unwrap();
@@ -178,38 +195,53 @@ impl<B, T> SimpleGraphicsPipeline<B, T> for EmptyNode<B>
     }
 
     fn draw(&mut self, _layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, _aux: &T) {
-        let p = self.res.get_mesh("monkey").unwrap();
+        //let p = self.res.get_mesh("plane").unwrap();
 
-        let monkey_mesh = self.res.get_real_mesh(p);
+        //let monkey_mesh = self.res.get_real_mesh(p);
 
-        let vbuf = self.vertex.as_ref().unwrap();
+        //let vbuf = self.vertex.as_ref().unwrap();
         unsafe {
-            let vertex = [PosColorNorm::vertex()];
-            encoder.bind_vertex_buffers(0, Some((vbuf.raw(), 0)));
-            encoder.draw(0..3, 0..1);
+//            let vertex = [PosNormTex::vertex()];
+            //encoder.bind_vertex_buffers(0, Some((vbuf.raw(), 0)));
+            //encoder.draw(0..3, 0..1);
 
-            monkey_mesh.bind_and_draw(0, &vertex, 0..1, &mut encoder);
+            //monkey_mesh.bind_and_draw(0, &vertex, 0..1, &mut encoder);
+//            monkey_mesh.bind(0, &vertex, &mut encoder);
+//            encoder.draw(0..3, 0..1);
 
+
+
+//            let vbuf = self.vertex.as_ref().unwrap();
+//            encoder.bind_vertex_buffers(0, Some((vbuf.raw(), 0)));
+//            encoder.draw(0..6, 0..1);
+
+
+            let p = self.res.get_mesh("plane").unwrap();
+
+            let monkey_mesh = self.res.get_real_mesh(p);
+            let vertex = [PosNormTex::vertex()];
+            monkey_mesh.bind_and_draw(0, &vertex, 0..1, &mut encoder).unwrap();
+            println!("rendering {} indices", monkey_mesh.len());
         }
     }
 
     fn dispose(self, factory: &mut Factory<B>, _aux: &T) {}
 }
 
-pub struct Renderer {
-    graph: Option<rendy::graph::Graph<Backend, Data>>,
+pub struct Renderer<B: hal::Backend> {
+    graph: Option<rendy::graph::Graph<B, Data>>,
 }
 
 type Data = crate::scene::traits::Data;
 
-impl crate::scene::traits::Renderer<Hardware> for Renderer {
-    fn create(hardware: &mut Hardware, world: &Data, res: Arc<ResourceManager>) -> Self {
+impl<B: hal::Backend> crate::scene::traits::Renderer<Hardware<B>> for Renderer<B> {
+    fn create(hardware: &mut Hardware<B>, world: &Data, res: Arc<ResourceManager<B>>) -> Self {
         let graph = fill_render_graph(hardware, world, res);
         Self {
             graph: Some(graph),
         }
     }
-    fn run(&mut self, hardware: &mut Hardware, res: &ResourceManager, world: &Data) {
+    fn run(&mut self, hardware: &mut Hardware<B>, res: &ResourceManager<B>, world: &Data) {
         match &mut self.graph {
             Some(x) => {
                 x.run(&mut hardware.factory, &mut hardware.families, world);
@@ -218,7 +250,7 @@ impl crate::scene::traits::Renderer<Hardware> for Renderer {
         }
     }
 
-    fn dispose(&mut self, hardware: &mut Hardware, world: &Data) {
+    fn dispose(&mut self, hardware: &mut Hardware<B>, world: &Data) {
         match self.graph.take() {
             Some(x) => {
                 x.dispose(&mut hardware.factory, world);
@@ -228,16 +260,16 @@ impl crate::scene::traits::Renderer<Hardware> for Renderer {
     }
 }
 
-pub struct Hardware {
+pub struct Hardware<B: hal::Backend> {
     pub window: Window,
     pub event_loop: EventsLoop,
-    pub factory: ManuallyDrop<Factory<Backend>>,
-    pub families: ManuallyDrop<Families<Backend>>,
-    pub surface: Option<rendy::wsi::Surface<Backend>>,
+    pub factory: ManuallyDrop<Factory<B>>,
+    pub families: ManuallyDrop<Families<B>>,
+    pub surface: Option<rendy::wsi::Surface<B>>,
     pub used_family: rendy::command::FamilyId,
 }
 
-impl std::ops::Drop for Hardware {
+impl<B: hal::Backend> std::ops::Drop for Hardware<B> {
     fn drop(&mut self) {
         unsafe {
             ManuallyDrop::drop(&mut self.families);
@@ -246,9 +278,9 @@ impl std::ops::Drop for Hardware {
     }
 }
 
-impl crate::scene::traits::Hardware for Hardware {
-    type RM = ResourceManager;
-    type Renderer = Renderer;
+impl<B: hal::Backend> crate::scene::traits::Hardware for Hardware<B> {
+    type RM = ResourceManager<B>;
+    type Renderer = Renderer<B>;
     type Config = i32;
 
     fn create(config: &Self::Config) -> Self {
@@ -257,9 +289,9 @@ impl crate::scene::traits::Hardware for Hardware {
     }
 }
 
-impl Hardware {
+impl<B: hal::Backend> Hardware<B> {
     pub fn new(config: Config) -> Self {
-        let (mut factory, mut families): (Factory<Backend>, _) = rendy::factory::init(config).unwrap();
+        let (mut factory, mut families): (Factory<B>, _) = rendy::factory::init(config).unwrap();
         let mut event_loop = EventsLoop::new();
 
         let monitor_id = event_loop.get_primary_monitor();
@@ -287,8 +319,8 @@ impl Hardware {
     }
 }
 
-pub fn fill_render_graph<'a>(hardware: &mut Hardware, world: &Data, resources: Arc<ResourceManager>) -> rendy::graph::Graph<Backend, Data> {
-    let mut graph_builder = GraphBuilder::<Backend, Data>::new();
+pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world: &Data, resources: Arc<ResourceManager<B>>) -> rendy::graph::Graph<B, Data> {
+    let mut graph_builder = GraphBuilder::<B, Data>::new();
 
     assert!(hardware.surface.is_some());
     ;

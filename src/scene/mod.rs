@@ -59,7 +59,7 @@ pub struct Engine<E: ScriptingEngine, HW: Hardware +'static> {
 
 }
 
-pub type JsEngine = Engine<JsScriptEngine, super::graphics::Hardware>;
+pub type JsEngine = Engine<JsScriptEngine, super::graphics::Hardware<rendy::vulkan::Backend>>;
 
 #[cfg(test)]
 pub type MockEngine = Engine<MockScriptEngine, crate::graphics::test_resources::MockHardware>;

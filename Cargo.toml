@@ -13,3 +13,4 @@ serde = {version="1.0", features=["derive"]}
 rendy = {version="0.3", features=["vulkan", "rendy-shader", "rendy-mesh", "mesh-obj"]}
 failure="0.1"
 lazy_static = "1.0"
+wavefront_obj = "6.0"
