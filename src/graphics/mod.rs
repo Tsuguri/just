@@ -21,7 +21,7 @@ use {
         },
         hal::{self, Device as _, PhysicalDevice as _},
         memory::Dynamic,
-        mesh::{Mesh, Model, PosColorNorm},
+        mesh::{Mesh, Model, PosColorNorm, AsVertex},
         resource::{Buffer, BufferInfo, DescriptorSet, DescriptorSetLayout, Escape, Handle},
         wsi::winit::{Event, EventsLoop, WindowBuilder, WindowEvent, Window},
         shader::{ShaderKind, SourceLanguage, SourceShaderInfo, SpirvShader},
@@ -63,11 +63,12 @@ impl std::fmt::Debug for EmptyNodeDesc {
     }
 }
 
-struct EmptyNode {
+struct EmptyNode<B: hal::Backend> {
+    vertex: Option<Escape<Buffer<B>>>,
     res: Arc<ResourceManager>,
 }
 
-impl std::fmt::Debug for EmptyNode {
+impl<B: hal::Backend> std::fmt::Debug for EmptyNode<B> {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(formatter, "EmptyNode")
     }
@@ -78,7 +79,15 @@ impl<B, T> SimpleGraphicsPipelineDesc<B, T> for EmptyNodeDesc
         B: hal::Backend,
         T: ?Sized,
 {
-    type Pipeline = EmptyNode;
+    type Pipeline = EmptyNode<B>;
+
+    fn vertices(&self) -> Vec<(
+        Vec<hal::pso::Element<hal::format::Format>>,
+        hal::pso::ElemStride,
+        hal::pso::VertexInputRate,
+    )> {
+        return vec![PosColorNorm::vertex().gfx_vertex_input_desc(hal::pso::VertexInputRate::Vertex)];
+    }
 
     fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &T) -> rendy_shader::ShaderSet<B> {
         SHADERS.build(factory, Default::default()).unwrap()
@@ -93,25 +102,95 @@ impl<B, T> SimpleGraphicsPipelineDesc<B, T> for EmptyNodeDesc
         buffers: Vec<NodeBuffer>,
         images: Vec<NodeImage>,
         set_layouts: &[Handle<DescriptorSetLayout<B>>],
-    ) -> Result<EmptyNode, failure::Error> {
+    ) -> Result<EmptyNode<B>, failure::Error> {
         assert!(buffers.is_empty());
         assert!(images.is_empty());
         assert!(set_layouts.is_empty());
 
-        Ok(EmptyNode {res: self.res})
+        Ok(EmptyNode { res: self.res, vertex: None })
     }
 }
 
 
-impl<B, T> SimpleGraphicsPipeline<B, T> for EmptyNode
+impl<B, T> SimpleGraphicsPipeline<B, T> for EmptyNode<B>
     where
         B: hal::Backend,
         T: ?Sized,
 {
     type Desc = EmptyNodeDesc;
 
-    fn draw(&mut self, _layout: &B::PipelineLayout, encoder: RenderPassEncoder<'_, B>, _index: usize, _aux: &T) {
-        let p = self.res.get_mesh("heh");
+    fn prepare(
+        &mut self,
+        factory: &Factory<B>,
+        _queue: QueueId,
+        _set_layouts: &[Handle<DescriptorSetLayout<B>>],
+        _index: usize,
+        _aux: &T,
+    ) -> PrepareResult {
+        if self.vertex.is_none() {
+            #[cfg(feature = "spirv-reflection")]
+                let vbuf_size = SHADER_REFLECTION.attributes_range(..).unwrap().stride as u64 * 3;
+
+            #[cfg(not(feature = "spirv-reflection"))]
+                let vbuf_size = PosColorNorm::vertex().stride as u64 * 3;
+
+            let mut vbuf = factory
+                .create_buffer(
+                    BufferInfo {
+                        size: vbuf_size,
+                        usage: hal::buffer::Usage::VERTEX,
+                    },
+                    Dynamic,
+                )
+                .unwrap();
+
+            unsafe {
+                // Fresh buffer.
+                factory
+                    .upload_visible_buffer(
+                        &mut vbuf,
+                        0,
+                        &[
+                            PosColorNorm {
+                                position: [0.0, -0.5, 0.0].into(),
+                                color: [1.0, 0.0, 0.0, 1.0].into(),
+                                normal: [1.0, 1.0, 1.0].into(),
+                            },
+                            PosColorNorm {
+                                position: [0.5, 0.5, 0.0].into(),
+                                color: [0.0, 1.0, 0.0, 1.0].into(),
+                                normal: [1.0, 0.0, 1.0].into(),
+                            },
+                            PosColorNorm {
+                                position: [-0.5, 0.5, 0.0].into(),
+                                color: [0.0, 0.0, 1.0, 1.0].into(),
+                                normal: [0.0, 1.0, 1.0].into(),
+                            },
+                        ],
+                    )
+                    .unwrap();
+            }
+
+            self.vertex = Some(vbuf);
+        }
+
+        PrepareResult::DrawReuse
+    }
+
+    fn draw(&mut self, _layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, _aux: &T) {
+        let p = self.res.get_mesh("monkey").unwrap();
+
+        let monkey_mesh = self.res.get_real_mesh(p);
+
+        let vbuf = self.vertex.as_ref().unwrap();
+        unsafe {
+            let vertex = [PosColorNorm::vertex()];
+            encoder.bind_vertex_buffers(0, Some((vbuf.raw(), 0)));
+            encoder.draw(0..3, 0..1);
+
+            monkey_mesh.bind_and_draw(0, &vertex, 0..1, &mut encoder);
+
+        }
     }
 
     fn dispose(self, factory: &mut Factory<B>, _aux: &T) {}
@@ -237,7 +316,7 @@ pub fn fill_render_graph<'a>(hardware: &mut Hardware, world: &Data, resources: A
             hal::command::ClearDepthStencil(1.0, 0),
         )),
     );
-    let desc = EmptyNodeDesc{ res: resources};
+    let desc = EmptyNodeDesc { res: resources };
     let pass = graph_builder.add_node(
         desc.builder()
             .into_subpass()

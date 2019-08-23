@@ -116,7 +116,7 @@ impl JsEngine {
 
 
         loop {
-            self.hardware.factory.maintain(&self.hardware.families);
+            self.hardware.factory.maintain(&mut self.hardware.families);
             let inputs = UserInput::poll_events_loop(&mut self.hardware.event_loop, &mut self.keyboard, &mut self.mouse);
             if inputs.end_requested {
                 break;

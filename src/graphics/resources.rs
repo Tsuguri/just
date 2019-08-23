@@ -3,17 +3,22 @@ use rendy::{
 };
 
 use super::Backend;
+use std::collections::HashMap;
 use crate::scene::traits::ResourceManager as RMTrait;
 
 pub struct ResourceManager {
+    mesh_names: HashMap<String, usize>,
     meshes: Vec<Mesh<Backend>>,
+    texture_names: HashMap<String, usize>,
     textures: Vec<rendy::texture::Texture<Backend>>,
 }
 
 impl Default for ResourceManager {
     fn default() -> Self {
         Self {
+            mesh_names: HashMap::new(),
             meshes: vec![],
+            texture_names: HashMap::new(),
             textures: vec![],
         }
     }
@@ -26,10 +31,10 @@ impl RMTrait<super::Hardware> for ResourceManager {
 
 
     fn get_mesh(&self, name: &str) -> Option<Self::MeshId> {
-        None
+        return self.mesh_names.get(name).copied();
     }
     fn get_texture(&self, name: &str) -> Option<Self::TextureId> {
-        None
+        return self.texture_names.get(name).copied();
     }
     fn load_resources(&mut self, config: &Self::Config, hardware: &mut super::Hardware) {
         let path = std::path::Path::new(config);
@@ -52,6 +57,12 @@ impl RMTrait<super::Hardware> for ResourceManager {
 }
 
 impl ResourceManager {
+    pub fn get_real_mesh(&self, id: usize)-> &Mesh<Backend> {
+        return &self.meshes[id];
+
+    }
+
+
     fn load_model(&mut self, hardware: &mut super::Hardware, filename: &std::path::PathBuf) {
         println!("loading model: {:?}", filename);
         let bytes = std::fs::read(filename).unwrap();
@@ -70,5 +81,12 @@ impl ResourceManager {
         let model_builder = obj_builder.pop().unwrap();
         let qid = hardware.families.family(hardware.used_family).queue(0).id();
         let model = model_builder.0.build(qid, &hardware.factory).unwrap();
+
+        let id = self.meshes.len();
+        let name = filename.file_stem().unwrap().to_str().unwrap();
+
+        self.meshes.push(model);
+        self.mesh_names.insert(name.to_owned(), id);
+        println!("{} as: {}", id, name);
     }
 }
