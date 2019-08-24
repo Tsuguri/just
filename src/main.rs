@@ -16,6 +16,10 @@ fn main() {
     let resources = 3i32;
 
     let mut scene = scene::JsEngine::new(&engine_config, &1i32, &"dev_app/res".to_string());
+    let obj = scene.create_game_object();
+
+
+
 
 
 

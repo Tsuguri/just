@@ -12,14 +12,15 @@ pub use traits::*;
 
 use crate::input;
 use game_object::GameObject;
-use scripting::{JsScriptEngine};
+use scripting::JsScriptEngine;
 #[cfg(test)]
 use crate::scene::scripting::test_scripting::MockScriptEngine;
 use std::rc::Rc;
 use std::sync::Arc;
+use failure::_core::num::FpCategory::Nan;
 
 pub struct Mesh<HW: Hardware> {
-    mesh_id:  <HW::RM as ResourceManager<HW>>::MeshId,
+    mesh_id: <HW::RM as ResourceManager<HW>>::MeshId,
     texture_id: Option<<HW::RM as ResourceManager<HW>>::TextureId>,
 }
 
@@ -38,10 +39,20 @@ pub struct WorldData<HW: Hardware> {
 
 }
 
-impl<HW: Hardware +'static> traits::Data for WorldData<HW> {
+impl<HW: Hardware + 'static> traits::Data for WorldData<HW> {
+    fn get_projection_matrix(&self) -> nalgebra_glm::TMat4<f32> {
+        let mut temp = nalgebra_glm::perspective_lh_zo(
+            256.0f32/108.0, f32::to_radians(45.0f32), 0.1f32, 100.0f32);
+        temp[(1, 1)] *= -1.0;
+        temp
+    }
 
+    fn get_view_matrix(&self) -> nalgebra_glm::TMat4<f32> {
+        nalgebra_glm::translation(&nalgebra_glm::vec3(1.0f32, -2.5, 10.0))
+    }
 }
-pub struct Engine<E: ScriptingEngine, HW: Hardware +'static> {
+
+pub struct Engine<E: ScriptingEngine, HW: Hardware + 'static> {
     // at the same time indicates if object is active
     pub objects: Map<bool>,
     pub world: WorldData<HW>,
@@ -70,13 +81,13 @@ pub enum GameObjectError {
     IdNotExisting,
 }
 
-impl<E: ScriptingEngine, HW: Hardware +'static> Engine<E, HW> {
+impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW> {
     //type HWA = i32;
     //use <HW as traits::Hardware> as HW;
     pub fn new(engine_config: &E::Config, hw_config: &HW::Config, rm_config: &<HW::RM as traits::ResourceManager<HW>>::Config) -> Self {
         let mut hardware = HW::create(hw_config);
         let resources = Arc::new(HW::RM::create(rm_config, &mut hardware));
-        let world = WorldData{
+        let world = WorldData {
             object_data: Data::new(),
             renderables: Data::new(),
         };
@@ -102,7 +113,7 @@ impl<E: ScriptingEngine, HW: Hardware +'static> Engine<E, HW> {
     }
 }
 
-impl<E: ScriptingEngine, HW: Hardware +'static> std::ops::Drop for Engine<E, HW> {
+impl<E: ScriptingEngine, HW: Hardware + 'static> std::ops::Drop for Engine<E, HW> {
     fn drop(&mut self) {
         self.renderer.dispose(&mut self.hardware, &self.world);
     }
@@ -113,8 +124,6 @@ impl JsEngine {
         use crate::input::*;
         self.hardware.event_loop.poll_events(|_| ());
 
-
-
         loop {
             self.hardware.factory.maintain(&mut self.hardware.families);
             let inputs = UserInput::poll_events_loop(&mut self.hardware.event_loop, &mut self.keyboard, &mut self.mouse);
@@ -124,7 +133,6 @@ impl JsEngine {
             self.update_scripts();
             self.renderer.run(&mut self.hardware, &self.resources, &self.world);
         }
-
     }
 }
 

@@ -43,8 +43,11 @@ pub trait ScriptingEngine {
 
 
 pub trait Data {
+    fn get_projection_matrix(&self) -> nalgebra_glm::TMat4<f32>;
+    fn get_view_matrix(&self) -> nalgebra_glm::TMat4<f32>;
 
 }
+
 pub trait Renderer<H: Hardware+ ?Sized> {
     fn create(hardware: &mut H, world: &(Data+ 'static), res: Arc<H::RM>)-> Self;
     fn run(&mut self, hardware: &mut H, res: &H::RM, world: &(Data + 'static));

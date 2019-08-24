@@ -7,7 +7,7 @@ pub mod test_resources;
 
 pub use resources::ResourceManager;
 
-//type Backend = rendy::vulkan::Backend;
+use nalgebra_glm as glm;
 
 use failure;
 use std::mem::ManuallyDrop;
@@ -64,7 +64,6 @@ impl<B: hal::Backend> std::fmt::Debug for EmptyNodeDesc<B> {
 }
 
 struct EmptyNode<B: hal::Backend> {
-    vertex: Option<Escape<Buffer<B>>>,
     res: Arc<ResourceManager<B>>,
 }
 
@@ -74,10 +73,9 @@ impl<B: hal::Backend> std::fmt::Debug for EmptyNode<B> {
     }
 }
 
-impl<B, T> SimpleGraphicsPipelineDesc<B, T> for EmptyNodeDesc<B>
+impl<B> SimpleGraphicsPipelineDesc<B, Data> for EmptyNodeDesc<B>
     where
         B: hal::Backend,
-        T: ?Sized,
 {
     type Pipeline = EmptyNode<B>;
 
@@ -88,8 +86,15 @@ impl<B, T> SimpleGraphicsPipelineDesc<B, T> for EmptyNodeDesc<B>
     )> {
         return vec![PosNormTex::vertex().gfx_vertex_input_desc(hal::pso::VertexInputRate::Vertex)];
     }
+    fn layout(&self) -> Layout {
+        let push_constants = vec![(rendy::hal::pso::ShaderStageFlags::VERTEX, 0..(56 * 4))];
+        Layout {
+            sets: Vec::new(),
+            push_constants,
+        }
+    }
 
-    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &T) -> rendy_shader::ShaderSet<B> {
+    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &Data) -> rendy_shader::ShaderSet<B> {
         SHADERS.build(factory, Default::default()).unwrap()
     }
 
@@ -98,7 +103,7 @@ impl<B, T> SimpleGraphicsPipelineDesc<B, T> for EmptyNodeDesc<B>
         _ctx: &GraphContext<B>,
         _factory: &mut Factory<B>,
         _queue: QueueId,
-        _aux: &T,
+        _aux: &Data,
         buffers: Vec<NodeBuffer>,
         images: Vec<NodeImage>,
         set_layouts: &[Handle<DescriptorSetLayout<B>>],
@@ -107,15 +112,14 @@ impl<B, T> SimpleGraphicsPipelineDesc<B, T> for EmptyNodeDesc<B>
         assert!(images.is_empty());
         assert!(set_layouts.is_empty());
 
-        Ok(EmptyNode { res: self.res, vertex: None })
+        Ok(EmptyNode { res: self.res })
     }
 }
 
 
-impl<B, T> SimpleGraphicsPipeline<B, T> for EmptyNode<B>
+impl<B> SimpleGraphicsPipeline<B, Data> for EmptyNode<B>
     where
         B: hal::Backend,
-        T: ?Sized,
 {
     type Desc = EmptyNodeDesc<B>;
 
@@ -125,114 +129,61 @@ impl<B, T> SimpleGraphicsPipeline<B, T> for EmptyNode<B>
         _queue: QueueId,
         _set_layouts: &[Handle<DescriptorSetLayout<B>>],
         _index: usize,
-        _aux: &T,
+        _aux: &Data,
     ) -> PrepareResult {
-        if self.vertex.is_none() {
-
-                let vbuf_size = PosNormTex::vertex().stride as u64 * 6;
-
-            let mut vbuf = factory
-                .create_buffer(
-                    BufferInfo {
-                        size: vbuf_size,
-                        usage: hal::buffer::Usage::VERTEX,
-                    },
-                    Dynamic,
-                )
-                .unwrap();
-
-            unsafe {
-                // Fresh buffer.
-                factory
-                    .upload_visible_buffer(
-                        &mut vbuf,
-                        0,
-                        &[
-                            PosNormTex {
-                                position: [0.0, -0.5, 0.0].into(),
-                                tex_coord: [1.0, 0.0].into(),
-                                normal: [1.0, 1.0, 1.0].into(),
-                            },
-                            PosNormTex {
-                                position: [0.5, 0.5, 0.0].into(),
-                                tex_coord: [1.0, 0.0].into(),
-                                normal: [1.0, 0.0, 1.0].into(),
-                            },
-                            PosNormTex {
-                                position: [0.0, 0.5, 0.0].into(),
-                                tex_coord: [1.0, 0.0].into(),
-                                normal: [0.0, 1.0, 1.0].into(),
-                            },
-
-
-
-                            PosNormTex {
-                                position: [0.0, -0.5, 0.0].into(),
-                                normal: [1.0, 1.0, 1.0].into(),
-                                tex_coord: [1.0, 0.0].into(),
-                            },
-                            PosNormTex {
-                                position: [0.5, 0.9, 0.0].into(),
-                                normal: [1.0, 0.0, 1.0].into(),
-                                tex_coord: [1.0, 0.0].into(),
-                            },
-                            PosNormTex {
-                                position: [0.0, 0.5, 0.0].into(),
-                                normal: [0.0, 1.0, 1.0].into(),
-                                tex_coord: [1.0, 0.0].into(),
-                            },
-
-
-                        ],
-                    )
-                    .unwrap();
-            }
-
-            self.vertex = Some(vbuf);
-        }
-
         PrepareResult::DrawReuse
     }
 
-    fn draw(&mut self, _layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, _aux: &T) {
-        //let p = self.res.get_mesh("plane").unwrap();
-
-        //let monkey_mesh = self.res.get_real_mesh(p);
-
-        //let vbuf = self.vertex.as_ref().unwrap();
+    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &Data) {
         unsafe {
-//            let vertex = [PosNormTex::vertex()];
-            //encoder.bind_vertex_buffers(0, Some((vbuf.raw(), 0)));
-            //encoder.draw(0..3, 0..1);
-
-            //monkey_mesh.bind_and_draw(0, &vertex, 0..1, &mut encoder);
-//            monkey_mesh.bind(0, &vertex, &mut encoder);
-//            encoder.draw(0..3, 0..1);
-
-
-
-//            let vbuf = self.vertex.as_ref().unwrap();
-//            encoder.bind_vertex_buffers(0, Some((vbuf.raw(), 0)));
-//            encoder.draw(0..6, 0..1);
-
-
-            let p = self.res.get_mesh("plane").unwrap();
+            let p = self.res.get_mesh("monkey").unwrap();
 
             let monkey_mesh = self.res.get_real_mesh(p);
             let vertex = [PosNormTex::vertex()];
+
+            {
+
+                let viewOffset: u32 = 0;
+                let projectionOffset: u32 = 16 * 4;
+                let modelOffset: u32 = 16 * 4 * 2;
+
+                let view = data.get_view_matrix();
+
+                encoder.push_constants(
+                    layout,
+                    hal::pso::ShaderStageFlags::VERTEX,
+                    viewOffset,
+                    hal::memory::cast_slice::<f32, u32>(&view.data),
+                );
+
+                let projection = data.get_projection_matrix();
+                encoder.push_constants(
+                    layout,
+                    hal::pso::ShaderStageFlags::VERTEX,
+                    projectionOffset,
+                    hal::memory::cast_slice::<f32, u32>(&projection.data),
+                );
+                let model: glm::TMat4<f32> = glm::rotation(f32::to_radians(180.0), &glm::vec3(0.0f32, 1.0, 0.0));
+                encoder.push_constants(
+                    layout,
+                    hal::pso::ShaderStageFlags::VERTEX,
+                    modelOffset,
+                    hal::memory::cast_slice::<f32, u32>(&model.data),
+                );
+            }
             monkey_mesh.bind_and_draw(0, &vertex, 0..1, &mut encoder).unwrap();
-            println!("rendering {} indices", monkey_mesh.len());
+
         }
     }
 
-    fn dispose(self, factory: &mut Factory<B>, _aux: &T) {}
+    fn dispose(self, factory: &mut Factory<B>, _aux: &Data) {}
 }
 
 pub struct Renderer<B: hal::Backend> {
     graph: Option<rendy::graph::Graph<B, Data>>,
 }
 
-type Data = crate::scene::traits::Data;
+type Data = dyn crate::scene::traits::Data;
 
 impl<B: hal::Backend> crate::scene::traits::Renderer<Hardware<B>> for Renderer<B> {
     fn create(hardware: &mut Hardware<B>, world: &Data, res: Arc<ResourceManager<B>>) -> Self {
