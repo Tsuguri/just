@@ -1,6 +1,7 @@
 use rendy::{
     mesh::{Mesh, MeshBuilder, Normal, Position, TexCoord, PosNormTex},
     hal,
+    texture::image as image,
 };
 use wavefront_obj::obj;
 
@@ -45,8 +46,11 @@ impl<B: hal::Backend> RMTrait<super::Hardware<B>> for ResourceManager<B> {
         for path in paths {
             println!("reading thing: {:?}", path);
             let path = path.unwrap().path();
-            if path.extension().unwrap().to_str() == Some("obj") {
+            let extension = path.extension().unwrap().to_str();
+            if extension == Some("obj") {
                 self.load_model(hardware, &path);
+            } else if extension == Some("png") {
+                self.load_texture(hardware, &path);
             }
         }
     }
@@ -61,6 +65,10 @@ impl<B: hal::Backend> RMTrait<super::Hardware<B>> for ResourceManager<B> {
 impl<B: hal::Backend> ResourceManager<B> {
     pub fn get_real_mesh(&self, id: usize) -> &Mesh<B> {
         return &self.meshes[id];
+    }
+
+    pub fn get_real_texture(&self, id: usize) -> &rendy::texture::Texture<B> {
+        return &self.textures[id];
     }
 
     pub fn load_from_obj(
@@ -137,8 +145,8 @@ impl<B: hal::Backend> ResourceManager<B> {
                 debug_assert!(&normals.len() == &positions.len());
                 debug_assert!(&tex_coords.len() == &positions.len());
 
-                let verts: Vec<_> = positions.into_iter().zip(normals).zip(tex_coords).map(|x|{
-                    PosNormTex{position: (x.0).0, normal: (x.0).1, tex_coord:x.1}
+                let verts: Vec<_> = positions.into_iter().zip(normals).zip(tex_coords).map(|x| {
+                    PosNormTex { position: (x.0).0, normal: (x.0).1, tex_coord: x.1 }
                 }).collect();
 
                 // builder.set_indices(indices.iter().map(|i| i.0 as u16).collect::<Vec<u16>>());
@@ -181,5 +189,38 @@ impl<B: hal::Backend> ResourceManager<B> {
         self.meshes.push(model);
         self.mesh_names.insert(name.to_owned(), id);
         println!("{} as: {} with {} indices", id, name, indices);
+    }
+
+    fn load_texture(&mut self, hardware: &mut super::Hardware<B>, filename: &std::path::PathBuf) {
+        use std::fs::File;
+        use std::io::BufReader;
+        let image_reader = BufReader::new(File::open(filename).unwrap());
+
+
+        let texture_builder = image::load_from_image(
+            image_reader,
+            image::ImageTextureConfig {
+                generate_mips: true,
+                ..Default::default()
+            },
+        ).unwrap();
+
+        let texture = texture_builder
+            .build(
+                rendy::factory::ImageState {
+                    queue: hardware.families.family(hardware.used_family).queue(0).id(),
+                    stage: hal::pso::PipelineStage::FRAGMENT_SHADER,
+                    access: hal::image::Access::SHADER_READ,
+                    layout: hal::image::Layout::ShaderReadOnlyOptimal,
+                },
+                &mut hardware.factory,
+            )
+            .unwrap();
+
+        let id = self.textures.len();
+        let name = filename.file_stem().unwrap().to_str().unwrap();
+
+        self.textures.push(texture);
+        self.texture_names.insert(name.to_owned(), id);
     }
 }

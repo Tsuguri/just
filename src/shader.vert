@@ -13,8 +13,8 @@ layout(location = 2) in vec2 tex_coord;
 layout (location = 0) out gl_PerVertex {
   vec4 gl_Position;
 };
-layout (location = 1) out vec4 frag_color;
+layout (location = 1) out vec2 uv;
 void main() {
-    frag_color = vec4(normal.xyz, 1.0);
+    uv = normal.xy;
     gl_Position = push.projection * push.view * push.model * vec4(pos, 1.0);
 }
