@@ -24,7 +24,6 @@ struct ItemState<T: Ident> {
     pub item: T,
 }
 type MatrixState = ItemState<Matrix>;
-type QuatState = ItemState<Quat>;
 
 impl<T: Ident> ItemState<T> {
     fn new() -> Self {

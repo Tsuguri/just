@@ -15,9 +15,7 @@ use game_object::GameObject;
 use scripting::JsScriptEngine;
 #[cfg(test)]
 use crate::scene::scripting::test_scripting::MockScriptEngine;
-use std::rc::Rc;
 use std::sync::Arc;
-use failure::_core::num::FpCategory::Nan;
 
 pub struct Mesh<HW: Hardware> {
     mesh_id: <HW::RM as ResourceManager<HW>>::MeshId,
@@ -107,7 +105,7 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW> {
     }
 
     fn update_scripts(&mut self) {
-        for (id, script) in &mut self.controllers {
+        for ( _, script) in &mut self.controllers {
             script.update();
         }
     }
@@ -186,7 +184,7 @@ mod tests {
 
     #[test]
     fn simple() {
-        let mrm = MockResourceManager {};
-        let scene = MockEngine::new(&(1i32.into()), &1, &1);
+        let _mrm = MockResourceManager {};
+        let _scene = MockEngine::new(&(1i32.into()), &1, &1);
     }
 }

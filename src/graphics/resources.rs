@@ -42,7 +42,7 @@ impl<B: hal::Backend> RMTrait<super::Hardware<B>> for ResourceManager<B> {
     fn load_resources(&mut self, config: &Self::Config, hardware: &mut super::Hardware<B>) {
         let path = std::path::Path::new(config);
         println!("Loading resources from: {}", std::fs::canonicalize(path).unwrap().display());
-        let paths = std::fs::read_dir(path).map_err(|err| "counldn't read directory").unwrap();
+        let paths = std::fs::read_dir(path).map_err(|_| "counldn't read directory").unwrap();
         for path in paths {
             println!("reading thing: {:?}", path);
             let path = path.unwrap().path();
@@ -165,7 +165,7 @@ impl<B: hal::Backend> ResourceManager<B> {
     fn load_model(&mut self, hardware: &mut super::Hardware<B>, filename: &std::path::PathBuf) {
         println!("loading model: {:?}", filename);
         let bytes = std::fs::read(filename).unwrap();
-        let mut obj_builder = Self::load_from_obj(&bytes);
+        let obj_builder = Self::load_from_obj(&bytes);
         let mut obj_builder = match obj_builder {
             Ok(x) => x,
             Err(y) => {

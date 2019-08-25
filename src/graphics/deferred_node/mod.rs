@@ -1,0 +1,224 @@
+use super::node_prelude::*;
+
+lazy_static::lazy_static! {
+    static ref VERTEX: SpirvShader = SourceShaderInfo::new(
+        include_str!("shader.vert"),
+        "deferred_node/shader.vert".into(),
+        ShaderKind::Vertex,
+        SourceLanguage::GLSL,
+        "main",
+    ).precompile().unwrap();
+
+    static ref FRAGMENT: SpirvShader = SourceShaderInfo::new(
+        include_str!("shader.frag"),
+        "deferred_node/shader.frag".into(),
+        ShaderKind::Fragment,
+        SourceLanguage::GLSL,
+        "main",
+    ).precompile().unwrap();
+
+    static ref SHADERS: rendy::shader::ShaderSetBuilder = rendy::shader::ShaderSetBuilder::default()
+        .with_vertex(&*VERTEX).unwrap()
+        .with_fragment(&*FRAGMENT).unwrap();
+}
+
+#[derive(Default)]
+pub struct DeferredNodeDesc<B: hal::Backend> {
+    pub res: Arc<ResourceManager<B>>,
+}
+
+
+pub struct DeferredNode<B: hal::Backend> {
+    res: Arc<ResourceManager<B>>,
+    descriptor_set: Escape<DescriptorSet<B>>,
+}
+
+impl<B: hal::Backend> std::fmt::Debug for DeferredNodeDesc<B> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(formatter, "DeferredNodeDesc")
+    }
+}
+
+impl<B: hal::Backend> std::fmt::Debug for DeferredNode<B> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(formatter, "DeferredNode")
+    }
+}
+
+impl<B> SimpleGraphicsPipelineDesc<B, Data> for DeferredNodeDesc<B>
+    where
+        B: hal::Backend,
+{
+    type Pipeline = DeferredNode<B>;
+
+    fn vertices(&self) -> Vec<(
+        Vec<hal::pso::Element<hal::format::Format>>,
+        hal::pso::ElemStride,
+        hal::pso::VertexInputRate,
+    )> {
+        return vec![PosNormTex::vertex().gfx_vertex_input_desc(hal::pso::VertexInputRate::Vertex)];
+    }
+    fn layout(&self) -> Layout {
+        let push_constants = vec![(rendy::hal::pso::ShaderStageFlags::VERTEX, 0..(56 * 4))];
+        let sets = vec![
+            SetLayout {
+                bindings: vec![
+                    hal::pso::DescriptorSetLayoutBinding {
+                        binding: 0,
+                        ty: hal::pso::DescriptorType::SampledImage,
+                        count: 1,
+                        stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
+                        immutable_samplers: false,
+                    },
+                    hal::pso::DescriptorSetLayoutBinding {
+                        binding: 1,
+                        ty: hal::pso::DescriptorType::Sampler,
+                        count: 1,
+                        stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
+                        immutable_samplers: false,
+                    },
+                ],
+            }
+        ];
+        Layout {
+            sets,
+            push_constants,
+        }
+    }
+
+    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &Data) -> ShaderSet<B> {
+        SHADERS.build(factory, Default::default()).unwrap()
+    }
+
+    fn build<'a>(
+        self,
+        _ctx: &GraphContext<B>,
+        factory: &mut Factory<B>,
+        _queue: QueueId,
+        _data: &Data,
+        buffers: Vec<NodeBuffer>,
+        images: Vec<NodeImage>,
+        set_layouts: &[Handle<DescriptorSetLayout<B>>],
+    ) -> Result<DeferredNode<B>, failure::Error> {
+        assert!(buffers.is_empty());
+        assert!(images.is_empty());
+        assert_eq!(set_layouts.len(), 1);
+
+        let texture_id = self.res.get_texture("creature").unwrap();
+        let texture = self.res.get_real_texture(texture_id);
+
+        let descriptor_set = factory
+            .create_descriptor_set(set_layouts[0].clone())
+            .unwrap();
+        unsafe {
+            factory.device().write_descriptor_sets(vec![
+                hal::pso::DescriptorSetWrite {
+                    set: descriptor_set.raw(),
+                    binding: 0,
+                    array_offset: 0,
+                    descriptors: vec![hal::pso::Descriptor::Image(
+                        texture.view().raw(),
+                        hal::image::Layout::ShaderReadOnlyOptimal,
+                    )],
+                },
+                hal::pso::DescriptorSetWrite {
+                    set: descriptor_set.raw(),
+                    binding: 1,
+                    array_offset: 0,
+                    descriptors: vec![hal::pso::Descriptor::Sampler(texture.sampler().raw())],
+                },
+            ]);
+        }
+
+
+        Ok(DeferredNode { res: self.res, descriptor_set })
+    }
+}
+
+
+impl<B> SimpleGraphicsPipeline<B, Data> for DeferredNode<B>
+    where
+        B: hal::Backend,
+{
+    type Desc = DeferredNodeDesc<B>;
+
+    fn prepare(
+        &mut self,
+        _factory: &Factory<B>,
+        _queue: QueueId,
+        _set_layouts: &[Handle<DescriptorSetLayout<B>>],
+        _index: usize,
+        _aux: &Data,
+    ) -> PrepareResult {
+        PrepareResult::DrawReuse
+    }
+
+    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &Data) {
+        unsafe {
+            let p = self.res.get_mesh("monkey").unwrap();
+            let p2 = self.res.get_mesh("teapot3").unwrap();
+            let monkey_mesh = self.res.get_real_mesh(p);
+            let teapot_mesh = self.res.get_real_mesh(p2);
+
+
+            let vertex = [PosNormTex::vertex()];
+            let model_offset: u32 = 16 * 4 * 2;
+
+
+            {
+                encoder.bind_graphics_descriptor_sets(
+                    layout,
+                    0,
+                    std::iter::once(self.descriptor_set.raw()),
+                    std::iter::empty::<u32>(),
+                );
+            }
+
+            {
+                let view_offset: u32 = 0;
+                let projection_offset: u32 = 16 * 4;
+
+                let view = data.get_view_matrix();
+
+                encoder.push_constants(
+                    layout,
+                    hal::pso::ShaderStageFlags::VERTEX,
+                    view_offset,
+                    hal::memory::cast_slice::<f32, u32>(&view.data),
+                );
+
+                let projection = data.get_projection_matrix();
+                encoder.push_constants(
+                    layout,
+                    hal::pso::ShaderStageFlags::VERTEX,
+                    projection_offset,
+                    hal::memory::cast_slice::<f32, u32>(&projection.data),
+                );
+            }
+            {
+                let model: glm::TMat4<f32> = glm::rotation(f32::to_radians(180.0), &glm::vec3(0.0f32, 1.0, 0.0));
+                encoder.push_constants(
+                    layout,
+                    hal::pso::ShaderStageFlags::VERTEX,
+                    model_offset,
+                    hal::memory::cast_slice::<f32, u32>(&model.data),
+                );
+                monkey_mesh.bind_and_draw(0, &vertex, 0..1, &mut encoder).unwrap();
+            }
+            {
+                let model: glm::TMat4<f32> =
+                    glm::translation(&glm::vec3(4.0f32, 0.0, 0.0));
+                glm::rotation(f32::to_radians(180.0), &glm::vec3(0.0f32, 1.0, 0.0));
+                encoder.push_constants(
+                    layout,
+                    hal::pso::ShaderStageFlags::VERTEX,
+                    model_offset,
+                    hal::memory::cast_slice::<f32, u32>(&model.data),
+                );
+                teapot_mesh.bind_and_draw(0, &vertex, 0..1, &mut encoder).unwrap();
+            }
+        }
+    }
+
+    fn dispose(self, _factory: &mut Factory<B>, _aux: &Data) {}
+}
