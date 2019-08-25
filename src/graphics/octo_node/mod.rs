@@ -114,7 +114,6 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for OctoNodeDesc<B>
         assert_eq!(images.len(), 1);
         assert_eq!(set_layouts.len(), 1);
 
-        println!("creating!");
         let image_sampler =
             factory.create_sampler(SamplerInfo::new(Filter::Nearest, WrapMode::Clamp))?;
 
@@ -134,11 +133,9 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for OctoNodeDesc<B>
             )
             .expect("Could not create tonemapper input image view");
 
-        println!("middle of creation!");
         let descriptor_set = factory
             .create_descriptor_set(set_layouts[0].clone())
             .unwrap();
-        println!("writing descriptor set!");
         unsafe {
             factory.device().write_descriptor_sets(vec![
                 hal::pso::DescriptorSetWrite {
@@ -158,7 +155,6 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for OctoNodeDesc<B>
                 },
             ]);
         }
-        println!("created!");
 
         Result::Ok(OctoNode {
             res: self.res,
@@ -185,7 +181,6 @@ impl<B: hal::Backend> SimpleGraphicsPipeline<B, Data> for OctoNode<B> {
 
     fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &Data) {
         unsafe {
-            println!("drawing!");
             encoder.bind_graphics_descriptor_sets(
                 layout,
                 0,

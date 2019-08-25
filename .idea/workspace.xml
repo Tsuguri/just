@@ -5,25 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0ff2cdbb-5802-48f4-bca4-cb5948f5939d" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/build.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/dev_app/renderer.octo" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/graphics/deferred_node/mod.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/graphics/node_prelude.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/graphics/octo_node/mod.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/graphics/octo_node/shader.frag" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/graphics/octo_node/shader.vert" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/graphics/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/graphics/resources.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/resources.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/graphics/test_resources.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/test_resources.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/game_object.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/game_object.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/scripting/js_scripting/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/scripting/js_scripting/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/scripting/test_scripting.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/scripting/test_scripting.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shader.frag" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/deferred_node/shader.frag" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shader.vert" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/deferred_node/shader.vert" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/graphics/octo_node/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/octo_node/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/graphics/octo_node/shader.frag" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/octo_node/shader.frag" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -65,8 +48,8 @@
           <file pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/src/graphics/octo_node/shader.frag">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="204">
-                  <caret line="12" column="5" selection-start-line="12" selection-start-column="5" selection-end-line="12" selection-end-column="5" />
+                <state relative-caret-position="170">
+                  <caret line="10" selection-start-line="10" selection-end-line="10" />
                 </state>
               </provider>
             </entry>
@@ -114,8 +97,8 @@
           <file pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/src/graphics/octo_node/mod.rs">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="405">
-                  <caret line="124" column="15" selection-start-line="124" selection-start-column="15" selection-end-line="124" selection-end-column="15" />
+                <state relative-caret-position="374">
+                  <caret line="116" selection-start-line="116" selection-end-line="116" />
                 </state>
               </provider>
             </entry>
@@ -185,10 +168,10 @@
         <option value="$PROJECT_DIR$/src/graphics/deferred_node/mod.rs" />
         <option value="$PROJECT_DIR$/src/graphics/octo_node.rs" />
         <option value="$PROJECT_DIR$/src/graphics/node_prelude.rs" />
-        <option value="$PROJECT_DIR$/src/graphics/octo_node/mod.rs" />
         <option value="$PROJECT_DIR$/src/graphics/octo_node/shader.vert" />
         <option value="$PROJECT_DIR$/src/graphics/mod.rs" />
         <option value="$PROJECT_DIR$/src/graphics/octo_node/shader.frag" />
+        <option value="$PROJECT_DIR$/src/graphics/octo_node/mod.rs" />
       </list>
     </option>
   </component>
@@ -714,13 +697,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/graphics/octo_node/mod.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="405">
-          <caret line="124" column="15" selection-start-line="124" selection-start-column="15" selection-end-line="124" selection-end-column="15" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/graphics/mod.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="493">
@@ -728,10 +704,17 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/graphics/octo_node/mod.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="374">
+          <caret line="116" selection-start-line="116" selection-end-line="116" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/graphics/octo_node/shader.frag">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="204">
-          <caret line="12" column="5" selection-start-line="12" selection-start-column="5" selection-end-line="12" selection-end-column="5" />
+        <state relative-caret-position="170">
+          <caret line="10" selection-start-line="10" selection-end-line="10" />
         </state>
       </provider>
     </entry>
