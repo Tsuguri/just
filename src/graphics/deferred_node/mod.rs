@@ -27,6 +27,20 @@ pub struct DeferredNodeDesc<B: hal::Backend> {
     pub res: Arc<ResourceManager<B>>,
 }
 
+impl<B: hal::Backend> DeferredNodeDesc<B> {
+    pub fn position_format(&self) -> hal::format::Format {
+        hal::format::Format::Rgba32Sfloat
+    }
+
+    pub fn normal_format(&self) -> hal::format::Format {
+        hal::format::Format::Rgba32Sfloat
+    }
+
+    pub fn albedo_format(&self) -> hal::format::Format {
+        hal::format::Format::Rgba32Sfloat
+    }
+}
+
 
 pub struct DeferredNode<B: hal::Backend> {
     res: Arc<ResourceManager<B>>,
@@ -51,12 +65,28 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for DeferredNodeDesc<B>
 {
     type Pipeline = DeferredNode<B>;
 
+    fn colors(&self) -> Vec<hal::pso::ColorBlendDesc> {
+        vec![
+            hal::pso::ColorBlendDesc {
+                mask: hal::pso::ColorMask::ALL,
+                blend: None,
+            },
+            hal::pso::ColorBlendDesc {
+                mask: hal::pso::ColorMask::ALL,
+                blend: None,
+            },
+            hal::pso::ColorBlendDesc {
+                mask: hal::pso::ColorMask::ALL,
+                blend: None,
+            },
+        ]
+    }
     fn vertices(&self) -> Vec<(
         Vec<hal::pso::Element<hal::format::Format>>,
         hal::pso::ElemStride,
         hal::pso::VertexInputRate,
     )> {
-        return vec![PosNormTex::vertex().gfx_vertex_input_desc(hal::pso::VertexInputRate::Vertex)];
+        vec![PosNormTex::vertex().gfx_vertex_input_desc(hal::pso::VertexInputRate::Vertex)]
     }
     fn layout(&self) -> Layout {
         let push_constants = vec![(rendy::hal::pso::ShaderStageFlags::VERTEX, 0..(56 * 4))];
@@ -150,7 +180,7 @@ impl<B> SimpleGraphicsPipeline<B, Data> for DeferredNode<B>
         _index: usize,
         _aux: &Data,
     ) -> PrepareResult {
-        PrepareResult::DrawReuse
+        PrepareResult::DrawRecord
     }
 
     fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &Data) {

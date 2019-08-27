@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["Adam Winiarczuk <adamosca@gmail.com>"]
 edition = "2018"
 
-[build-dependencies]
-octo = {path="../octo/octo"}
+#[build-dependencies]
+#octo = {path="../octo/octo"}
 
 [dependencies]
 # js scripting engine:
@@ -14,7 +14,8 @@ octo_runtime = {path="../octo/octo_runtime"}
 slotmap = "0.3.0"
 nalgebra-glm ="0.4.0"
 serde = {version="1.0", features=["derive"]}
-rendy = {version="0.3", features=["vulkan", "rendy-shader", "rendy-mesh", "mesh-obj", "texture-image"]}
+serde_json = "1.0"
+rendy = {path = "../rendy/rendy", features=["vulkan", "rendy-shader", "rendy-mesh", "mesh-obj", "texture-image"]}
 failure="0.1"
 lazy_static = "1.0"
 wavefront_obj = "6.0"

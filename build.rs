@@ -1,11 +1,6 @@
 fn main() {
-    let path = "dev_app/renderer.octo";
-    octo::process_file(&path).unwrap();
-/*
-    let path_vert = "src/vert.glsl";
-    octo::process_glsl_debug(&path_vert, octo::Shader::Vertex);
-
-    let path_frag = "src/frag.glsl";
-    octo::process_glsl_debug(&path_frag, octo::Shader::Fragment);
-    */
+    //let path = "dev_app/renderer.octo";
+    //octo::process_file(&path).unwrap();
+    //octo::emit_test_module("src/test_module.octo_bin");
+    //println!("cargo:rerun-if-changed=Cargo.toml");
 }

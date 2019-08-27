@@ -13,13 +13,12 @@ pub use resources::ResourceManager;
 use std::mem::ManuallyDrop;
 use {
     rendy::{
-        command::{Families},
+        command::Families,
         factory::{Config, Factory},
         graph::{
             present::PresentNode, render::*, GraphBuilder,
         },
         hal,
-
         wsi::winit::{EventsLoop, WindowBuilder, Window},
     },
 };
@@ -132,55 +131,203 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
         .to_physical(hardware.window.get_hidpi_factor());
     let window_kind = hal::image::Kind::D2(size.width as u32, size.height as u32, 1, 1);
 
+
+    // final image to be shown on screen
     let color = graph_builder.create_image(
         window_kind,
         1,
         hardware.factory.get_surface_format(&surface),
-        Some(hal::command::ClearValue::Color([0.0, 1.0, 1.0, 1.0].into())),
+        Some(hal::command::ClearValue::Color([0.1, 0.1, 0.1, 1.0].into())),
     );
 
-    let hdr = graph_builder.create_image(
-        hal::image::Kind::D2(size.width as u32, size.height as u32, 1, 1),
-        1,
-        hal::format::Format::Rgba32Sfloat,
-        Some(hal::command::ClearValue::Color([0.1, 0.3, 0.4, 1.0].into())),
-    );
+    let window_size = hal::image::Kind::D2(size.width as u32, size.height as u32, 1, 1);
+    // deferred_pass producing base data
+    let (deferred_pass, (position, normal, albedo)) = {
+        let deferred_desc = deferred_node::DeferredNodeDesc { res: resources.clone() };
 
-    let test_color = graph_builder.create_image(
-        window_kind,
-        1,
-        hardware.factory.get_surface_format(&surface),
-        Some(hal::command::ClearValue::Color([0.5, 1.0, 1.0, 1.0].into())),
-    );
+        let gbuffer_size = window_size;
 
-    let depth = graph_builder.create_image(
-        window_kind,
-        1,
-        hal::format::Format::D16Unorm,
-        Some(hal::command::ClearValue::DepthStencil(
-            hal::command::ClearDepthStencil(1.0, 0),
-        )),
-    );
 
-    let desc = deferred_node::DeferredNodeDesc { res: resources.clone() };
-    let desc2 = octo_node::OctoNodeDesc{res: resources};
-    let pass = graph_builder.add_node(
-        desc.builder()
-            .into_subpass()
-            .with_color(hdr)
-            .with_depth_stencil(depth)
-            .into_pass(),
-    );
+        let position = graph_builder.create_image(
+            gbuffer_size,
+            1,
+            deferred_desc.position_format(),
+            Some(hal::command::ClearValue::Color([0.0, 0.0, 0.0, 0.0].into())),
+        );
+        let normal = graph_builder.create_image(
+            gbuffer_size,
+            1,
+            deferred_desc.normal_format(),
+            Some(hal::command::ClearValue::Color([0.0, 0.0, 0.0, 0.0].into())),
+        );
+        let albedo = graph_builder.create_image(
+            gbuffer_size,
+            1,
+            deferred_desc.albedo_format(),
+            Some(hal::command::ClearValue::Color([0.0, 0.0, 0.0, 0.0].into())),
+        );
 
-    let pass2 = graph_builder.add_node(
-        desc2.builder()
-            .with_image(hdr)
-            .into_subpass()
-            .with_dependency(pass)
-            .with_color(color)
-            .into_pass()
+
+        let depth = graph_builder.create_image(
+            window_kind,
+            1,
+            hal::format::Format::D16Unorm,
+            Some(hal::command::ClearValue::DepthStencil(
+                hal::command::ClearDepthStencil(1.0, 0),
+            )),
+        );
+        let deferred_pass = graph_builder.add_node(
+            deferred_desc.builder()
+                .into_subpass()
+                .with_color(position)
+                .with_color(normal)
+                .with_color(albedo)
+                .with_depth_stencil(depth)
+                .into_pass(),
+        );
+
+        (deferred_pass, (position, normal, albedo))
+    };
+
+    // loading renderer definition
+    let f = include_str!("../test_module.octo_bin");
+    let octo_module: OctoModule = serde_json::from_str(&f).unwrap();
+
+    // make sure that our renderer fits objects rendering
+    assert!(octo_module.required_input.len() == 3);
+    assert!(octo_module.required_input[0].1 == octo_runtime::TextureType::Vec4);
+    assert!(octo_module.required_input[1].1 == octo_runtime::TextureType::Vec4);
+    assert!(octo_module.required_input[2].1 == octo_runtime::TextureType::Vec4);
+
+    // create needed textures
+    let textures: Vec<_> = octo_module.textures.iter().map(|(id, t, size)| {
+        use octo_runtime::TextureType::*;
+        let t = match t {
+            Float => rendy::hal::format::Format::R32Sfloat,
+            Vec2 => rendy::hal::format::Format::Rg32Sfloat,
+            Vec3 => rendy::hal::format::Format::Rgb32Sfloat,
+            Vec4 => rendy::hal::format::Format::Rgba32Sfloat,
+        };
+
+        //ignoring size for now
+        let image = graph_builder.create_image(
+            window_size,
+            1,
+            t,
+            Some(hal::command::ClearValue::Color([0.0, 0.0, 0.0, 0.0].into())),
+        );
+
+        (id, t, image)
+    }).collect();
+
+    // create passes builders
+    let mut passes = vec![];
+
+    for (id, pass) in octo_module.passes.iter().enumerate() {
+        // temporary check
+        assert!(id == pass.id);
+
+        let node_desc = octo_node::OctoNodeDesc {
+            res: resources.clone(),
+            images: pass.input.iter().map(|x| {
+                use octo_runtime::InputType::*;
+                match x {
+                    ProvidedTexture(id) => {
+                        match id {
+                            0 =>
+                                hal::format::Format::Rgba32Sfloat,
+                            1 =>
+                                hal::format::Format::Rgba32Sfloat,
+                            2 =>
+                                hal::format::Format::Rgba32Sfloat,
+                            _ => unreachable!(),
+                        }
+                    }
+                    PipelineTexture(id) => textures[*id].1,
+                }
+            }).collect(),
+            vertex_shader: std::cell::RefCell::new(octo_module.basic_vertex_spirv.clone()),
+            fragment_shader: std::cell::RefCell::new(octo_module.fragment_shaders[&pass.shader].1.clone()),
+            stage_name: "test_stage".to_owned(),
+            stage_id: id,
+        };
+        passes.push(node_desc.builder());
+    }
+
+
+    // assign needed textures
+    let mut id = 0;
+    for pass in &mut passes {
+        let definition = &octo_module.passes[id];
+        for tex in &definition.input {
+            use octo_runtime::InputType::*;
+            let texture = match tex {
+                PipelineTexture(id) => { textures[*id].2 }
+                ProvidedTexture(id) => {
+                    match id {
+                        0 => position,
+                        1 => normal,
+                        2 => albedo,
+                        _ => unreachable!(),
+                    }
+                }
+            };
+            pass.add_image(texture);
+        }
+
+        id = id+1;
+    }
+
+    let mut subpasses: Vec<_> = passes.drain(0..passes.len()).map(|x| {
+        x.into_subpass()
+    }).collect();
+
+    let mut id = 0;
+    for pass in &mut subpasses {
+        let definition = &octo_module.passes[id];
+        id = id + 1;
+        use octo_runtime::OutputType::*;
+        match &definition.output {
+            Result => {
+                pass.add_color(color);
+            }
+            Textures(ids) => {
+                for id in ids {
+                    pass.add_color(textures[*id].2);
+                }
+            }
+        }
+    }
+
+    let mut nodes = vec![];
+
+    let mut present_builder = PresentNode::builder(
+        &hardware.factory,
+        surface,
+        color,
     );
-    let present_builder = PresentNode::builder(&hardware.factory, surface, color).with_dependency(pass2);
+    let mut id = 0;
+    for mut pass in subpasses.drain(0..subpasses.len()) {
+        let definition = &octo_module.passes[id];
+        id = id + 1;
+        if let Some(deps) = &definition.dependencies{
+            for dependency in deps {
+                pass.add_dependency(nodes[*dependency]);
+            }
+
+        } else {
+            pass.add_dependency(deferred_pass);
+        }
+
+        let node_id = graph_builder.add_node(pass.into_pass());
+
+        if definition.output == octo_runtime::OutputType::Result{
+            present_builder.add_dependency(node_id);
+
+        }
+        nodes.push(node_id);
+
+    }
 
     let frames = present_builder.image_count();
 

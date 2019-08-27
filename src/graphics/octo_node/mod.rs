@@ -1,30 +1,15 @@
 use super::node_prelude::*;
 
-lazy_static::lazy_static! {
-    static ref VERTEX: SpirvShader = SourceShaderInfo::new(
-        include_str!("shader.vert"),
-        "deferred_node/shader.vert".into(),
-        ShaderKind::Vertex,
-        SourceLanguage::GLSL,
-        "main",
-    ).precompile().unwrap();
-
-    static ref FRAGMENT: SpirvShader = SourceShaderInfo::new(
-        include_str!("shader.frag"),
-        "deferred_node/shader.frag".into(),
-        ShaderKind::Fragment,
-        SourceLanguage::GLSL,
-        "main",
-    ).precompile().unwrap();
-
-    static ref SHADERS: rendy::shader::ShaderSetBuilder = rendy::shader::ShaderSetBuilder::default()
-        .with_vertex(&*VERTEX).unwrap()
-        .with_fragment(&*FRAGMENT).unwrap();
-}
+use rendy::shader::SourceCodeShaderInfo;
 
 #[derive(Default)]
 pub struct OctoNodeDesc<B: hal::Backend> {
+    pub images: Vec<hal::format::Format>,
     pub res: Arc<ResourceManager<B>>,
+    pub vertex_shader: std::cell::RefCell<Vec<u32>>,
+    pub fragment_shader: std::cell::RefCell<Vec<u32>>,
+    pub stage_name: String,
+    pub stage_id: usize,
 }
 
 
@@ -32,18 +17,18 @@ pub struct OctoNode<B: hal::Backend> {
     res: Arc<ResourceManager<B>>,
     descriptor_set: Escape<DescriptorSet<B>>,
     image_sampler: Escape<Sampler<B>>,
-    image_view: Escape<ImageView<B>>,
+    image_views: Vec<Escape<ImageView<B>>>,
 }
 
 impl<B: hal::Backend> std::fmt::Debug for OctoNodeDesc<B> {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(formatter, "DeferredNodeDesc")
+        write!(formatter, "OctoNodeDesc")
     }
 }
 
 impl<B: hal::Backend> std::fmt::Debug for OctoNode<B> {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(formatter, "DeferredNode")
+        write!(formatter, "OctoNode")
     }
 }
 
@@ -51,13 +36,25 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for OctoNodeDesc<B>
     where B: hal::Backend {
     type Pipeline = OctoNode<B>;
 
+    fn colors(&self) -> Vec<hal::pso::ColorBlendDesc> {
+        vec![
+            hal::pso::ColorBlendDesc {
+                mask: hal::pso::ColorMask::ALL,
+                blend: None,
+            },
+        ]
+    }
     fn images(&self) -> Vec<ImageAccess> {
-        vec![ImageAccess {
+        std::iter::repeat(ImageAccess {
             access: hal::image::Access::SHADER_READ,
             usage: hal::image::Usage::SAMPLED,
             layout: hal::image::Layout::ShaderReadOnlyOptimal,
             stages: hal::pso::PipelineStage::FRAGMENT_SHADER,
-        }]
+        }).take(self.images.len()).collect()
+    }
+
+    fn depth_stencil(&self) -> Option<hal::pso::DepthStencilDesc> {
+        None
     }
 
     fn layout(&self) -> Layout {
@@ -74,7 +71,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for OctoNodeDesc<B>
                     hal::pso::DescriptorSetLayoutBinding {
                         binding: 1,
                         ty: hal::pso::DescriptorType::SampledImage,
-                        count: 1,
+                        count: self.images.len(),
                         stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
                         immutable_samplers: false,
                     },
@@ -83,21 +80,19 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for OctoNodeDesc<B>
             push_constants: Vec::new(),
         }
     }
-    fn depth_stencil(&self) -> Option<hal::pso::DepthStencilDesc> {
-        None
-    }
-    fn vertices(&self) -> Vec<(
-        Vec<hal::pso::Element<hal::format::Format>>,
-        hal::pso::ElemStride,
-        hal::pso::VertexInputRate,
-    )> {
-        return vec![
-            Position::vertex().gfx_vertex_input_desc(hal::pso::VertexInputRate::Vertex)
-        ];
-    }
 
     fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &Data) -> ShaderSet<B> {
-        SHADERS.build(factory, Default::default()).unwrap()
+
+        let fragment_spirv= self.fragment_shader.replace(vec![]);
+        let vertex_spirv= self.vertex_shader.replace(vec![]);
+
+       let fragment = SpirvShader::new(fragment_spirv, hal::pso::ShaderStageFlags::FRAGMENT, "main");
+        let vertex = SpirvShader::new(vertex_spirv, hal::pso::ShaderStageFlags::VERTEX, "main");
+
+        let shaders: rendy::shader::ShaderSetBuilder = rendy::shader::ShaderSetBuilder::default()
+            .with_vertex(&vertex).unwrap()
+            .with_fragment(&fragment).unwrap();
+        shaders.build(factory, Default::default()).unwrap()
     }
 
     fn build<'a>(
@@ -110,57 +105,71 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for OctoNodeDesc<B>
         images: Vec<NodeImage>,
         set_layouts: &[Handle<DescriptorSetLayout<B>>],
     ) -> Result<OctoNode<B>, failure::Error> {
+        use std::iter::Iterator as _;
         assert!(buffers.is_empty());
-        assert_eq!(images.len(), 1);
+        assert_eq!(images.len(), self.images.len());
         assert_eq!(set_layouts.len(), 1);
 
         let image_sampler =
             factory.create_sampler(SamplerInfo::new(Filter::Nearest, WrapMode::Clamp))?;
 
-        let image_handle = ctx
-            .get_image(images[0].id)
-            .ok_or(failure::format_err!("Tonemapper HDR image missing"))?;
+        let mut image_views = Vec::with_capacity(self.images.len());
 
-        let image_view = factory
-            .create_image_view(
-                image_handle.clone(),
-                ImageViewInfo {
-                    view_kind: ViewKind::D2,
-                    format: hal::format::Format::Rgba32Sfloat,
-                    swizzle: hal::format::Swizzle::NO,
-                    range: images[0].range.clone(),
-                },
-            )
-            .expect("Could not create tonemapper input image view");
+        for (id, image_format) in self.images.iter().enumerate() {
+            let image_handle = ctx
+                .get_image(images[id].id)
+                .ok_or(failure::format_err!("Tonemapper HDR image missing"))?;
+
+            let image_view = factory
+                .create_image_view(
+                    image_handle.clone(),
+                    ImageViewInfo {
+                        view_kind: ViewKind::D2,
+                        format: *image_format,
+                        swizzle: hal::format::Swizzle::NO,
+                        range: images[0].range.clone(),
+                    },
+                )
+                .map_err(|_err| failure::format_err!("Could not create tonemapper input image view"))?;
+            image_views.push(image_view);
+        }
+
 
         let descriptor_set = factory
-            .create_descriptor_set(set_layouts[0].clone())
-            .unwrap();
+            .create_descriptor_set(set_layouts[0].clone())?;
         unsafe {
-            factory.device().write_descriptor_sets(vec![
-                hal::pso::DescriptorSetWrite {
-                    set: descriptor_set.raw(),
-                    binding: 1,
-                    array_offset: 0,
-                    descriptors: vec![hal::pso::Descriptor::Image(
-                        image_view.raw(),
-                        hal::image::Layout::ShaderReadOnlyOptimal,
-                    )],
-                },
+            let mut descriptor_set_operations =
+            vec![
                 hal::pso::DescriptorSetWrite {
                     set: descriptor_set.raw(),
                     binding: 0,
                     array_offset: 0,
                     descriptors: vec![hal::pso::Descriptor::Sampler(image_sampler.raw())],
                 },
-            ]);
+            ];
+
+            for (id, image) in image_views.iter().enumerate() {
+
+                descriptor_set_operations.push(
+                    hal::pso::DescriptorSetWrite {
+                        set: descriptor_set.raw(),
+                        binding: 1,
+                        array_offset: id,
+                        descriptors: vec![hal::pso::Descriptor::Image(
+                            image.raw(),
+                            hal::image::Layout::ShaderReadOnlyOptimal,
+                        )],
+                    }
+                );
+            }
+            factory.device().write_descriptor_sets(descriptor_set_operations);
         }
 
         Result::Ok(OctoNode {
             res: self.res,
             descriptor_set,
             image_sampler,
-            image_view,
+            image_views,
         })
     }
 }
@@ -179,7 +188,7 @@ impl<B: hal::Backend> SimpleGraphicsPipeline<B, Data> for OctoNode<B> {
         PrepareResult::DrawReuse
     }
 
-    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &Data) {
+    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, _data: &Data) {
         unsafe {
             encoder.bind_graphics_descriptor_sets(
                 layout,
