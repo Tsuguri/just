@@ -6,22 +6,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0ff2cdbb-5802-48f4-bca4-cb5948f5939d" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/../octo/octo/src/basic_fragment.glsl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../octo/octo/src/basic_vertex.glsl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build.rs" beforeDir="false" afterPath="$PROJECT_DIR$/build.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dev_app/renderer.octo_bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/graphics/deferred_node/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/deferred_node/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/graphics/deferred_node/shader.frag" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/deferred_node/shader.frag" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/graphics/deferred_node/shader.vert" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/deferred_node/shader.vert" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/graphics/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/graphics/octo_node/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/octo_node/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/graphics/octo_node/shader.frag" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/octo_node/shader.frag" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../octo/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/../octo/Cargo.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../octo/octo.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../octo/octo.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../octo/octo/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/../octo/octo/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test_module.octo_bin" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../octo/octo/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../octo/octo/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../octo/octo_runtime/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../octo/octo_runtime/src/lib.rs" afterDir="false" />
     </list>
@@ -32,46 +20,56 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="FileEditorManager">
-    <splitter split-orientation="horizontal" split-proportion="0.62507254">
-      <split-first>
-        <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-          <file pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/Cargo.toml">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="136">
-                  <caret line="8" selection-start-line="8" selection-end-line="8" />
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file pinned="false" current-in-tab="true">
-            <entry file="file://$PROJECT_DIR$/../octo/octo/src/lib.rs">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="382">
-                  <caret line="87" column="16" selection-start-line="87" selection-start-column="16" selection-end-line="87" selection-end-column="16" />
-                  <folding>
-                    <element signature="e#361#662#1" />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-        </leaf>
-      </split-first>
-      <split-second>
-        <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-          <file pinned="false" current-in-tab="true">
-            <entry file="file://$PROJECT_DIR$/src/graphics/deferred_node/shader.vert">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="493">
-                  <caret line="29" column="22" selection-start-line="29" selection-start-column="22" selection-end-line="29" selection-end-column="22" />
-                </state>
-              </provider>
-            </entry>
-          </file>
-        </leaf>
-      </split-second>
-    </splitter>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/Cargo.toml">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="136">
+              <caret line="8" selection-start-line="8" selection-end-line="8" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/graphics/mod.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="305">
+              <caret line="193" column="36" selection-start-line="193" selection-start-column="36" selection-end-line="193" selection-end-column="36" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../octo/octo/src/lib.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="662">
+              <caret line="133" column="24" selection-start-line="133" selection-start-column="24" selection-end-line="133" selection-end-column="24" />
+              <folding>
+                <element signature="e#361#662#1" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/dev_app/renderer.octo_bin">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="136">
+              <caret line="8" column="5" selection-start-line="8" selection-start-column="5" selection-end-line="8" selection-end-column="5" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../octo/octo_runtime/src/lib.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="677">
+              <caret line="63" selection-start-line="63" selection-end-line="63" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -86,7 +84,7 @@
     </findStrings>
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../octo" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
@@ -131,13 +129,14 @@
         <option value="$PROJECT_DIR$/src/graphics/octo_node/shader.frag" />
         <option value="$PROJECT_DIR$/src/graphics/deferred_node/mod.rs" />
         <option value="$PROJECT_DIR$/src/graphics/deferred_node/shader.vert" />
-        <option value="$PROJECT_DIR$/../octo/octo_runtime/src/lib.rs" />
         <option value="$PROJECT_DIR$/../octo/octo/src/basic_fragment.glsl" />
         <option value="$PROJECT_DIR$/build.rs" />
         <option value="$PROJECT_DIR$/Cargo.toml" />
+        <option value="$PROJECT_DIR$/src/graphics/octo_node/mod.rs" />
+        <option value="$PROJECT_DIR$/../octo/Cargo.toml" />
+        <option value="$PROJECT_DIR$/../octo/octo_runtime/src/lib.rs" />
         <option value="$PROJECT_DIR$/../octo/octo/src/lib.rs" />
         <option value="$PROJECT_DIR$/src/graphics/mod.rs" />
-        <option value="$PROJECT_DIR$/src/graphics/octo_node/mod.rs" />
       </list>
     </option>
   </component>
@@ -205,12 +204,6 @@
               <item name="just" type="b2602c69:ProjectViewProjectNode" />
               <item name="octo" type="462c0819:PsiDirectoryNode" />
               <item name="octo" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="just" type="b2602c69:ProjectViewProjectNode" />
-              <item name="octo" type="462c0819:PsiDirectoryNode" />
-              <item name="octo" type="462c0819:PsiDirectoryNode" />
-              <item name="src" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="just" type="b2602c69:ProjectViewProjectNode" />
@@ -433,7 +426,7 @@
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
       <window_info anchor="right" id="Cargo" order="3" weight="0.32966584" />
       <window_info anchor="right" id="Palette&#9;" order="4" />
-      <window_info active="true" anchor="right" x="1526" y="216" width="685" height="453" id="Run" order="5" sideWeight="0.4991587" visible="true" weight="0.10717197" />
+      <window_info active="true" anchor="right" x="1526" y="216" width="685" height="453" id="Run" order="5" sideWeight="0.4991587" visible="true" weight="0.399348" />
     </layout>
     <layout-to-restore>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.19437653" />
@@ -702,18 +695,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../octo/octo_runtime/src/lib.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="68">
-          <caret line="4" selection-start-line="4" selection-end-line="4" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/dev_app/renderer.octo_bin">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-10126" />
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/rust-toolchain">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
@@ -724,9 +705,6 @@
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
     <entry file="file://$PROJECT_DIR$/../octo/.gitignore">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../octo/Cargo.toml">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
     <entry file="file://$PROJECT_DIR$/../octo/octo_showcase/Cargo.toml">
@@ -771,13 +749,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/graphics/mod.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="391">
-          <caret line="249" column="48" selection-start-line="249" selection-start-column="48" selection-end-line="249" selection-end-column="48" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/Cargo.toml">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="136">
@@ -799,20 +770,48 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/../octo/Cargo.toml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="119">
+          <caret line="7" selection-start-line="7" selection-end-line="7" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/graphics/deferred_node/shader.vert">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="493">
-          <caret line="29" column="22" selection-start-line="29" selection-start-column="22" selection-end-line="29" selection-end-column="22" />
+        <state relative-caret-position="204">
+          <caret line="12" column="39" selection-start-line="12" selection-start-column="39" selection-end-line="12" selection-end-column="39" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../octo/octo_runtime/src/lib.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="677">
+          <caret line="63" selection-start-line="63" selection-end-line="63" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/../octo/octo/src/lib.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="382">
-          <caret line="87" column="16" selection-start-line="87" selection-start-column="16" selection-end-line="87" selection-end-column="16" />
+        <state relative-caret-position="662">
+          <caret line="133" column="24" selection-start-line="133" selection-start-column="24" selection-end-line="133" selection-end-column="24" />
           <folding>
             <element signature="e#361#662#1" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/dev_app/renderer.octo_bin">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="136">
+          <caret line="8" column="5" selection-start-line="8" selection-start-column="5" selection-end-line="8" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/graphics/mod.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="305">
+          <caret line="193" column="36" selection-start-line="193" selection-start-column="36" selection-end-line="193" selection-end-column="36" />
         </state>
       </provider>
     </entry>

@@ -190,7 +190,10 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
     };
 
     // loading renderer definition
-    let f = include_str!("../test_module.octo_bin");
+
+    let f = std::fs::read_to_string("dev_app/renderer.octo_bin").unwrap();
+
+    //let f = include_str!("../test_module.octo_bin");
     let octo_module: OctoModule = serde_json::from_str(&f).unwrap();
 
     // make sure that our renderer fits objects rendering
@@ -247,7 +250,7 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
                 }
             }).collect(),
             vertex_shader: std::cell::RefCell::new(octo_module.basic_vertex_spirv.clone()),
-            fragment_shader: std::cell::RefCell::new(octo_module.fragment_shaders[&pass.shader].1.clone()),
+            fragment_shader: std::cell::RefCell::new(octo_module.fragment_shaders[&pass.shader].clone()),
             stage_name: "test_stage".to_owned(),
             stage_id: id,
         };
