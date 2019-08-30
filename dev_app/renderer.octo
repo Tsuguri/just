@@ -1,33 +1,11 @@
-gpu_fun firstGPU(tex: vec4) -> (color: vec4){
-"#version 450
-/*layout (push_constant) uniform PushConsts {
-    float time;
-} push;
-*/
-
-
-layout (location = 1) in vec2 frag_uv;
-
-layout(set = 0, binding = 0) uniform texture2D tex;
-layout(set = 0, binding = 1) uniform sampler samp;
-
-layout(location = 0) out vec4 color;
-void main()
-{
-    //float time01 = -0.9 * abs(sin( 0.9)) + 0.9;
-    color = texture(sampler2D(tex, samp), frag_uv);
-    //color = mix(tex_color, vec4(1.0, 0.5, 1.0, 1.0), time01);
-}"
+gpu_fun test_name(pos: vec4, normal: vec4, albedo: vec4) -> (color: vec4){
+"
+    color = pos;
+    color.w = 1.0;
+"
 }
 
-gpu_fun second_GPU() -> () {
-"#version 450
-layout (location = 2) in vec2 frag_uv;
-
-layout(location = 0) out vec4 color;
-
-void main()
-{
-    color = vec4(frag_uv, 0.0, 1.0);
-}"
+pipeline octo(pos: vec4, normal: vec4, albedo: vec4) -> (vec4){
+    let result = test_name(pos, normal, albedo);
+    return result;
 }

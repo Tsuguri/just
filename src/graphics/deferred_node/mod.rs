@@ -1,5 +1,8 @@
 use super::node_prelude::*;
 
+
+type Data<B: hal::Backend> = crate::scene::traits::Data<super::Hardware<B>>;
+
 lazy_static::lazy_static! {
     static ref VERTEX: SpirvShader = SourceShaderInfo::new(
         include_str!("shader.vert"),
@@ -41,10 +44,13 @@ impl<B: hal::Backend> DeferredNodeDesc<B> {
     }
 }
 
+use super::Hardware;
+use crate::scene::traits::{MeshId, TextureId};
 
 pub struct DeferredNode<B: hal::Backend> {
     res: Arc<ResourceManager<B>>,
     descriptor_set: Escape<DescriptorSet<B>>,
+    renderables_buffer: Option<Vec<(MeshId<Hardware<B>>, Option<TextureId<Hardware<B>>>, crate::scene::math::Matrix)>>,
 }
 
 impl<B: hal::Backend> std::fmt::Debug for DeferredNodeDesc<B> {
@@ -59,7 +65,7 @@ impl<B: hal::Backend> std::fmt::Debug for DeferredNode<B> {
     }
 }
 
-impl<B> SimpleGraphicsPipelineDesc<B, Data> for DeferredNodeDesc<B>
+impl<B> SimpleGraphicsPipelineDesc<B, Data<B>> for DeferredNodeDesc<B>
     where
         B: hal::Backend,
 {
@@ -116,7 +122,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for DeferredNodeDesc<B>
         }
     }
 
-    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &Data) -> ShaderSet<B> {
+    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &Data<B>) -> ShaderSet<B> {
         SHADERS.build(factory, Default::default()).unwrap()
     }
 
@@ -125,7 +131,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for DeferredNodeDesc<B>
         _ctx: &GraphContext<B>,
         factory: &mut Factory<B>,
         _queue: QueueId,
-        _data: &Data,
+        _data: &Data<B>,
         buffers: Vec<NodeBuffer>,
         images: Vec<NodeImage>,
         set_layouts: &[Handle<DescriptorSetLayout<B>>],
@@ -161,12 +167,12 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for DeferredNodeDesc<B>
         }
 
 
-        Ok(DeferredNode { res: self.res, descriptor_set })
+        Ok(DeferredNode { res: self.res, descriptor_set, renderables_buffer: None })
     }
 }
 
 
-impl<B> SimpleGraphicsPipeline<B, Data> for DeferredNode<B>
+impl<B> SimpleGraphicsPipeline<B, Data<B>> for DeferredNode<B>
     where
         B: hal::Backend,
 {
@@ -178,22 +184,18 @@ impl<B> SimpleGraphicsPipeline<B, Data> for DeferredNode<B>
         _queue: QueueId,
         _set_layouts: &[Handle<DescriptorSetLayout<B>>],
         _index: usize,
-        _aux: &Data,
+        _aux: &Data<B>,
     ) -> PrepareResult {
         PrepareResult::DrawRecord
     }
 
-    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &Data) {
+    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &Data<B>) {
         unsafe {
-            let p = self.res.get_mesh("monkey").unwrap();
-            let p2 = self.res.get_mesh("teapot3").unwrap();
-            let monkey_mesh = self.res.get_real_mesh(p);
-            let teapot_mesh = self.res.get_real_mesh(p2);
-
-
             let vertex = [PosNormTex::vertex()];
-            let model_offset: u32 = 16 * 4 * 2;
 
+            // offset of model matrix in push constants
+            // 16 fields, 4 bytes each, 2 matrices before.
+            let model_offset: u32 = 16 * 4 * 2;
 
             {
                 encoder.bind_graphics_descriptor_sets(
@@ -225,30 +227,28 @@ impl<B> SimpleGraphicsPipeline<B, Data> for DeferredNode<B>
                     hal::memory::cast_slice::<f32, u32>(&projection.data),
                 );
             }
-            {
-                let model: glm::TMat4<f32> = glm::rotation(f32::to_radians(180.0), &glm::vec3(0.0f32, 1.0, 0.0));
+
+            let buf = self.renderables_buffer.take();
+
+            let buf = data.get_renderables(buf);
+
+            for renderable in &buf {
+                let model = renderable.2;
+
                 encoder.push_constants(
                     layout,
                     hal::pso::ShaderStageFlags::VERTEX,
                     model_offset,
                     hal::memory::cast_slice::<f32, u32>(&model.data),
                 );
-                monkey_mesh.bind_and_draw(0, &vertex, 0..1, &mut encoder).unwrap();
+                let mesh = self.res.get_real_mesh(renderable.0);
+                mesh.bind_and_draw(0, &vertex, 0..1, &mut encoder).unwrap();
+
             }
-            {
-                let model: glm::TMat4<f32> =
-                    glm::translation(&glm::vec3(4.0f32, 0.0, 0.0));
-                glm::rotation(f32::to_radians(180.0), &glm::vec3(0.0f32, 1.0, 0.0));
-                encoder.push_constants(
-                    layout,
-                    hal::pso::ShaderStageFlags::VERTEX,
-                    model_offset,
-                    hal::memory::cast_slice::<f32, u32>(&model.data),
-                );
-                teapot_mesh.bind_and_draw(0, &vertex, 0..1, &mut encoder).unwrap();
-            }
+            self.renderables_buffer = Some(buf);
+
         }
     }
 
-    fn dispose(self, _factory: &mut Factory<B>, _aux: &Data) {}
+    fn dispose(self, _factory: &mut Factory<B>, _aux: &Data<B>) {}
 }

@@ -17,7 +17,14 @@ fn main() {
     let _resources = 3i32;
 
     let mut scene = scene::JsEngine::new(&engine_config, &1i32, &"dev_app/res".to_string());
-    let _obj = scene.create_game_object();
+    let obj = scene.create_game_object();
+    scene.add_renderable(obj, "teapot3");
+
+    let obj2 = scene.create_game_object();
+
+    scene.world.set_local_position(obj2, glm::vec3(2.0f32, 0.0, 1.0));
+
+    scene.add_renderable(obj2, "monkey");
 
 
 

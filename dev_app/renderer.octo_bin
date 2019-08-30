@@ -1,5 +1,5 @@
 {
-  "name": "Debug module",
+  "name": "octo",
   "version": 0,
   "basic_vertex_spirv": [
     119734787,
@@ -625,7 +625,7 @@
   ],
   "required_input": [
     [
-      "color",
+      "pos",
       "Vec4"
     ],
     [

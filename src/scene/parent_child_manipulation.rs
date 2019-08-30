@@ -24,7 +24,7 @@ impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
             }
         }
         self.world.object_data[obj].parent = new_parent;
-        self.world.object_data[obj].void_local_matrix(self);
+        self.world.object_data[obj].void_local_matrix(&self.world);
 
         Result::Ok(())
     }

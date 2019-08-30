@@ -13,7 +13,12 @@ pub trait ResourceManager<HW: Hardware + ?Sized> {
     fn create(config: &Self::Config, hardware: &mut HW) -> Self;
 
 }
+
+pub type MeshId<HW: Hardware> = <HW::RM as ResourceManager<HW>>::MeshId;
+pub type TextureId<HW: Hardware> = <HW::RM as ResourceManager<HW>>::TextureId;
+
 pub use super::GameObjectId;
+use super::math::*;
 use std::sync::Arc;
 
 pub trait Controller {
@@ -42,16 +47,20 @@ pub trait ScriptingEngine {
 }
 
 
-pub trait Data {
-    fn get_projection_matrix(&self) -> nalgebra_glm::TMat4<f32>;
-    fn get_view_matrix(&self) -> nalgebra_glm::TMat4<f32>;
+pub trait Data<HW: Hardware> {
+    fn get_projection_matrix(&self) -> Matrix;
+    fn get_view_matrix(&self) -> Matrix;
 
+    fn get_renderables(
+        &self,
+        buffer: Option<Vec<(MeshId<HW>, Option<TextureId<HW>>, Matrix)>>
+    ) -> Vec<(MeshId<HW>, Option<TextureId<HW>>, Matrix)>;
 }
 
 pub trait Renderer<H: Hardware+ ?Sized> {
-    fn create(hardware: &mut H, world: &(Data+ 'static), res: Arc<H::RM>)-> Self;
-    fn run(&mut self, hardware: &mut H, res: &H::RM, world: &(Data + 'static));
-    fn dispose(&mut self, hardware: &mut H, world: &(Data + 'static));
+    fn create(hardware: &mut H, world: &(Data<H>+ 'static), res: Arc<H::RM>)-> Self;
+    fn run(&mut self, hardware: &mut H, res: &H::RM, world: &(Data<H> + 'static));
+    fn dispose(&mut self, hardware: &mut H, world: &(Data<H> + 'static));
 }
 
 pub trait Hardware {

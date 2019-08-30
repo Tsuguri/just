@@ -2,7 +2,7 @@ use slotmap::SparseSecondaryMap as SecondaryMap;
 
 mod game_object;
 pub mod scripting;
-mod math;
+pub mod math;
 mod parent_child_manipulation;
 mod transform;
 mod components;
@@ -18,8 +18,8 @@ use crate::scene::scripting::test_scripting::MockScriptEngine;
 use std::sync::Arc;
 
 pub struct Mesh<HW: Hardware> {
-    mesh_id: <HW::RM as ResourceManager<HW>>::MeshId,
-    texture_id: Option<<HW::RM as ResourceManager<HW>>::TextureId>,
+    pub mesh_id: MeshId<HW>,
+    pub texture_id: Option<TextureId<HW>>,
 }
 
 struct Animator;
@@ -37,16 +37,48 @@ pub struct WorldData<HW: Hardware> {
 
 }
 
-impl<HW: Hardware + 'static> traits::Data for WorldData<HW> {
-    fn get_projection_matrix(&self) -> nalgebra_glm::TMat4<f32> {
+impl<HW: Hardware> WorldData<HW> {
+    pub fn add_renderable(&mut self, id: GameObjectId,mesh: Mesh<HW>){
+        self.renderables.insert(id, mesh);
+    }
+}
+
+use math::Matrix;
+
+impl<HW: Hardware + 'static> traits::Data<HW> for WorldData<HW> {
+    fn get_projection_matrix(&self) -> Matrix {
         let mut temp = nalgebra_glm::perspective_lh_zo(
-            256.0f32/108.0, f32::to_radians(45.0f32), 0.1f32, 100.0f32);
+            256.0f32 / 108.0, f32::to_radians(45.0f32), 0.1f32, 100.0f32);
         temp[(1, 1)] *= -1.0;
         temp
     }
 
-    fn get_view_matrix(&self) -> nalgebra_glm::TMat4<f32> {
+    fn get_view_matrix(&self) -> Matrix {
         nalgebra_glm::translation(&nalgebra_glm::vec3(1.0f32, -2.5, 10.0))
+    }
+
+    fn get_renderables(
+        &self,
+        buffer: Option<Vec<(MeshId<HW>, Option<TextureId<HW>>, Matrix)>>
+    ) -> Vec<(MeshId<HW>, Option<TextureId<HW>>, Matrix)> {
+        let mut buf = match buffer {
+            Some(mut vec) => {
+                if vec.len() < self.renderables.len() {
+                    vec.reserve(self.renderables.len() - vec.len());
+                }
+                vec
+            }
+            None => Vec::with_capacity(self.renderables.len()),
+        };
+
+        //fill here
+        for renderable in &self.renderables {
+
+            let mat = self.object_data[renderable.0].get_global_matrix(self);
+
+            buf.push((renderable.1.mesh_id, renderable.1.texture_id, mat));
+        }
+        buf
     }
 }
 
@@ -105,7 +137,7 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW> {
     }
 
     fn update_scripts(&mut self) {
-        for ( _, script) in &mut self.controllers {
+        for (_, script) in &mut self.controllers {
             script.update();
         }
     }
@@ -174,6 +206,16 @@ impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
         self.world.object_data.remove(id);
         self.world.renderables.remove(id);
         self.controllers.remove(id);
+    }
+
+    pub fn add_renderable(&mut self, id: GameObjectId, mesh: &str) {
+        let mesh = self.resources.get_mesh(mesh).unwrap();
+        let mesh = Mesh{
+            mesh_id: mesh,
+            texture_id: None,
+        };
+
+        self.world.add_renderable(id, mesh);
     }
 }
 
