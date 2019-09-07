@@ -2,6 +2,9 @@ use crate::scene::math::*;
 use super::js;
 use js::ContextGuard;
 
+use super::api_helpers::*;
+use crate::scene::scripting::InternalTypes;
+
 macro_rules! val {
         ($x:expr, $g:ident) => {
             match $x {
@@ -12,19 +15,24 @@ macro_rules! val {
     }
 impl super::JsScriptEngine {
     pub fn create_math_api(&mut self) {
+        let math = self.create_api_module("Math");
         let guard = self.guard();
         let global = guard.global();
         let math = js::value::Object::new(&guard);
         global.set(&guard, js::Property::new(&guard, "Math"), math.clone());
-        Self::create_vector_api(&guard, &math);
+        let vec3_prototype = Self::create_vector_api(&guard, &math);
+
+        drop(guard);
+        self.prototypes.0.insert(InternalTypes::Vec3, vec3_prototype);
     }
 
-    fn create_vector_api(guard: &ContextGuard, parent: &js::value::Object){
+    fn create_vector_api(guard: &ContextGuard, parent: &js::value::Object)-> js::value::Object{
         let vector_prototype = js::value::Object::new(guard);
         {
             // define methods here
 
         }
+        let proto2 = vector_prototype.clone();
 
         let factory_function = js::value::Function::new(guard, Box::new(move |g, args|{
             let values = match args.arguments.len() {
@@ -44,5 +52,6 @@ impl super::JsScriptEngine {
 
         }));
         parent.set(guard, js::Property::new(guard,"Vector"), factory_function);
+        proto2
     }
 }

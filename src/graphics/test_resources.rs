@@ -19,23 +19,21 @@ impl Hardware for MockHardware {
 }
 
 impl Renderer<MockHardware> for MockRenderer {
-    fn create(_hardware: &mut MockHardware, _world: &Data<MockHardware>, _res: Arc<MockResourceManager>) -> Self {
+    fn create(_hardware: &mut MockHardware, _world: &Data, _res: Arc<MockResourceManager>) -> Self {
         Self {}
     }
-    fn run(&mut self, _hardware: &mut MockHardware, _res: &MockResourceManager, _world: &Data<MockHardware>) {}
-    fn dispose(&mut self, _hardware: &mut MockHardware, _world: &Data<MockHardware>){}
+    fn run(&mut self, _hardware: &mut MockHardware, _res: &MockResourceManager, _world: &Data) {}
+    fn dispose(&mut self, _hardware: &mut MockHardware, _world: &Data){}
 }
 
 impl ResourceManager<MockHardware> for MockResourceManager {
     type Config = i32;
-    type MeshId = usize;
-    type TextureId = usize;
 
 
-    fn get_mesh(&self, _name: &str) -> Option<Self::MeshId> {
+    fn get_mesh(&self, _name: &str) -> Option<MeshId> {
         None
     }
-    fn get_texture(&self, _name: &str) -> Option<Self::TextureId> {
+    fn get_texture(&self, _name: &str) -> Option<TextureId> {
         None
     }
     fn load_resources(&mut self, _config: &Self::Config, _hardware: &mut MockHardware) {}

@@ -28,19 +28,19 @@ use octo_runtime::OctoModule;
 
 
 pub struct Renderer<B: hal::Backend> {
-    graph: Option<rendy::graph::Graph<B, Data<B>>>,
+    graph: Option<rendy::graph::Graph<B, Data>>,
 }
 
-type Data<B: hal::Backend> = dyn crate::scene::traits::Data<Hardware<B>>;
+type Data = crate::scene::traits::Data;
 
 impl<B: hal::Backend> crate::scene::traits::Renderer<Hardware<B>> for Renderer<B> {
-    fn create(hardware: &mut Hardware<B>, world: &Data<B>, res: Arc<ResourceManager<B>>) -> Self {
+    fn create(hardware: &mut Hardware<B>, world: &Data, res: Arc<ResourceManager<B>>) -> Self {
         let graph = fill_render_graph(hardware, world, res);
         Self {
             graph: Some(graph),
         }
     }
-    fn run(&mut self, hardware: &mut Hardware<B>, _res: &ResourceManager<B>, world: &Data<B>) {
+    fn run(&mut self, hardware: &mut Hardware<B>, _res: &ResourceManager<B>, world: &Data) {
         match &mut self.graph {
             Some(x) => {
                 x.run(&mut hardware.factory, &mut hardware.families, world);
@@ -49,7 +49,7 @@ impl<B: hal::Backend> crate::scene::traits::Renderer<Hardware<B>> for Renderer<B
         }
     }
 
-    fn dispose(&mut self, hardware: &mut Hardware<B>, world: &Data<B>) {
+    fn dispose(&mut self, hardware: &mut Hardware<B>, world: &Data) {
         match self.graph.take() {
             Some(x) => {
                 x.dispose(&mut hardware.factory, world);
@@ -118,8 +118,8 @@ impl<B: hal::Backend> Hardware<B> {
     }
 }
 
-pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world: &Data<B>, resources: Arc<ResourceManager<B>>) -> rendy::graph::Graph<B, Data<B>> {
-    let mut graph_builder = GraphBuilder::<B, Data<B>>::new();
+pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world: &Data, resources: Arc<ResourceManager<B>>) -> rendy::graph::Graph<B, Data> {
+    let mut graph_builder = GraphBuilder::<B, Data>::new();
 
     assert!(hardware.surface.is_some());
 

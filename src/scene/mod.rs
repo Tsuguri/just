@@ -17,9 +17,9 @@ use scripting::JsScriptEngine;
 use crate::scene::scripting::test_scripting::MockScriptEngine;
 use std::sync::Arc;
 
-pub struct Mesh<HW: Hardware> {
-    pub mesh_id: MeshId<HW>,
-    pub texture_id: Option<TextureId<HW>>,
+pub struct Mesh {
+    pub mesh_id: traits::MeshId,
+    pub texture_id: Option<traits::TextureId>,
 }
 
 struct Animator;
@@ -31,21 +31,24 @@ slotmap::new_key_type!(pub struct GameObjectId;);
 type Map<T> = slotmap::HopSlotMap<GameObjectId, T>;
 type Data<T> = SecondaryMap<GameObjectId, T>;
 
-pub struct WorldData<HW: Hardware> {
+pub struct WorldData {
     pub object_data: Data<GameObject>,
-    pub renderables: Data<Mesh<HW>>,
+    pub renderables: Data<Mesh>,
 
 }
 
-impl<HW: Hardware> WorldData<HW> {
-    pub fn add_renderable(&mut self, id: GameObjectId,mesh: Mesh<HW>){
+unsafe impl Send for WorldData{}
+unsafe impl Sync for WorldData{}
+
+impl WorldData {
+    pub fn add_renderable(&mut self, id: GameObjectId,mesh: Mesh){
         self.renderables.insert(id, mesh);
     }
 }
 
 use math::Matrix;
 
-impl<HW: Hardware + 'static> traits::Data<HW> for WorldData<HW> {
+impl traits::Data for WorldData {
     fn get_projection_matrix(&self) -> Matrix {
         let mut temp = nalgebra_glm::perspective_lh_zo(
             256.0f32 / 108.0, f32::to_radians(45.0f32), 0.1f32, 100.0f32);
@@ -59,8 +62,8 @@ impl<HW: Hardware + 'static> traits::Data<HW> for WorldData<HW> {
 
     fn get_renderables(
         &self,
-        buffer: Option<Vec<(MeshId<HW>, Option<TextureId<HW>>, Matrix)>>
-    ) -> Vec<(MeshId<HW>, Option<TextureId<HW>>, Matrix)> {
+        buffer: Option<Vec<(traits::MeshId, Option<traits::TextureId>, Matrix)>>
+    ) -> Vec<(traits::MeshId, Option<traits::TextureId>, Matrix)> {
         let mut buf = match buffer {
             Some(mut vec) => {
                 if vec.len() < self.renderables.len() {
@@ -85,7 +88,7 @@ impl<HW: Hardware + 'static> traits::Data<HW> for WorldData<HW> {
 pub struct Engine<E: ScriptingEngine, HW: Hardware + 'static> {
     // at the same time indicates if object is active
     pub objects: Map<bool>,
-    pub world: WorldData<HW>,
+    pub world: WorldData,
 
     controllers: Data<E::Controller>,
 
@@ -100,7 +103,8 @@ pub struct Engine<E: ScriptingEngine, HW: Hardware + 'static> {
 
 }
 
-pub type JsEngine = Engine<JsScriptEngine, super::graphics::Hardware<rendy::vulkan::Backend>>;
+type Hw =super::graphics::Hardware<rendy::vulkan::Backend>;
+pub type JsEngine = Engine<JsScriptEngine, Hw>;
 
 #[cfg(test)]
 pub type MockEngine = Engine<MockScriptEngine, crate::graphics::test_resources::MockHardware>;
@@ -111,7 +115,9 @@ pub enum GameObjectError {
     IdNotExisting,
 }
 
-impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW> {
+impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
+    where <HW as Hardware>::RM: Send + Sync
+{
     //type HWA = i32;
     //use <HW as traits::Hardware> as HW;
     pub fn new(engine_config: &E::Config, hw_config: &HW::Config, rm_config: &<HW::RM as traits::ResourceManager<HW>>::Config) -> Self {
@@ -122,7 +128,7 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW> {
             renderables: Data::new(),
         };
         let renderer = HW::Renderer::create(&mut hardware, &world, resources.clone());
-        Engine {
+        let mut eng =Engine {
             objects: Map::with_key(),
             world,
             controllers: Data::new(),
@@ -133,13 +139,22 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW> {
             hardware,
             keyboard: Default::default(),
             mouse: Default::default(),
-        }
+        };
+//        eng.scripting_engine.set_world_data(&mut eng.world);
+        eng
     }
 
     fn update_scripts(&mut self) {
-        for (_, script) in &mut self.controllers {
-            script.update();
-        }
+        use std::ops::Deref as _;
+
+        let rm = self.resources.deref();
+        self.scripting_engine.update(
+            &mut self.world,
+            &mut self.controllers,
+            rm,
+            &self.keyboard,
+            &self.mouse,
+        );
     }
 }
 
@@ -216,6 +231,12 @@ impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
         };
 
         self.world.add_renderable(id, mesh);
+    }
+
+    pub fn add_script(&mut self, id: GameObjectId, typ: &str) {
+        let obj = self.scripting_engine.create_script(id, typ);
+
+        self.controllers.insert(id, obj);
     }
 }
 

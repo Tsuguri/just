@@ -7,7 +7,8 @@ use wavefront_obj::obj;
 
 //use super::Backend;
 use std::collections::HashMap;
-use crate::scene::traits::ResourceManager as RMTrait;
+//use crate::scene::traits::ResourceManager as RMTrait;
+use crate::scene::traits;
 
 pub struct ResourceManager<B: hal::Backend> {
     mesh_names: HashMap<String, usize>,
@@ -27,16 +28,14 @@ impl<B: hal::Backend> Default for ResourceManager<B> {
     }
 }
 
-impl<B: hal::Backend> RMTrait<super::Hardware<B>> for ResourceManager<B> {
+impl<B: hal::Backend> traits::ResourceManager<super::Hardware<B>> for ResourceManager<B> {
     type Config = String;
-    type MeshId = usize;
-    type TextureId = usize;
 
 
-    fn get_mesh(&self, name: &str) -> Option<Self::MeshId> {
+    fn get_mesh(&self, name: &str) -> Option<traits::MeshId> {
         return self.mesh_names.get(name).copied();
     }
-    fn get_texture(&self, name: &str) -> Option<Self::TextureId> {
+    fn get_texture(&self, name: &str) -> Option<traits::TextureId> {
         return self.texture_names.get(name).copied();
     }
     fn load_resources(&mut self, config: &Self::Config, hardware: &mut super::Hardware<B>) {

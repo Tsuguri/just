@@ -1,7 +1,6 @@
 use super::node_prelude::*;
 
 
-type Data<B: hal::Backend> = crate::scene::traits::Data<super::Hardware<B>>;
 
 lazy_static::lazy_static! {
     static ref VERTEX: SpirvShader = SourceShaderInfo::new(
@@ -50,7 +49,7 @@ use crate::scene::traits::{MeshId, TextureId};
 pub struct DeferredNode<B: hal::Backend> {
     res: Arc<ResourceManager<B>>,
     descriptor_set: Escape<DescriptorSet<B>>,
-    renderables_buffer: Option<Vec<(MeshId<Hardware<B>>, Option<TextureId<Hardware<B>>>, crate::scene::math::Matrix)>>,
+    renderables_buffer: Option<Vec<(MeshId, Option<TextureId>, crate::scene::math::Matrix)>>,
 }
 
 impl<B: hal::Backend> std::fmt::Debug for DeferredNodeDesc<B> {
@@ -65,7 +64,7 @@ impl<B: hal::Backend> std::fmt::Debug for DeferredNode<B> {
     }
 }
 
-impl<B> SimpleGraphicsPipelineDesc<B, Data<B>> for DeferredNodeDesc<B>
+impl<B> SimpleGraphicsPipelineDesc<B, Data> for DeferredNodeDesc<B>
     where
         B: hal::Backend,
 {
@@ -122,7 +121,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data<B>> for DeferredNodeDesc<B>
         }
     }
 
-    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &Data<B>) -> ShaderSet<B> {
+    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &Data) -> ShaderSet<B> {
         SHADERS.build(factory, Default::default()).unwrap()
     }
 
@@ -131,7 +130,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data<B>> for DeferredNodeDesc<B>
         _ctx: &GraphContext<B>,
         factory: &mut Factory<B>,
         _queue: QueueId,
-        _data: &Data<B>,
+        _data: &Data,
         buffers: Vec<NodeBuffer>,
         images: Vec<NodeImage>,
         set_layouts: &[Handle<DescriptorSetLayout<B>>],
@@ -172,7 +171,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data<B>> for DeferredNodeDesc<B>
 }
 
 
-impl<B> SimpleGraphicsPipeline<B, Data<B>> for DeferredNode<B>
+impl<B> SimpleGraphicsPipeline<B, Data> for DeferredNode<B>
     where
         B: hal::Backend,
 {
@@ -184,13 +183,14 @@ impl<B> SimpleGraphicsPipeline<B, Data<B>> for DeferredNode<B>
         _queue: QueueId,
         _set_layouts: &[Handle<DescriptorSetLayout<B>>],
         _index: usize,
-        _aux: &Data<B>,
+        _aux: &Data,
     ) -> PrepareResult {
         PrepareResult::DrawRecord
     }
 
-    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &Data<B>) {
+    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &Data) {
         unsafe {
+            //println!("deferred rendering");
             let vertex = [PosNormTex::vertex()];
 
             // offset of model matrix in push constants
@@ -250,5 +250,5 @@ impl<B> SimpleGraphicsPipeline<B, Data<B>> for DeferredNode<B>
         }
     }
 
-    fn dispose(self, _factory: &mut Factory<B>, _aux: &Data<B>) {}
+    fn dispose(self, _factory: &mut Factory<B>, _aux: &Data) {}
 }
