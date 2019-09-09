@@ -50,6 +50,7 @@ use math::Matrix;
 
 impl traits::Data for WorldData {
     fn get_projection_matrix(&self) -> Matrix {
+//        let tmp2 = nalgebra_glm::perspective
         let mut temp = nalgebra_glm::perspective_lh_zo(
             256.0f32 / 108.0, f32::to_radians(45.0f32), 0.1f32, 100.0f32);
         temp[(1, 1)] *= -1.0;
@@ -69,6 +70,7 @@ impl traits::Data for WorldData {
                 if vec.len() < self.renderables.len() {
                     vec.reserve(self.renderables.len() - vec.len());
                 }
+                vec.clear();
                 vec
             }
             None => Vec::with_capacity(self.renderables.len()),
@@ -144,7 +146,7 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
         eng
     }
 
-    fn update_scripts(&mut self) {
+    fn update_scripts(&mut self, time: f64) {
         use std::ops::Deref as _;
 
         let rm = self.resources.deref();
@@ -154,6 +156,7 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
             rm,
             &self.keyboard,
             &self.mouse,
+            time,
         );
     }
 }
@@ -167,7 +170,7 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> std::ops::Drop for Engine<E, HW
 impl JsEngine {
     pub fn run(&mut self) {
         use crate::input::*;
-        self.hardware.event_loop.poll_events(|_| ());
+        let start = std::time::Instant::now();
 
         loop {
             self.hardware.factory.maintain(&mut self.hardware.families);
@@ -175,8 +178,16 @@ impl JsEngine {
             if inputs.end_requested {
                 break;
             }
-            self.update_scripts();
+            let duration = start.elapsed();
+
+            let elapsed = duration.as_secs() as f64
+                + duration.subsec_nanos() as f64 * 1e-9;
+
+            self.update_scripts(elapsed);
             self.renderer.run(&mut self.hardware, &self.resources, &self.world);
+            if elapsed > 5.0 {
+                return;
+            }
         }
     }
 }

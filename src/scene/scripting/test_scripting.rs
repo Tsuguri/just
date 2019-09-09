@@ -41,6 +41,7 @@ impl ScriptingEngine for MockScriptEngine {
                                                      resources: &RM,
                                                      keyboard: &crate::input::KeyboardState,
                                                      mouse: &crate::input::MouseState,
+                                                     current_time: f64,
     ) {}
 }
 

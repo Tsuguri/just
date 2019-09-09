@@ -91,7 +91,8 @@ impl<B: hal::Backend> crate::scene::traits::Hardware for Hardware<B> {
 impl<B: hal::Backend> Hardware<B> {
     pub fn new(config: Config) -> Self {
         let (mut factory, families): (Factory<B>, _) = rendy::factory::init(config).unwrap();
-        let event_loop = EventsLoop::new();
+        let mut event_loop = EventsLoop::new();
+        event_loop.poll_events(|_| ());
 
         let monitor_id = event_loop.get_primary_monitor();
 
@@ -217,7 +218,7 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
             window_size,
             1,
             t,
-            Some(hal::command::ClearValue::Color([0.0, 0.0, 0.0, 0.0].into())),
+            Some(hal::command::ClearValue::Color([0.0, 0.0, 0.0, 1.0].into())),
         );
 
         (id, t, image)
@@ -309,6 +310,7 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
         surface,
         color,
     );
+
     let mut id = 0;
     for mut pass in subpasses.drain(0..subpasses.len()) {
         let definition = &octo_module.passes[id];

@@ -49,6 +49,7 @@ pub trait ScriptingEngine: Sized {
               resources: &RM,
               keyboard: &crate::input::KeyboardState,
               mouse: &crate::input::MouseState,
+              current_time: f64,
     );
 }
 

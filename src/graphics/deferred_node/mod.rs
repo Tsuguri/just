@@ -74,15 +74,15 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for DeferredNodeDesc<B>
         vec![
             hal::pso::ColorBlendDesc {
                 mask: hal::pso::ColorMask::ALL,
-                blend: None,
+                blend: Some(hal::pso::BlendState::ALPHA),
             },
             hal::pso::ColorBlendDesc {
                 mask: hal::pso::ColorMask::ALL,
-                blend: None,
+                blend: Some(hal::pso::BlendState::ALPHA),
             },
             hal::pso::ColorBlendDesc {
                 mask: hal::pso::ColorMask::ALL,
-                blend: None,
+                blend: Some(hal::pso::BlendState::ALPHA),
             },
         ]
     }

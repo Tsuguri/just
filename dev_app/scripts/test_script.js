@@ -9,7 +9,8 @@ class nice {
 
     update() {
         console.log("wut from script");
-        const wut =this.go.get_position();
+        //const wut =this.go.get_position();
+        this.go.set_position(new Math.Vector(Math.Sin(Time.elapsed), 2.0, 13.0));
         this.go.test();
     }
 }

@@ -13,6 +13,7 @@ mod api_helpers;
 mod math_api;
 mod console_api;
 mod game_object_api;
+mod time_api;
 
 const SCENE_ID: &str = "__&scene";
 
@@ -90,6 +91,7 @@ impl JsScriptEngine {
 impl std::ops::Drop for JsScriptEngine {
     fn drop(&mut self) {
         unsafe {
+            self.prototypes.clear();
             ManuallyDrop::drop(&mut self.context);
         }
     }
@@ -131,6 +133,7 @@ impl JsScriptEngine {
         self.create_math_api();
         self.create_console_api();
         self.create_game_object_api();
+        self.create_time_api();
     }
 
     fn configure(&mut self, config: &JsEngineConfig) {
@@ -221,7 +224,11 @@ impl ScriptingEngine for JsScriptEngine {
               resources: &RM,
               keyboard: &crate::input::KeyboardState,
               mouse: &crate::input::MouseState,
+              current_time: f64,
+
     ) {
+
+        self.set_time(current_time);
         let mut testing = 33i32;
         //set context data
 

@@ -1,9 +1,11 @@
 use crate::scene::math::*;
 use super::js;
 use js::ContextGuard;
+use js::value::Value;
 
 use super::api_helpers::*;
 use crate::scene::scripting::InternalTypes;
+use chakracore::value::function::CallbackInfo;
 
 macro_rules! val {
         ($x:expr, $g:ident) => {
@@ -13,6 +15,17 @@ macro_rules! val {
             }
         }
     }
+
+
+fn sin(guard: &ContextGuard, info: CallbackInfo) -> Result<Value, Value>{
+    debug_assert!(info.arguments.len()==1);
+
+    let arg = val!(info.arguments[0].clone().into_number(), guard).value_double();
+
+    return Result::Ok(js::value::Number::from_double(guard, arg.sin()).into());
+
+}
+
 impl super::JsScriptEngine {
     pub fn create_math_api(&mut self) {
         let math = self.create_api_module("Math");
@@ -21,6 +34,9 @@ impl super::JsScriptEngine {
         let math = js::value::Object::new(&guard);
         global.set(&guard, js::Property::new(&guard, "Math"), math.clone());
         let vec3_prototype = Self::create_vector_api(&guard, &math);
+
+        let fun = js::value::Function::new(&guard, Box::new(|g,args| sin(g, args)));
+        math.set(&guard, js::Property::new(&guard, "Sin"), fun);
 
         drop(guard);
         self.prototypes.0.insert(InternalTypes::Vec3, vec3_prototype);
