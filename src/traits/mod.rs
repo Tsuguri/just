@@ -1,7 +1,16 @@
+use std::sync::Arc;
+
 use serde::Deserialize;
+
+use crate::math::*;
 
 pub type MeshId = usize;
 pub type TextureId = usize;
+
+slotmap::new_key_type!(pub struct GameObjectId;);
+
+pub type Map<T> = slotmap::HopSlotMap<GameObjectId, T>;
+pub type Data<T> = slotmap::SecondaryMap<GameObjectId, T>;
 
 pub trait ResourceManager<HW: Hardware + ?Sized> {
     type Config: Deserialize<'static>;
@@ -13,9 +22,6 @@ pub trait ResourceManager<HW: Hardware + ?Sized> {
     fn create(config: &Self::Config, hardware: &mut HW) -> Self;
 }
 
-pub use super::GameObjectId;
-use super::math::*;
-use std::sync::Arc;
 
 pub trait Controller {
     fn prepare(&mut self);
@@ -33,28 +39,32 @@ pub trait Controller {
     fn set_gameobject_property(&mut self, name: &str, value: GameObjectId);
 }
 
+pub trait World: Send + Sync {
+    fn set_local_pos(&mut self, id: GameObjectId, new_position: Vec3) -> Result<(), ()>;
+    fn get_local_pos(&self, id: GameObjectId) -> Result<Vec3, ()>;
+}
+
 
 pub trait ScriptingEngine: Sized {
     type Controller: Controller + 'static;
     type Config: Deserialize<'static>;
 
     fn create(config: &Self::Config) -> Self;
-    //fn set_world_data<HW: Hardware>(&self, world_data: &mut super::WorldData<HW>);
 
     fn create_script(&mut self, gameobject_id: GameObjectId, typ: &str) -> Self::Controller;
 
     fn update<HW: Hardware + 'static, RM: ResourceManager<HW> + Send + Sync + 'static>(&mut self,
-              world: &mut crate::scene::WorldData,
-              scripts: &mut super::Data<Self::Controller>,
-              resources: &RM,
-              keyboard: &crate::input::KeyboardState,
-              mouse: &crate::input::MouseState,
-              current_time: f64,
+                                                                                       world: &mut dyn World,
+                                                                                       scripts: &mut Data<Self::Controller>,
+                                                                                       resources: &RM,
+                                                                                       keyboard: &crate::input::KeyboardState,
+                                                                                       mouse: &crate::input::MouseState,
+                                                                                       current_time: f64,
     );
 }
 
 
-pub trait Data {
+pub trait RenderingData {
     fn get_projection_matrix(&self) -> Matrix;
     fn get_view_matrix(&self) -> Matrix;
 
@@ -65,9 +75,9 @@ pub trait Data {
 }
 
 pub trait Renderer<H: Hardware + ?Sized> {
-    fn create(hardware: &mut H, world: &(Data + 'static), res: Arc<H::RM>) -> Self;
-    fn run(&mut self, hardware: &mut H, res: &H::RM, world: &(Data + 'static));
-    fn dispose(&mut self, hardware: &mut H, world: &(Data + 'static));
+    fn create(hardware: &mut H, world: &(dyn RenderingData + 'static), res: Arc<H::RM>) -> Self;
+    fn run(&mut self, hardware: &mut H, res: &H::RM, world: &(dyn RenderingData + 'static));
+    fn dispose(&mut self, hardware: &mut H, world: &(dyn RenderingData + 'static));
 }
 
 pub trait Hardware {

@@ -1,4 +1,4 @@
-use crate::scene::math::*;
+use crate::math::*;
 use super::js;
 use js::ContextGuard;
 use js::value::Value;
@@ -17,8 +17,9 @@ macro_rules! val {
 fn console_log(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let context = guard.context();
     for arg in args.arguments {
-        println!("{}", arg.to_string(guard));
+        print!("{}", arg.to_string(guard));
     }
+    print!("\n");
     Result::Ok(js::value::null(guard))
 }
 

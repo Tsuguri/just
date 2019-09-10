@@ -1,5 +1,7 @@
-use super::math::*;
+use crate::math::*;
 use std::cell::RefCell;
+
+use crate::traits::GameObjectId;
 
 
 trait Ident {
@@ -35,9 +37,9 @@ impl<T: Ident> ItemState<T> {
 
 pub struct GameObject {
     pub name: String,
-    pub id: super::GameObjectId,
-    pub children: Vec<super::GameObjectId>,
-    pub parent: Option<super::GameObjectId>,
+    pub id: GameObjectId,
+    pub children: Vec<GameObjectId>,
+    pub parent: Option<GameObjectId>,
 
     pub position: RefCell<Vec3>,
     pub rotation: RefCell<Quat>,
@@ -48,7 +50,7 @@ pub struct GameObject {
 }
 
 impl GameObject {
-    pub fn new(id: super::GameObjectId) -> Self {
+    pub fn new(id: GameObjectId) -> Self {
         GameObject {
             name: "".to_string(),
             id,

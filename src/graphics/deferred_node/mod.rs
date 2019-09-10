@@ -44,12 +44,12 @@ impl<B: hal::Backend> DeferredNodeDesc<B> {
 }
 
 use super::Hardware;
-use crate::scene::traits::{MeshId, TextureId};
+use crate::traits::{MeshId, TextureId, RenderingData};
 
 pub struct DeferredNode<B: hal::Backend> {
     res: Arc<ResourceManager<B>>,
     descriptor_set: Escape<DescriptorSet<B>>,
-    renderables_buffer: Option<Vec<(MeshId, Option<TextureId>, crate::scene::math::Matrix)>>,
+    renderables_buffer: Option<Vec<(MeshId, Option<TextureId>, crate::math::Matrix)>>,
 }
 
 impl<B: hal::Backend> std::fmt::Debug for DeferredNodeDesc<B> {
@@ -64,7 +64,7 @@ impl<B: hal::Backend> std::fmt::Debug for DeferredNode<B> {
     }
 }
 
-impl<B> SimpleGraphicsPipelineDesc<B, Data> for DeferredNodeDesc<B>
+impl<B> SimpleGraphicsPipelineDesc<B, RenderingData> for DeferredNodeDesc<B>
     where
         B: hal::Backend,
 {
@@ -121,7 +121,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for DeferredNodeDesc<B>
         }
     }
 
-    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &Data) -> ShaderSet<B> {
+    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &RenderingData) -> ShaderSet<B> {
         SHADERS.build(factory, Default::default()).unwrap()
     }
 
@@ -130,7 +130,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for DeferredNodeDesc<B>
         _ctx: &GraphContext<B>,
         factory: &mut Factory<B>,
         _queue: QueueId,
-        _data: &Data,
+        _data: &RenderingData,
         buffers: Vec<NodeBuffer>,
         images: Vec<NodeImage>,
         set_layouts: &[Handle<DescriptorSetLayout<B>>],
@@ -171,7 +171,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for DeferredNodeDesc<B>
 }
 
 
-impl<B> SimpleGraphicsPipeline<B, Data> for DeferredNode<B>
+impl<B> SimpleGraphicsPipeline<B, RenderingData> for DeferredNode<B>
     where
         B: hal::Backend,
 {
@@ -183,12 +183,12 @@ impl<B> SimpleGraphicsPipeline<B, Data> for DeferredNode<B>
         _queue: QueueId,
         _set_layouts: &[Handle<DescriptorSetLayout<B>>],
         _index: usize,
-        _aux: &Data,
+        _aux: &RenderingData,
     ) -> PrepareResult {
         PrepareResult::DrawRecord
     }
 
-    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &Data) {
+    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &RenderingData) {
         unsafe {
             //println!("deferred rendering");
             let vertex = [PosNormTex::vertex()];
@@ -250,5 +250,5 @@ impl<B> SimpleGraphicsPipeline<B, Data> for DeferredNode<B>
         }
     }
 
-    fn dispose(self, _factory: &mut Factory<B>, _aux: &Data) {}
+    fn dispose(self, _factory: &mut Factory<B>, _aux: &RenderingData) {}
 }

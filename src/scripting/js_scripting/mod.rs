@@ -1,6 +1,7 @@
-use crate::scene::traits::{
+use crate::traits::{
     Controller, ScriptingEngine, GameObjectId,
     Hardware, ResourceManager,
+    Data, World,
 
 };
 
@@ -9,13 +10,12 @@ use std::mem::ManuallyDrop;
 use std::collections::HashMap;
 
 
+#[macro_use]
 mod api_helpers;
 mod math_api;
 mod console_api;
 mod game_object_api;
 mod time_api;
-
-const SCENE_ID: &str = "__&scene";
 
 
 #[derive(PartialEq, Eq, Hash)]
@@ -197,12 +197,6 @@ impl ScriptingEngine for JsScriptEngine {
         engine.configure(config);
         engine
     }
-//    fn set_world_data<HW: crate::scene::traits::Hardware>(&self, eng: &mut crate::scene::WorldData<HW>) {
-//        let guard = self.guard();
-//        let global = guard.global();
-//        let sc = unsafe {js::value::External::from_ptr(&guard, eng)};
-//        global.set(&guard,js::Property::new(&guard, SCENE_ID), sc);
-//    }
 
     fn create_script(&mut self, gameobject_id: GameObjectId, typ: &str) -> JsScript {
         let command = format!("new {}();", typ);
@@ -219,8 +213,8 @@ impl ScriptingEngine for JsScriptEngine {
     }
 
     fn update<HW: Hardware + 'static, RM: ResourceManager<HW> + Send + Sync + 'static>(&mut self,
-              world: &mut crate::scene::WorldData,
-              scripts: &mut crate::scene::Data<JsScript>,
+              world: &mut World,
+              scripts: &mut Data<JsScript>,
               resources: &RM,
               keyboard: &crate::input::KeyboardState,
               mouse: &crate::input::MouseState,
@@ -232,8 +226,11 @@ impl ScriptingEngine for JsScriptEngine {
         let mut testing = 33i32;
         //set context data
 
+        let reference = unsafe{
+            std::mem::transmute::<&mut dyn World, &'static mut dyn World>(world)
+        };
+        self.context.insert_user_data::<&mut World>(reference);
 
-        insert_mut(&self.context, world);
         insert_mut(&self.context, &mut testing);
 
         insert(&self.context, resources);
@@ -251,7 +248,7 @@ impl ScriptingEngine for JsScriptEngine {
                 Some(fun) => { fun.call_with_this(&guard, &script.js_object, &[]).unwrap(); }
             }
         }
-        debug_assert!(self.context.remove_user_data::<&mut crate::scene::WorldData>().is_some());
+        debug_assert!(self.context.remove_user_data::<&mut World>().is_some());
 
         debug_assert!(self.context.remove_user_data::<&RM>().is_some());
         debug_assert!(self.context.remove_user_data::<&crate::input::KeyboardState>().is_some());
@@ -296,7 +293,7 @@ impl Controller for JsScript {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scene::math::*;
+    use crate::math::*;
 
     #[test]
     fn simple() {

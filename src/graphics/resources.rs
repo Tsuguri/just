@@ -7,8 +7,7 @@ use wavefront_obj::obj;
 
 //use super::Backend;
 use std::collections::HashMap;
-//use crate::scene::traits::ResourceManager as RMTrait;
-use crate::scene::traits;
+use crate::traits;
 
 pub struct ResourceManager<B: hal::Backend> {
     mesh_names: HashMap<String, usize>,

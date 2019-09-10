@@ -1,10 +1,10 @@
-use crate::scene::math::*;
+use crate::math::*;
 use super::js;
 use js::ContextGuard;
 use js::value::Value;
 
 use super::api_helpers::*;
-use crate::scene::scripting::InternalTypes;
+use super::InternalTypes;
 use chakracore::value::function::CallbackInfo;
 use super::api_helpers::*;
 

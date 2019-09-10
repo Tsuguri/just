@@ -1,6 +1,6 @@
 use super::WorldData;
-use super::math::{Vec3, Matrix, Quat};
-use crate::scene::traits::*;
+use crate::math::{Vec3, Matrix, Quat};
+use crate::traits::*;
 
 impl WorldData {
     pub fn get_global_position(&self, id: GameObjectId) -> Vec3 {
@@ -37,7 +37,7 @@ impl WorldData {
 mod tests {
     use super::*;
     use nalgebra_glm::vec3;
-    use crate::scene::MockEngine;
+    use crate::core::MockEngine;
 
     #[test]
     fn position() {

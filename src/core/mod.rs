@@ -1,40 +1,60 @@
 use slotmap::SparseSecondaryMap as SecondaryMap;
 
 mod game_object;
-pub mod scripting;
-pub mod math;
 mod parent_child_manipulation;
 mod transform;
 mod components;
-pub mod traits;
+use crate::traits::{
+    Data,
+    Map,
+    World,
+    Hardware,
+    RenderingData,
+    MeshId,
+    TextureId,
+    GameObjectId,
+    ScriptingEngine,
+    ResourceManager,
+    Renderer,
+};
 
-pub use traits::*;
+use crate::math::*;
+
 
 use crate::input;
 use game_object::GameObject;
-use scripting::JsScriptEngine;
+use crate::scripting::JsScriptEngine;
 #[cfg(test)]
-use crate::scene::scripting::test_scripting::MockScriptEngine;
+use crate::scripting::test_scripting::MockScriptEngine;
 use std::sync::Arc;
 
 pub struct Mesh {
-    pub mesh_id: traits::MeshId,
-    pub texture_id: Option<traits::TextureId>,
+    pub mesh_id: MeshId,
+    pub texture_id: Option<TextureId>,
 }
 
 struct Animator;
 
 struct Audio;
 
-slotmap::new_key_type!(pub struct GameObjectId;);
 
-type Map<T> = slotmap::HopSlotMap<GameObjectId, T>;
-type Data<T> = SecondaryMap<GameObjectId, T>;
 
 pub struct WorldData {
     pub object_data: Data<GameObject>,
     pub renderables: Data<Mesh>,
 
+}
+
+impl World for WorldData {
+    fn set_local_pos(&mut self, id: GameObjectId, new_position: Vec3) -> Result<(), ()>{
+       self.set_local_position(id, new_position);
+        Result::Ok(())
+    }
+    fn get_local_pos(&self, id: GameObjectId) -> Result<Vec3, ()>{
+        Result::Ok(self.get_local_position(id))
+
+
+    }
 }
 
 unsafe impl Send for WorldData{}
@@ -46,9 +66,9 @@ impl WorldData {
     }
 }
 
-use math::Matrix;
+use crate::math::Matrix;
 
-impl traits::Data for WorldData {
+impl RenderingData for WorldData {
     fn get_projection_matrix(&self) -> Matrix {
 //        let tmp2 = nalgebra_glm::perspective
         let mut temp = nalgebra_glm::perspective_lh_zo(
@@ -63,8 +83,8 @@ impl traits::Data for WorldData {
 
     fn get_renderables(
         &self,
-        buffer: Option<Vec<(traits::MeshId, Option<traits::TextureId>, Matrix)>>
-    ) -> Vec<(traits::MeshId, Option<traits::TextureId>, Matrix)> {
+        buffer: Option<Vec<(MeshId, Option<TextureId>, Matrix)>>
+    ) -> Vec<(MeshId, Option<TextureId>, Matrix)> {
         let mut buf = match buffer {
             Some(mut vec) => {
                 if vec.len() < self.renderables.len() {
@@ -122,7 +142,7 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
 {
     //type HWA = i32;
     //use <HW as traits::Hardware> as HW;
-    pub fn new(engine_config: &E::Config, hw_config: &HW::Config, rm_config: &<HW::RM as traits::ResourceManager<HW>>::Config) -> Self {
+    pub fn new(engine_config: &E::Config, hw_config: &HW::Config, rm_config: &<HW::RM as ResourceManager<HW>>::Config) -> Self {
         let mut hardware = HW::create(hw_config);
         let resources = Arc::new(HW::RM::create(rm_config, &mut hardware));
         let world = WorldData {

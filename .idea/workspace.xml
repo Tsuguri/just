@@ -6,18 +6,31 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0ff2cdbb-5802-48f4-bca4-cb5948f5939d" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/src/scene/scripting/js_scripting/time_api.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dev_app/scripts/test_script.js" beforeDir="false" afterPath="$PROJECT_DIR$/dev_app/scripts/test_script.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/graphics/deferred_node/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/deferred_node/mod.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/graphics/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/scripting/js_scripting/game_object_api.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/scripting/js_scripting/game_object_api.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/scripting/js_scripting/math_api.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/scripting/js_scripting/math_api.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/scripting/js_scripting/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/scripting/js_scripting/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/scripting/test_scripting.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/scripting/test_scripting.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scene/traits.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scene/traits.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/graphics/node_prelude.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/node_prelude.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/graphics/octo_node/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/octo_node/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/graphics/resources.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/resources.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/graphics/test_resources.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/graphics/test_resources.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/components.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/components.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/game_object.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/game_object.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/math.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/math.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/parent_child_manipulation.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/parent_child_manipulation.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/scripting/js_scripting/api_helpers.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scripting/js_scripting/api_helpers.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/scripting/js_scripting/console_api.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scripting/js_scripting/console_api.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/scripting/js_scripting/game_object_api.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scripting/js_scripting/game_object_api.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/scripting/js_scripting/math_api.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scripting/js_scripting/math_api.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/scripting/js_scripting/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scripting/js_scripting/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/scripting/js_scripting/time_api.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scripting/js_scripting/time_api.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/scripting/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scripting/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/scripting/test_scripting.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/scripting/test_scripting.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/traits.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/traits/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scene/transform.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/transform.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../octo/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/../octo/Cargo.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../octo/octo/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../octo/octo/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../octo/octo/src/semantics/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../octo/octo/src/semantics/mod.rs" afterDir="false" />
@@ -33,11 +46,98 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/graphics/mod.rs">
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/Cargo.toml">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-625">
-              <caret line="243" column="65" selection-start-line="243" selection-start-column="65" selection-end-line="243" selection-end-column="65" />
+            <state relative-caret-position="144">
+              <caret line="8" selection-start-line="8" selection-end-line="8" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/core/components.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="90">
+              <caret line="7" selection-start-line="7" selection-end-line="7" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/scripting/js_scripting/math_api.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="361">
+              <caret line="95" column="55" selection-start-line="95" selection-start-column="55" selection-end-line="95" selection-end-column="55" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/scripting/js_scripting/console_api.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="378">
+              <caret line="21" column="13" selection-start-line="21" selection-start-column="13" selection-end-line="21" selection-end-column="13" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/core/game_object.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="612">
+              <caret line="131" column="46" selection-start-line="131" selection-start-column="46" selection-end-line="131" selection-end-column="46" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/scripting/js_scripting/mod.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="378">
+              <caret line="93" column="35" selection-start-line="93" selection-start-column="35" selection-end-line="93" selection-end-column="35" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/dev_app/scripts/test_script.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="234">
+              <caret line="13" column="52" selection-start-line="13" selection-start-column="52" selection-end-line="13" selection-end-column="52" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/core/mod.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="234">
+              <caret line="34" lean-forward="true" selection-start-line="34" selection-end-line="34" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/scripting/js_scripting/game_object_api.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="486">
+              <caret line="36" lean-forward="true" selection-start-line="36" selection-end-line="36" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/scripting/js_scripting/api_helpers.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="753">
+              <caret line="65" column="35" selection-start-line="65" selection-start-column="35" selection-end-line="65" selection-end-column="35" />
+              <folding>
+                <element signature="e#718#719#0" expanded="true" />
+                <element signature="e#772#773#0" expanded="true" />
+                <element signature="e#819#820#0" expanded="true" />
+                <element signature="e#862#863#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -54,6 +154,9 @@
   <component name="FindInProjectRecents">
     <findStrings>
       <find>JsScene</find>
+      <find>graphic</find>
+      <find>octo_runtime</find>
+      <find>lol</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -62,16 +165,6 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/src/shader.vert" />
-        <option value="$PROJECT_DIR$/src/shader.frag" />
-        <option value="$PROJECT_DIR$/src/graphics/deferred_node.rs" />
-        <option value="$PROJECT_DIR$/src/graphics/octo_node.rs" />
-        <option value="$PROJECT_DIR$/src/graphics/octo_node/shader.vert" />
-        <option value="$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/rendy-graph-0.3.1/src/node/render/pass.rs" />
-        <option value="$PROJECT_DIR$/../rendy/graph/src/node/render/pass.rs" />
-        <option value="$PROJECT_DIR$/../rendy/shader/src/lib.rs" />
-        <option value="$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-backend-vulkan-0.3.0/src/device.rs" />
-        <option value="$PROJECT_DIR$/src/graphics/octo_node/shader.frag" />
         <option value="$PROJECT_DIR$/src/graphics/deferred_node/shader.vert" />
         <option value="$PROJECT_DIR$/../octo/octo/src/basic_fragment.glsl" />
         <option value="$PROJECT_DIR$/build.rs" />
@@ -88,31 +181,41 @@
         <option value="$PROJECT_DIR$/../octo/parser/src/grammar.lalrpop" />
         <option value="$PROJECT_DIR$/../octo/parser/src/ast.rs" />
         <option value="$PROJECT_DIR$/../octo/octo/src/semantics/mod.rs" />
-        <option value="$PROJECT_DIR$/src/scene/parent_child_manipulation.rs" />
         <option value="$PROJECT_DIR$/src/scene/scripting/js_scripting/console_api.rs" />
-        <option value="$PROJECT_DIR$/src/graphics/resources.rs" />
-        <option value="$PROJECT_DIR$/src/scene/transform.rs" />
-        <option value="$PROJECT_DIR$/src/graphics/test_resources.rs" />
-        <option value="$PROJECT_DIR$/src/main.rs" />
         <option value="$PROJECT_DIR$/src/scene/scripting/js_scripting/api_helpers.rs" />
-        <option value="$PROJECT_DIR$/src/scene/game_object.rs" />
         <option value="$PROJECT_DIR$/src/scene/traits.rs" />
         <option value="$PROJECT_DIR$/src/scene/scripting/test_scripting.rs" />
         <option value="$PROJECT_DIR$/src/scene/scripting/js_scripting/game_object_api.rs" />
         <option value="$PROJECT_DIR$/src/scene/scripting/js_scripting/math_api.rs" />
         <option value="$PROJECT_DIR$/src/scene/scripting/js_scripting/time_api.rs" />
-        <option value="$PROJECT_DIR$/dev_app/scripts/test_script.js" />
         <option value="$PROJECT_DIR$/src/scene/scripting/js_scripting/mod.rs" />
         <option value="$PROJECT_DIR$/dev_app/renderer.octo" />
-        <option value="$PROJECT_DIR$/Cargo.toml" />
-        <option value="$PROJECT_DIR$/src/graphics/node_prelude.rs" />
         <option value="$PROJECT_DIR$/src/input/keyboard_state.rs" />
-        <option value="$PROJECT_DIR$/src/graphics/octo_node/mod.rs" />
         <option value="$PROJECT_DIR$/src/input/mod.rs" />
-        <option value="$PROJECT_DIR$/src/scene/mod.rs" />
         <option value="$PROJECT_DIR$/src/graphics/deferred_node/shader.frag" />
-        <option value="$PROJECT_DIR$/src/graphics/mod.rs" />
+        <option value="$PROJECT_DIR$/Cargo.toml" />
+        <option value="$PROJECT_DIR$/src/scripting/js_scripting/time_api.rs" />
+        <option value="$PROJECT_DIR$/src/scene/transform.rs" />
+        <option value="$PROJECT_DIR$/src/scene/components.rs" />
+        <option value="$PROJECT_DIR$/src/scene/parent_child_manipulation.rs" />
+        <option value="$PROJECT_DIR$/src/graphics/node_prelude.rs" />
+        <option value="$PROJECT_DIR$/src/scene/game_object.rs" />
         <option value="$PROJECT_DIR$/src/graphics/deferred_node/mod.rs" />
+        <option value="$PROJECT_DIR$/src/graphics/octo_node/mod.rs" />
+        <option value="$PROJECT_DIR$/src/graphics/test_resources.rs" />
+        <option value="$PROJECT_DIR$/src/graphics/mod.rs" />
+        <option value="$PROJECT_DIR$/src/scene/mod.rs" />
+        <option value="$PROJECT_DIR$/src/traits.rs" />
+        <option value="$PROJECT_DIR$/src/graphics/resources.rs" />
+        <option value="$PROJECT_DIR$/src/main.rs" />
+        <option value="$PROJECT_DIR$/src/scripting/test_scripting.rs" />
+        <option value="$PROJECT_DIR$/src/core/transform.rs" />
+        <option value="$PROJECT_DIR$/src/scripting/js_scripting/mod.rs" />
+        <option value="$PROJECT_DIR$/src/scripting/js_scripting/api_helpers.rs" />
+        <option value="$PROJECT_DIR$/src/scripting/js_scripting/math_api.rs" />
+        <option value="$PROJECT_DIR$/src/scripting/js_scripting/console_api.rs" />
+        <option value="$PROJECT_DIR$/src/scripting/js_scripting/game_object_api.rs" />
+        <option value="$PROJECT_DIR$/dev_app/scripts/test_script.js" />
       </list>
     </option>
   </component>
@@ -151,26 +254,37 @@
             <path>
               <item name="just" type="b2602c69:ProjectViewProjectNode" />
               <item name="just" type="462c0819:PsiDirectoryNode" />
+              <item name="dev_app" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="just" type="b2602c69:ProjectViewProjectNode" />
+              <item name="just" type="462c0819:PsiDirectoryNode" />
+              <item name="dev_app" type="462c0819:PsiDirectoryNode" />
+              <item name="scripts" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="just" type="b2602c69:ProjectViewProjectNode" />
+              <item name="just" type="462c0819:PsiDirectoryNode" />
               <item name="src" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="just" type="b2602c69:ProjectViewProjectNode" />
               <item name="just" type="462c0819:PsiDirectoryNode" />
               <item name="src" type="462c0819:PsiDirectoryNode" />
-              <item name="graphics" type="462c0819:PsiDirectoryNode" />
+              <item name="scripting" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="just" type="b2602c69:ProjectViewProjectNode" />
               <item name="just" type="462c0819:PsiDirectoryNode" />
               <item name="src" type="462c0819:PsiDirectoryNode" />
-              <item name="graphics" type="462c0819:PsiDirectoryNode" />
-              <item name="deferred_node" type="462c0819:PsiDirectoryNode" />
+              <item name="scripting" type="462c0819:PsiDirectoryNode" />
+              <item name="js_scripting" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="just" type="b2602c69:ProjectViewProjectNode" />
               <item name="just" type="462c0819:PsiDirectoryNode" />
               <item name="src" type="462c0819:PsiDirectoryNode" />
-              <item name="scene" type="462c0819:PsiDirectoryNode" />
+              <item name="traits" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -181,6 +295,7 @@
   <component name="PropertiesComponent">
     <property name="ASKED_SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
+    <property name="last_directory_selection" value="$PROJECT_DIR$/src" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/../pdfr" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
@@ -193,17 +308,18 @@
     <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
   </component>
   <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\adamo\Documents\just\src" />
+      <recent name="C:\Users\adamo\Documents\just\src\" />
+      <recent name="C:\Users\adamo\Documents\octo\octo\src" />
+      <recent name="C:\Users\adamo\Documents\just\src\graphics\deferred_node" />
+      <recent name="C:\Users\adamo\Documents\just\src\graphics\deferred_node.rs" />
+    </key>
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\adamo\Documents\octo\octo\src" />
       <recent name="C:\Users\adamo\Documents\just\src\graphics\octo_node" />
       <recent name="C:\Users\adamo\Documents\just\src\graphics\node_prelude" />
       <recent name="C:\Users\adamo\Documents\just\dev_app\res" />
-    </key>
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\adamo\Documents\octo\octo\src" />
-      <recent name="C:\Users\adamo\Documents\just\src\graphics\deferred_node" />
-      <recent name="C:\Users\adamo\Documents\just\src\graphics\deferred_node.rs" />
-      <recent name="C:\Users\adamo\Documents\just\src" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -369,7 +485,7 @@
       <window_info id="Designer" order="2" />
       <window_info id="Favorites" order="3" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
-      <window_info anchor="bottom" id="Find" order="1" />
+      <window_info anchor="bottom" id="Find" order="1" weight="0.32917964" />
       <window_info anchor="bottom" id="Debug" order="2" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="3" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="4" weight="0.4" />
@@ -383,7 +499,7 @@
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
       <window_info anchor="right" id="Cargo" order="3" weight="0.32966584" />
       <window_info anchor="right" id="Palette&#9;" order="4" />
-      <window_info anchor="right" x="1526" y="216" width="685" height="453" id="Run" order="5" sideWeight="0.4991587" visible="true" weight="0.35207823" />
+      <window_info anchor="right" x="1526" y="216" width="685" height="453" id="Run" order="5" sideWeight="0.4991587" visible="true" weight="0.40994295" />
     </layout>
     <layout-to-restore>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.19437653" />
@@ -412,14 +528,6 @@
     <option name="version" value="1" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/build.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="68">
-          <caret line="4" column="5" selection-start-line="4" selection-start-column="5" selection-end-line="4" selection-end-column="5" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../octo/octo_showcase/src/main.rs" />
     <entry file="file://$PROJECT_DIR$/../octo/Cargo.toml">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="119">
@@ -443,13 +551,6 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/../octo/testFiles/test1.octo">
       <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../octo/octo/templates/shader.glsl">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="272">
-          <caret line="16" lean-forward="true" selection-start-line="16" selection-end-line="16" />
-        </state>
-      </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/../octo/octo/src/basic_fragment.glsl" />
     <entry file="file://$PROJECT_DIR$/../octo/octo/src/shader_generation.rs">
@@ -515,13 +616,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/scene/parent_child_manipulation.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="442">
-          <caret line="26" column="54" selection-start-line="26" selection-start-column="54" selection-end-line="26" selection-end-column="54" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/../octo/octo/Cargo.toml">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="289">
@@ -531,113 +625,6 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/../octo/octo/src/main.rs">
       <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/scene/components.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="72">
-          <caret line="6" selection-start-line="6" selection-end-line="6" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/graphics/test_resources.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="396">
-          <caret line="24" column="92" selection-start-line="24" selection-start-column="92" selection-end-line="24" selection-end-column="92" />
-          <folding>
-            <element signature="e#926#927#0" expanded="true" />
-            <element signature="e#945#946#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="360">
-          <caret line="20" column="68" selection-start-line="20" selection-start-column="68" selection-end-line="20" selection-end-column="68" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/scene/scripting/js_scripting/console_api.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="342">
-          <caret line="19" selection-start-line="19" selection-end-line="19" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/scene/game_object.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="396">
-          <caret line="26" column="28" selection-start-line="26" selection-start-column="28" selection-end-line="26" selection-end-column="28" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/scene/scripting/mod.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="90">
-          <caret line="5" column="22" selection-start-line="5" selection-start-column="22" selection-end-line="5" selection-end-column="22" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/scene/transform.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="72">
-          <caret line="4" column="3" selection-start-line="4" selection-start-column="3" selection-end-line="4" selection-end-column="3" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/scene/traits.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="339">
-          <caret line="51" column="31" selection-start-line="51" selection-start-column="31" selection-end-line="51" selection-end-column="31" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/scene/scripting/test_scripting.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="537">
-          <caret line="45" selection-start-line="45" selection-end-line="45" />
-          <folding>
-            <element signature="e#238#239#0" expanded="true" />
-            <element signature="e#304#305#0" expanded="true" />
-            <element signature="e#462#463#0" expanded="true" />
-            <element signature="e#500#501#0" expanded="true" />
-            <element signature="e#666#667#0" expanded="true" />
-            <element signature="e#688#689#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/scene/scripting/js_scripting/game_object_api.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="253">
-          <caret line="32" column="4" selection-start-line="32" selection-start-column="4" selection-end-line="32" selection-end-column="4" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/scene/scripting/js_scripting/api_helpers.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="252">
-          <caret line="14" selection-start-line="14" selection-end-line="14" />
-          <folding>
-            <element signature="e#560#561#0" expanded="true" />
-            <element signature="e#603#604#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/scene/scripting/js_scripting/time_api.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="576">
-          <caret line="32" column="67" selection-start-line="32" selection-start-column="67" selection-end-line="32" selection-end-column="67" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/dev_app/scripts/test_script.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="216">
-          <caret line="12" column="65" selection-start-line="12" selection-start-column="65" selection-end-line="12" selection-end-column="65" />
-        </state>
-      </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/../octo/octo/src/lib.rs">
       <provider selected="true" editor-type-id="text-editor">
@@ -653,57 +640,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/scene/scripting/js_scripting/math_api.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="414">
-          <caret line="24" selection-start-line="24" selection-end-line="24" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/scene/scripting/js_scripting/mod.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="378">
-          <caret line="135" column="30" selection-start-line="135" selection-start-column="30" selection-end-line="135" selection-end-column="30" />
-          <folding>
-            <element signature="e#493#494#0" expanded="true" />
-            <element signature="e#528#529#0" expanded="true" />
-            <element signature="e#672#673#0" expanded="true" />
-            <element signature="e#694#695#0" expanded="true" />
-            <element signature="e#687#688#0" expanded="true" />
-            <element signature="e#713#714#0" expanded="true" />
-            <element signature="e#2827#2828#0" expanded="true" />
-            <element signature="e#2878#2879#0" expanded="true" />
-            <element signature="e#8900#8901#0" expanded="true" />
-            <element signature="e#8963#8964#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Cargo.toml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="414">
-          <caret line="23" lean-forward="true" selection-start-line="23" selection-end-line="23" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/graphics/node_prelude.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret line="12" column="23" selection-start-line="12" selection-start-column="23" selection-end-line="12" selection-end-column="23" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/input/keyboard_state.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-3510">
           <caret column="22" selection-start-column="22" selection-end-column="22" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/graphics/resources.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="410">
-          <caret line="179" column="52" selection-start-line="179" selection-start-column="52" selection-end-line="179" selection-end-column="52" />
         </state>
       </provider>
     </entry>
@@ -721,28 +661,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/graphics/deferred_node/shader.frag">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="396">
-          <caret line="22" selection-start-line="22" selection-end-line="22" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/input/mod.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="180">
           <caret line="25" column="52" selection-start-line="25" selection-start-column="52" selection-end-line="25" selection-end-column="52" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/graphics/octo_node/mod.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="402">
-          <caret line="118" column="65" selection-start-line="118" selection-start-column="65" selection-end-line="118" selection-end-column="65" />
-          <folding>
-            <element signature="e#6370#6371#0" expanded="true" />
-            <element signature="e#6409#6410#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -760,32 +682,215 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/scene/mod.rs">
+    <entry file="file://$PROJECT_DIR$/Cargo.lock">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="323">
-          <caret line="73" column="18" selection-start-line="73" selection-start-column="18" selection-end-line="73" selection-end-column="18" />
-          <folding>
-            <element signature="e#4372#4373#0" expanded="true" />
-            <element signature="e#4442#4443#0" expanded="true" />
-            <element signature="e#5379#5380#0" expanded="true" />
-            <element signature="e#5423#5424#0" expanded="true" />
-            <element signature="e#5687#5688#0" expanded="true" />
-            <element signature="e#5727#5728#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="2148">
+          <caret line="267" column="7" selection-start-line="267" selection-start-column="7" selection-end-line="267" selection-end-column="7" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/graphics/deferred_node/shader.frag">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="396">
+          <caret line="22" selection-start-line="22" selection-end-line="22" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../octo/octo/templates/shader.glsl">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="162">
+          <caret line="9" column="76" selection-start-line="9" selection-start-column="76" selection-end-line="9" selection-end-column="76" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/math.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="252">
+          <caret line="19" column="16" selection-start-line="19" selection-start-column="16" selection-end-line="19" selection-end-column="16" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/scripting/js_scripting/time_api.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="108">
+          <caret line="6" column="8" selection-start-line="6" selection-start-column="8" selection-end-line="6" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/core/parent_child_manipulation.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="18">
+          <caret line="2" column="10" selection-start-line="2" selection-start-column="10" selection-end-line="2" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/graphics/node_prelude.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="36">
+          <caret line="2" column="22" selection-start-line="2" selection-start-column="22" selection-end-line="2" selection-end-column="22" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/graphics/deferred_node/mod.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="542">
-          <caret line="234" selection-start-line="234" selection-end-line="234" />
+        <state relative-caret-position="448">
+          <caret line="46" column="48" selection-start-line="46" selection-start-column="48" selection-end-line="46" selection-end-column="48" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/graphics/octo_node/mod.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="72">
+          <caret line="4" column="32" selection-start-line="4" selection-start-column="32" selection-end-line="4" selection-end-column="32" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/traits/mod.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="900">
+          <caret line="64" lean-forward="true" selection-start-line="64" selection-end-line="64" />
+          <folding>
+            <element signature="n#!!block;n#Controller#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/graphics/test_resources.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="252">
+          <caret line="14" selection-start-line="14" selection-end-line="14" />
+          <folding>
+            <element signature="e#314#315#0" expanded="true" />
+            <element signature="e#336#337#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/scripting/mod.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="72">
+          <caret line="4" column="11" selection-start-line="4" selection-start-column="11" selection-end-line="4" selection-end-column="11" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/graphics/mod.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-625">
-          <caret line="243" column="65" selection-start-line="243" selection-start-column="65" selection-end-line="243" selection-end-column="65" />
+        <state relative-caret-position="2106">
+          <caret line="117" column="34" selection-start-line="117" selection-start-column="34" selection-end-line="117" selection-end-column="34" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/graphics/resources.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="162">
+          <caret line="9" selection-start-line="9" selection-end-line="9" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/core/transform.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="321">
+          <caret line="39" column="18" selection-start-line="39" selection-start-column="18" selection-end-line="39" selection-end-column="18" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/scripting/test_scripting.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="144">
+          <caret line="8" column="14" selection-start-line="8" selection-start-column="14" selection-end-line="8" selection-end-column="14" />
+          <folding>
+            <element signature="e#235#236#0" expanded="true" />
+            <element signature="e#301#302#0" expanded="true" />
+            <element signature="e#459#460#0" expanded="true" />
+            <element signature="e#497#498#0" expanded="true" />
+            <element signature="e#663#664#0" expanded="true" />
+            <element signature="e#685#686#0" expanded="true" />
+            <element signature="e#855#856#0" expanded="true" />
+            <element signature="e#883#884#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="666">
+          <caret line="37" column="9" selection-start-line="37" selection-start-column="9" selection-end-line="37" selection-end-column="9" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/core/mod.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="234">
+          <caret line="34" lean-forward="true" selection-start-line="34" selection-end-line="34" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/core/components.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="90">
+          <caret line="7" selection-start-line="7" selection-end-line="7" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/core/game_object.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="612">
+          <caret line="131" column="46" selection-start-line="131" selection-start-column="46" selection-end-line="131" selection-end-column="46" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Cargo.toml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="144">
+          <caret line="8" selection-start-line="8" selection-end-line="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/scripting/js_scripting/api_helpers.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="753">
+          <caret line="65" column="35" selection-start-line="65" selection-start-column="35" selection-end-line="65" selection-end-column="35" />
+          <folding>
+            <element signature="e#718#719#0" expanded="true" />
+            <element signature="e#772#773#0" expanded="true" />
+            <element signature="e#819#820#0" expanded="true" />
+            <element signature="e#862#863#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/scripting/js_scripting/math_api.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="361">
+          <caret line="95" column="55" selection-start-line="95" selection-start-column="55" selection-end-line="95" selection-end-column="55" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/scripting/js_scripting/console_api.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="378">
+          <caret line="21" column="13" selection-start-line="21" selection-start-column="13" selection-end-line="21" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/scripting/js_scripting/game_object_api.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="486">
+          <caret line="36" lean-forward="true" selection-start-line="36" selection-end-line="36" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/dev_app/scripts/test_script.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="234">
+          <caret line="13" column="52" selection-start-line="13" selection-start-column="52" selection-end-line="13" selection-end-column="52" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/scripting/js_scripting/mod.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="378">
+          <caret line="93" column="35" selection-start-line="93" selection-start-column="35" selection-end-line="93" selection-end-column="35" />
         </state>
       </provider>
     </entry>

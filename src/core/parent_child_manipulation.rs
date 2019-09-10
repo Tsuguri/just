@@ -1,6 +1,6 @@
 use super::Engine;
 use super::GameObjectError;
-use crate::scene::traits::*;
+use crate::traits::*;
 
 impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
     pub fn set_parent(&mut self, obj: GameObjectId, new_parent: Option<GameObjectId>) -> Result<(), GameObjectError> {

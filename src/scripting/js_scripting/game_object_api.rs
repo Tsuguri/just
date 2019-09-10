@@ -1,4 +1,4 @@
-use crate::scene::math::*;
+use crate::math::*;
 use super::js;
 use js::{
     ContextGuard,
@@ -7,11 +7,12 @@ use js::{
         function::CallbackInfo,
     },
 };
-use crate::scene::{GameObjectId, WorldData, Hardware};
+use crate::traits::{GameObjectId, Hardware};
 
+#[macro_use]
 use super::api_helpers::*;
-use crate::scene::scripting::InternalTypes;
-use crate::scene::scripting::InternalTypes::GameObject;
+use crate::scripting::InternalTypes;
+use crate::scripting::InternalTypes::GameObject;
 
 struct GameObjectData {
     id: GameObjectId,
@@ -27,14 +28,14 @@ fn get_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value
     let world = world(&ctx);
     let this = unsafe {external.value::<GameObjectData>()};
 
-    let pos = world.get_global_position(this.id);
+    let pos = world.get_local_pos(this.id);
 
     let obj = js::value::External::new(guard, Box::new(pos));
     obj.set_prototype(guard, prototypes[&InternalTypes::Vec3].clone()).unwrap();
 
-    println!("{:?}  jest ok", pos);
+//    println!("{:?}  jest ok", pos);
 
-    Result::Ok(js::value::null(guard))
+    Result::Ok(obj.into())
 }
 
 fn set_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
@@ -48,29 +49,25 @@ fn set_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value
     let ctx = guard.context();
     let world = world(&ctx);
 
-    world.set_local_position(this.id, *new_pos);
+    world.set_local_pos(this.id, *new_pos);
 
     Result::Ok(js::value::null(guard))
 
 }
 
 fn test_go_function(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
-    println!("lol");
     Result::Ok(js::value::null(guard))
 }
+
 
 impl super::JsScriptEngine {
     pub fn create_external_prototype(guard: &ContextGuard) -> js::value::Object {
         let obj =js::value::Object::new(guard);
 
-        let fun = js::value::Function::new(guard, Box::new(|a,b| test_go_function(a,b)));
-        obj.set(&guard, js::Property::new(&guard, "test"), fun);
+        add_function(guard, &obj, "test", mf!(test_go_function));
+        add_function(guard, &obj, "get_position", mf!(get_position));
+        add_function(guard, &obj, "set_position", mf!(set_position));
 
-        let fun2 = js::value::Function::new(guard, Box::new(|a,b| get_position(a,b)));
-        obj.set(&guard, js::Property::new(&guard, "get_position"), fun2);
-
-        let fun3 = js::value::Function::new(guard, Box::new(|a,b| set_position(a,b)));
-        obj.set(&guard, js::Property::new(&guard, "set_position"), fun3);
         obj
     }
 

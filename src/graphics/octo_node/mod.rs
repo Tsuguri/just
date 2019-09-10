@@ -2,6 +2,8 @@ use super::node_prelude::*;
 
 use rendy::shader::SourceCodeShaderInfo;
 
+use crate::traits::{RenderingData};
+
 
 #[derive(Default)]
 pub struct OctoNodeDesc<B: hal::Backend> {
@@ -33,7 +35,7 @@ impl<B: hal::Backend> std::fmt::Debug for OctoNode<B> {
     }
 }
 
-impl<B> SimpleGraphicsPipelineDesc<B, Data> for OctoNodeDesc<B>
+impl<B> SimpleGraphicsPipelineDesc<B, RenderingData> for OctoNodeDesc<B>
     where B: hal::Backend {
     type Pipeline = OctoNode<B>;
 
@@ -82,7 +84,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for OctoNodeDesc<B>
         }
     }
 
-    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &Data) -> ShaderSet<B> {
+    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &RenderingData) -> ShaderSet<B> {
 
         let fragment_spirv= self.fragment_shader.replace(vec![]);
         let vertex_spirv= self.vertex_shader.replace(vec![]);
@@ -101,7 +103,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for OctoNodeDesc<B>
         ctx: &GraphContext<B>,
         factory: &mut Factory<B>,
         _queue: QueueId,
-        _data: &Data,
+        _data: &RenderingData,
         buffers: Vec<NodeBuffer>,
         images: Vec<NodeImage>,
         set_layouts: &[Handle<DescriptorSetLayout<B>>],
@@ -175,7 +177,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, Data> for OctoNodeDesc<B>
     }
 }
 
-impl<B: hal::Backend> SimpleGraphicsPipeline<B, Data> for OctoNode<B> {
+impl<B: hal::Backend> SimpleGraphicsPipeline<B, RenderingData> for OctoNode<B> {
     type Desc = OctoNodeDesc<B>;
 
     fn prepare(
@@ -184,12 +186,12 @@ impl<B: hal::Backend> SimpleGraphicsPipeline<B, Data> for OctoNode<B> {
         _queue: QueueId,
         _set_layouts: &[Handle<DescriptorSetLayout<B>>],
         _index: usize,
-        _aux: &Data,
+        _aux: &RenderingData,
     ) -> PrepareResult {
         PrepareResult::DrawReuse
     }
 
-    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, _data: &Data) {
+    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, _data: &RenderingData) {
         unsafe {
             encoder.bind_graphics_descriptor_sets(
                 layout,
@@ -201,6 +203,6 @@ impl<B: hal::Backend> SimpleGraphicsPipeline<B, Data> for OctoNode<B> {
         }
     }
 
-    fn dispose(self, _factory: &mut Factory<B>, _aux: &Data) {
+    fn dispose(self, _factory: &mut Factory<B>, _aux: &RenderingData) {
     }
 }

@@ -6,9 +6,6 @@ edition = "2018"
 
 exclude = ["dev_app/*"]
 
-#[build-dependencies]
-#octo = {path="../octo/octo"}
-
 [dependencies]
 # js scripting engine:
 chakracore = {git="https://github.com/darfink/chakracore-rs", rev="93adef0a4ab297fbeaf228c403b8090e0979a1aa"}
