@@ -1,12 +1,5 @@
-use crate::math::*;
 use super::js;
-use js::ContextGuard;
-use js::value::Value;
 
-use super::api_helpers::*;
-use super::InternalTypes;
-use chakracore::value::function::CallbackInfo;
-use super::api_helpers::*;
 
 
 impl super::JsScriptEngine {
@@ -25,7 +18,7 @@ impl super::JsScriptEngine {
         let guard = self.guard();
         let global = guard.global();
 
-        let mut module = global.get(&guard, js::Property::new(&guard, "Time")).into_object().unwrap();
+        let module = global.get(&guard, js::Property::new(&guard, "Time")).into_object().unwrap();
 
         let val = js::value::Number::from_double(&guard, current_time);
 

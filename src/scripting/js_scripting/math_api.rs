@@ -46,7 +46,6 @@ fn vec3_get_z(guard: &ContextGuard, info: CallbackInfo) -> Result<Value, Value> 
 
 fn vec3_set_x(guard: &ContextGuard, info: CallbackInfo) -> Result<Value, Value> {
     let external = info.this.into_external().unwrap();
-    println!("lolz");
     let this = unsafe {external.value::<Vec3>()};
     debug_assert!(info.arguments.len() == 1);
     let val = double!(guard, info.arguments[0]);

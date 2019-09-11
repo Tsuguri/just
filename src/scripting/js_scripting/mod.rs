@@ -1,9 +1,4 @@
-use crate::traits::{
-    Controller, ScriptingEngine, GameObjectId,
-    Hardware, ResourceManager,
-    Data, World,
-
-};
+use crate::traits::{Controller, ScriptingEngine, GameObjectId, Hardware, ResourceManager, Data, World, ResourceProvider};
 
 use chakracore as js;
 use std::mem::ManuallyDrop;
@@ -12,10 +7,14 @@ use std::collections::HashMap;
 
 #[macro_use]
 mod api_helpers;
+
+mod input_api;
 mod math_api;
 mod console_api;
 mod game_object_api;
 mod time_api;
+mod world_api;
+mod resources_api;
 
 
 #[derive(PartialEq, Eq, Hash)]
@@ -108,7 +107,7 @@ use std::path::Path;
 struct ScriptFactory {}
 
 impl ScriptFactory {
-    fn from_code(guard: &js::ContextGuard, name: String, path: &Path, code: &str) -> Result<js::value::Function, js::Error> {
+    fn from_code(guard: &js::ContextGuard, _name: String, _path: &Path, code: &str) -> Result<js::value::Function, js::Error> {
         let def = js::script::parse(guard, code)?;
         let factory = def.construct(&guard, guard.global(), &[])?;
         let factory = match factory.into_function() {
@@ -134,12 +133,16 @@ impl JsScriptEngine {
         self.create_console_api();
         self.create_game_object_api();
         self.create_time_api();
+        self.create_input_api();
+        self.create_world_api();
+        self.create_resources_api();
     }
 
     fn configure(&mut self, config: &JsEngineConfig) {
         self.create_api();
+        let guard = self.guard();
 
-        let guard = self.context.make_current().map_err(|err| "couldn't make context current").unwrap();
+        //let guard = self.context.make_current().map_err(|err| "couldn't make context current").unwrap();
         let go = guard.global();
 
 
@@ -153,9 +156,9 @@ impl JsScriptEngine {
     fn load_at_path(guard: &js::ContextGuard, parent: &js::value::Object, directory: &std::path::Path) -> Result<(), &'static str> {
         println!("loading scripts from: {:?}", directory);
 
-        let paths = std::fs::read_dir(directory).map_err(|err| "counldn't read directory")?;
+        let paths = std::fs::read_dir(directory).map_err(|_| "counldn't read directory")?;
         for path in paths {
-            let path = path.map_err(|err| "error reading script directory")?;
+            let path = path.map_err(|_| "error reading script directory")?;
 
             if path.path().is_dir() {
                 let p = path.path();
@@ -212,10 +215,10 @@ impl ScriptingEngine for JsScriptEngine {
         JsScript::new(obj, &guard)
     }
 
-    fn update<HW: Hardware + 'static, RM: ResourceManager<HW> + Send + Sync + 'static>(&mut self,
+    fn update(&mut self,
               world: &mut World,
               scripts: &mut Data<JsScript>,
-              resources: &RM,
+              resources: &ResourceProvider,
               keyboard: &crate::input::KeyboardState,
               mouse: &crate::input::MouseState,
               current_time: f64,
@@ -233,7 +236,12 @@ impl ScriptingEngine for JsScriptEngine {
 
         insert_mut(&self.context, &mut testing);
 
-        insert(&self.context, resources);
+        let reference = unsafe{
+            std::mem::transmute::<&dyn ResourceProvider, &'static dyn ResourceProvider>(resources)
+        };
+        self.context.insert_user_data::<&ResourceProvider>(reference);
+
+        //insert(&self.context, resources);
         insert(&self.context, keyboard);
         insert(&self.context, mouse);
         insert(&self.context, &self.prototypes);
@@ -242,7 +250,7 @@ impl ScriptingEngine for JsScriptEngine {
 
         let guard = self.guard();
 
-        for (id, script) in scripts {
+        for (_, script) in scripts {
             match &script.update {
                 None => (),
                 Some(fun) => { fun.call_with_this(&guard, &script.js_object, &[]).unwrap(); }
@@ -250,7 +258,7 @@ impl ScriptingEngine for JsScriptEngine {
         }
         debug_assert!(self.context.remove_user_data::<&mut World>().is_some());
 
-        debug_assert!(self.context.remove_user_data::<&RM>().is_some());
+        debug_assert!(self.context.remove_user_data::<&ResourceProvider>().is_some());
         debug_assert!(self.context.remove_user_data::<&crate::input::KeyboardState>().is_some());
         debug_assert!(self.context.remove_user_data::<&crate::input::MouseState>().is_some());
         debug_assert!(self.context.remove_user_data::<&HM>().is_some());

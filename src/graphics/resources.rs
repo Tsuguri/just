@@ -27,16 +27,19 @@ impl<B: hal::Backend> Default for ResourceManager<B> {
     }
 }
 
-impl<B: hal::Backend> traits::ResourceManager<super::Hardware<B>> for ResourceManager<B> {
-    type Config = String;
-
-
+impl<B: hal::Backend> traits::ResourceProvider for ResourceManager<B> {
     fn get_mesh(&self, name: &str) -> Option<traits::MeshId> {
         return self.mesh_names.get(name).copied();
     }
     fn get_texture(&self, name: &str) -> Option<traits::TextureId> {
         return self.texture_names.get(name).copied();
     }
+}
+
+impl<B: hal::Backend> traits::ResourceManager<super::Hardware<B>> for ResourceManager<B> {
+    type Config = String;
+
+
     fn load_resources(&mut self, config: &Self::Config, hardware: &mut super::Hardware<B>) {
         let path = std::path::Path::new(config);
         println!("Loading resources from: {}", std::fs::canonicalize(path).unwrap().display());

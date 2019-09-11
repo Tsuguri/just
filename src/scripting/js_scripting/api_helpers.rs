@@ -1,6 +1,8 @@
 use super::js;
-use crate::traits::World;
+use crate::traits::{World, ResourceProvider};
 use crate::scripting::HM;
+
+use crate::input::{KeyboardState, MouseState};
 use js::ContextGuard;
 use js::value::function::FunctionCallback;
 
@@ -19,12 +21,20 @@ pub fn add_function(guard: &ContextGuard, obj: &js::value::Object, name: &str, f
     obj.set(&guard, js::Property::new(&guard, name), fun);
 }
 
-pub fn world(ctx: &js::Context) -> &mut World{
+pub fn world(ctx: &js::Context) -> &mut World {
     *ctx.get_user_data_mut::<&mut World>().unwrap()
 }
 
 pub fn prototypes(ctx: &js::Context) -> &HM {
     *ctx.get_user_data::<&HM>().unwrap()
+}
+
+pub fn keyboard(ctx: &js::Context) -> &KeyboardState {
+    *ctx.get_user_data::<&KeyboardState>().unwrap()
+}
+
+pub fn resources(ctx: &js::Context) -> &ResourceProvider {
+    *ctx.get_user_data::<&ResourceProvider>().unwrap()
 }
 
 macro_rules! mf {

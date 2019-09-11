@@ -205,7 +205,8 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
     assert!(octo_module.required_input[2].1 == octo_runtime::TextureType::Vec4);
 
     // create needed textures
-    let textures: Vec<_> = octo_module.textures.iter().map(|(id, t, size)| {
+    // size not used for now
+    let textures: Vec<_> = octo_module.textures.iter().map(|(id, t, _size)| {
         use octo_runtime::TextureType::*;
         let t = match t {
             Float => rendy::hal::format::Format::R32Sfloat,

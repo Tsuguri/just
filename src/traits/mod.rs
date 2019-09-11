@@ -12,12 +12,15 @@ slotmap::new_key_type!(pub struct GameObjectId;);
 pub type Map<T> = slotmap::HopSlotMap<GameObjectId, T>;
 pub type Data<T> = slotmap::SecondaryMap<GameObjectId, T>;
 
-pub trait ResourceManager<HW: Hardware + ?Sized> {
+pub trait ResourceProvider: Send + Sync {
+    fn get_mesh(&self, name: &str) -> Option<MeshId>;
+    fn get_texture(&self, name: &str) -> Option<TextureId>;
+}
+
+pub trait ResourceManager<HW: Hardware + ?Sized>: ResourceProvider {
     type Config: Deserialize<'static>;
 
 
-    fn get_mesh(&self, name: &str) -> Option<MeshId>;
-    fn get_texture(&self, name: &str) -> Option<TextureId>;
     fn load_resources(&mut self, config: &Self::Config, hardware: &mut HW);
     fn create(config: &Self::Config, hardware: &mut HW) -> Self;
 }
@@ -40,8 +43,22 @@ pub trait Controller {
 }
 
 pub trait World: Send + Sync {
+    fn get_name(&self, id: GameObjectId) -> String;
+
+    fn set_name(&mut self, id: GameObjectId, name: String);
     fn set_local_pos(&mut self, id: GameObjectId, new_position: Vec3) -> Result<(), ()>;
     fn get_local_pos(&self, id: GameObjectId) -> Result<Vec3, ()>;
+
+    fn get_parent(&self, id: GameObjectId) -> Option<GameObjectId>;
+    fn set_parent(&mut self, id: GameObjectId, new_parent: Option<GameObjectId>) -> Result<(), ()>;
+
+    fn find_by_name(&self, name: &str) -> Vec<GameObjectId>;
+
+    fn create_gameobject(&mut self) -> GameObjectId;
+
+    fn destroy_gameobject(&mut self, id: GameObjectId);
+
+    fn set_renderable(&mut self, id: GameObjectId, mesh: MeshId);
 }
 
 
@@ -53,13 +70,13 @@ pub trait ScriptingEngine: Sized {
 
     fn create_script(&mut self, gameobject_id: GameObjectId, typ: &str) -> Self::Controller;
 
-    fn update<HW: Hardware + 'static, RM: ResourceManager<HW> + Send + Sync + 'static>(&mut self,
-                                                                                       world: &mut dyn World,
-                                                                                       scripts: &mut Data<Self::Controller>,
-                                                                                       resources: &RM,
-                                                                                       keyboard: &crate::input::KeyboardState,
-                                                                                       mouse: &crate::input::MouseState,
-                                                                                       current_time: f64,
+    fn update(&mut self,
+              world: &mut dyn World,
+              scripts: &mut Data<Self::Controller>,
+              resources: &ResourceProvider,
+              keyboard: &crate::input::KeyboardState,
+              mouse: &crate::input::MouseState,
+              current_time: f64,
     );
 }
 

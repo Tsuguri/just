@@ -43,7 +43,6 @@ impl<B: hal::Backend> DeferredNodeDesc<B> {
     }
 }
 
-use super::Hardware;
 use crate::traits::{MeshId, TextureId, RenderingData};
 
 pub struct DeferredNode<B: hal::Backend> {

@@ -9,6 +9,7 @@ mod input;
 
 
 use scripting::JsEngineConfig;
+use traits::World;
 
 
 use nalgebra_glm as glm;
@@ -25,12 +26,16 @@ fn main() {
     engine.add_renderable(obj, "teapot3");
 
     let obj2 = engine.create_game_object();
+    engine.set_parent(obj2, Some(obj));
 
     engine.world.set_local_position(obj2, glm::vec3(2.0f32, 0.0, 1.0));
 
     engine.add_renderable(obj2, "monkey");
 
+    engine.world.set_name(obj2, "lolz".into());
+
     engine.add_script(obj, "test_script");
+    engine.add_script(obj2, "test2");
 
 
 

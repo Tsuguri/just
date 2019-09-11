@@ -1,6 +1,6 @@
 pub use std::sync::Arc;
 pub use nalgebra_glm as glm;
-pub use crate::traits::{Data, ResourceManager as _};
+pub use crate::traits::{Data, ResourceManager as _, ResourceProvider as _};
 
 pub use rendy::{
     command::{

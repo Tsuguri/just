@@ -2,10 +2,7 @@ pub struct MockScript;
 
 pub struct MockScriptEngine;
 
-use crate::traits::{
-    Controller, ScriptingEngine, GameObjectId, Hardware,
-    ResourceManager, Data, World,
-};
+use crate::traits::{Controller, ScriptingEngine, GameObjectId, Hardware, ResourceManager, Data, World, ResourceProvider};
 use crate::core::MockEngine;
 
 impl MockEngine {
@@ -31,16 +28,16 @@ impl ScriptingEngine for MockScriptEngine {
         Self {}
     }
 
-    fn create_script(&mut self, id: GameObjectId, typ: &str) -> Self::Controller {
+    fn create_script(&mut self, _id: GameObjectId, _typ: &str) -> Self::Controller {
         MockScript {}
     }
-    fn update<HW: Hardware, RM: ResourceManager<HW>>(&mut self,
-                                                     world: &mut World,
-                                                     scripts: &mut Data<Self::Controller>,
-                                                     resources: &RM,
-                                                     keyboard: &crate::input::KeyboardState,
-                                                     mouse: &crate::input::MouseState,
-                                                     current_time: f64,
+    fn update(&mut self,
+              _world: &mut World,
+              _scripts: &mut Data<Self::Controller>,
+              _resources: &ResourceProvider,
+              _keyboard: &crate::input::KeyboardState,
+              _mouse: &crate::input::MouseState,
+              _current_time: f64,
     ) {}
 }
 
