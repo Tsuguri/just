@@ -30,7 +30,7 @@ fn main() {
 
     engine.world.set_local_position(obj2, glm::vec3(2.0f32, 0.0, 1.0));
 
-    engine.add_renderable(obj2, "monkey");
+    engine.add_renderable(obj2, "cow1");
 
     engine.world.set_name(obj2, "lolz".into());
 

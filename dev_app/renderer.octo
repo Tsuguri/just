@@ -1,11 +1,16 @@
-gpu_fun test_name(pos: vec4, normal: vec4, albedo: vec4) -> (color: vec4){
-"
-    color = pos;
-    color.w = 1.0;
-"
-}
+pipeline main(position: vec4, normal: vec4, albedo: vec4) -> (vec4){
+    let lightDir = vec3(1.0, 1.0, 0.0);
+    let lightColor = vec3(0.7, 0.7, 0.7);
 
-pipeline octo(pos: vec4, normal: vec4, albedo: vec4) -> (vec4){
-    let result = test_name(pos, normal, albedo);
-    return result;
+    let ambient = lightColor * vec3(0.3, 0.3, 0.3);
+
+    let ret_color = ambient;
+
+    let norm = normalize(normal.xyz);
+    let dir = normalize(lightDir);
+    let diff = max(dot(norm, dir), 0.0);
+    let diffuse = lightColor * vec3(diff, diff, diff);
+
+    let rc=(ret_color + diffuse) * albedo.rgb;
+    return vec4(rc.x, rc.y, rc.z, 1.0);
 }

@@ -1,0 +1,13 @@
+digraph {
+    0 [label="bad node"]
+    1 [label="Label"]
+    2 [label="Arg(0)"]
+    3 [label="Arg(1)"]
+    4 [label="Arg(2)"]
+    5 [label="Add"]
+    6 [label="Exit"]
+    2 -> 5 [label=""]
+    3 -> 5 [label=""]
+    5 -> 6 [label=""]
+    1 -> 6 [label=""]
+}

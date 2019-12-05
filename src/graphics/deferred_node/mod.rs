@@ -138,7 +138,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, RenderingData> for DeferredNodeDesc<B>
         assert!(images.is_empty());
         assert_eq!(set_layouts.len(), 1);
 
-        let texture_id = self.res.get_texture("creature").unwrap();
+        let texture_id = self.res.get_texture("tex1").unwrap();
         let texture = self.res.get_real_texture(texture_id);
 
         let descriptor_set = factory

@@ -27,6 +27,7 @@ mat4 normalMat = mat4(transpose(inverse(push.model)));
 void main() {
     vert.worldPosition = (push.model * vec4(pos, 1.0)).xyz;
     vert.normal = (normalMat * vec4(normal,0.0)).xyz;
+
     vert.uv = tex_coord;
 
 
