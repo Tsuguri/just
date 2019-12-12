@@ -17,18 +17,20 @@ class nice {
         const objs = World.findByName("heh");
 
         console.log("Jest ", objs.length, " obiektow");
+        
+        console.log("pozycja myszki: ", Input.mousePosition().x, " ", Input.mousePosition().y);
 
-        if (Input.isKeyPressed("A")) {
+        if (Input.isKeyboardKeyPressed("A")) {
             this.some.z += 0.1;
         }
-        if (Input.isKeyPressed("D")) {
+        if (Input.isKeyboardKeyPressed("D")) {
             this.some.z -= 0.1;
         }
 
-        if (Input.isKeyPressed("W")) {
+        if (Input.isKeyboardKeyPressed("W")) {
             this.some.y += 0.1;
         }
-        if (Input.isKeyPressed("S")) {
+        if (Input.isKeyboardKeyPressed("S")) {
             this.some.y -= 0.1;
         }
     }

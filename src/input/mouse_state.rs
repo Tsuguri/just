@@ -13,10 +13,17 @@ impl MouseState
     {
         if self.mouse_moved { [self.current_position[0] - self.previous_position[0], self.current_position[1] - self.previous_position[1]] } else { [0.0, 0.0]}
     }
+    
+    pub fn get_mouse_position(&self) -> [f32;2] {
+        self.current_position
+    }
 
     pub fn left_button_down(&self) -> bool
     {
         self.button_pressed[0]
+    }
+    pub fn is_button_down(&self, id: usize) -> bool {
+        self.button_pressed[id]
     }
 
     pub fn right_button_down(&self) -> bool

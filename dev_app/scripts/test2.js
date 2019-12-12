@@ -10,7 +10,7 @@ class nojs {
         if (!this.mesh) {
             this.mesh = Resources.getMesh("monkey");
         }
-        if (this.changed === false && Input.isKeyPressed("A")) {
+        if (this.changed === false && Input.isKeyboardKeyPressed("A")) {
             this.go.name = "heh";
             this.changed = true;
         }

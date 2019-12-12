@@ -33,6 +33,10 @@ pub fn keyboard(ctx: &js::Context) -> &KeyboardState {
     *ctx.get_user_data::<&KeyboardState>().unwrap()
 }
 
+pub fn mouse(ctx: &js::Context) -> &MouseState {
+    *ctx.get_user_data::<&MouseState>().unwrap()
+}
+
 pub fn resources(ctx: &js::Context) -> &ResourceProvider {
     *ctx.get_user_data::<&ResourceProvider>().unwrap()
 }
