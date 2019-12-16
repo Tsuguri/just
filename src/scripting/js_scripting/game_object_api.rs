@@ -10,6 +10,7 @@ use js::{
 use crate::traits::GameObjectId;
 
 use super::api_helpers::*;
+use super::ScriptCreationData;
 use crate::scripting::InternalTypes;
 use crate::scripting::js_scripting::resources_api::MeshData;
 
@@ -55,7 +56,7 @@ fn get_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value
     let world = world(&ctx);
     let this = unsafe { external.value::<GameObjectData>() };
 
-    let pos = world.get_local_pos(this.id);
+    let pos = world.get_local_pos(this.id).unwrap();
 
     let obj = js::value::External::new(guard, Box::new(pos));
     obj.set_prototype(guard, prototypes[&InternalTypes::Vec3].clone()).unwrap();
@@ -137,6 +138,20 @@ fn set_renderable(guard: &ContextGuard, args: CallbackInfo)-> Result<Value, Valu
     Result::Ok(js::value::null(guard))
 }
 
+fn set_script(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
+    let ctx = guard.context();
+    let world = world(&ctx);
+    let creation_data = creation_data(&ctx);
+
+    let te = args.this.into_external().unwrap();
+    let this = unsafe { te.value::<GameObjectData>() };
+    let m = args.arguments[0].clone().into_string().unwrap();
+
+    creation_data.push(ScriptCreationData{object: this.id, script_type: m.value()});
+    Result::Ok(js::value::null(guard))
+
+}
+
 fn destroy(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let ctx = guard.context();
     let world = world(&ctx);
@@ -167,6 +182,7 @@ impl super::JsScriptEngine {
 
         add_function(guard, &obj, "destroy", mf!(destroy));
         add_function(guard, &obj, "setRenderable", mf!(set_renderable));
+        add_function(guard, &obj, "setScript", mf!(set_script));
 
         obj
     }

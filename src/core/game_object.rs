@@ -1,7 +1,7 @@
 use crate::math::*;
 use std::cell::RefCell;
 
-use crate::traits::GameObjectId;
+use crate::traits::{GameObjectId, Controller};
 
 
 trait Ident {
@@ -81,12 +81,12 @@ impl GameObject {
         self.name = new_name;
     }
 
-    pub fn void_local_matrix(&self, world: &super::WorldData) {
+    pub fn void_local_matrix<C: Controller>(&self, world: &super::WorldData<C>) {
         self.local_matrix.borrow_mut().changed=true;
         self.void_global_matrix(world);
 
     }
-    fn void_global_matrix(&self, world: &super::WorldData) {
+    fn void_global_matrix<C: Controller>(&self, world: &super::WorldData<C>) {
         if self.global_matrix.borrow().changed {
             return;
         }
@@ -107,14 +107,14 @@ impl GameObject {
         tr.item
     }
 
-    fn get_parent_matrix(&self, world: &super::WorldData) -> Matrix {
+    fn get_parent_matrix<C: Controller>(&self, world: &super::WorldData<C>) -> Matrix {
         match self.parent {
             None => Matrix::identity(),
             Some(x) => world.get_global_matrix(x),
         }
     }
 
-    pub fn get_global_matrix(&self, world: &super::WorldData) -> Matrix {
+    pub fn get_global_matrix<C: Controller>(&self, world: &super::WorldData<C>) -> Matrix {
         let mut tr = self.global_matrix.borrow_mut();
 
         if tr.changed {
@@ -125,11 +125,11 @@ impl GameObject {
         tr.item
     }
 
-    pub fn get_global_position(&self, scene: &super::WorldData) -> Vec3 {
+    pub fn get_global_position<C: Controller>(&self, scene: &super::WorldData<C>) -> Vec3 {
         let mat = self.get_parent_matrix(scene);
         pos(&(mat*pos_vec(&self.position.borrow())))
     }
-    pub fn get_global_rotation(&self, scene: &super::WorldData) -> Quat {
+    pub fn get_global_rotation<C: Controller>(&self, scene: &super::WorldData<C>) -> Quat {
         let parent_rotation = match self.parent {
             None => Quat::identity(),
             Some(x) => scene.get_global_rotation(x),
@@ -137,7 +137,7 @@ impl GameObject {
         parent_rotation*(*self.rotation.borrow())
     }
 
-    pub fn set_local_position(&self, scene: &super::WorldData, new_position: Vec3) {
+    pub fn set_local_position<C: Controller>(&self, scene: &super::WorldData<C>, new_position: Vec3) {
         *self.position.borrow_mut() = new_position;
         self.void_local_matrix(scene);
     }
@@ -146,7 +146,7 @@ impl GameObject {
         *self.position.borrow()
     }
 
-    pub fn set_local_rotation(&self, scene: &super::WorldData, new_rotation: Quat) {
+    pub fn set_local_rotation<C: Controller>(&self, scene: &super::WorldData<C>, new_rotation: Quat) {
         *self.rotation.borrow_mut() = new_rotation;
         self.void_local_matrix(scene);
     }

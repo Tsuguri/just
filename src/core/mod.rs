@@ -38,7 +38,7 @@ struct Audio;
 
 
 pub struct Engine<E: ScriptingEngine, HW: Hardware + 'static> {
-    pub world: WorldData,
+    pub world: WorldData<E::Controller>,
 
     controllers: Data<E::Controller>,
 
@@ -77,6 +77,7 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
             object_data: Data::new(),
             renderables: Data::new(),
             to_destroy: vec![],
+            scripts: Data::new(),
         };
         let renderer = HW::Renderer::create(&mut hardware, &world, resources.clone());
         let eng =Engine {

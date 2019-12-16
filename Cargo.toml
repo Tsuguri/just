@@ -15,9 +15,10 @@ octo = {path="../octo/octo"}
 chakracore = {git="https://github.com/darfink/chakracore-rs", rev="93adef0a4ab297fbeaf228c403b8090e0979a1aa"}
 octo_runtime = {path="../octo/octo_runtime"}
 slotmap = "0.3.0"
-nalgebra-glm ="0.4.0"
+nalgebra-glm ={version="0.4.0", features=["serde-serialize"]}
 serde = {version="1.0", features=["derive"]}
 serde_json = "1.0"
+ron = "0.5.1"
 rendy = {git = "https://github.com/amethyst/rendy", rev="1980054d9efa3355eaa76163990e7127fb169295", features=["vulkan", "rendy-shader", "rendy-mesh", "mesh-obj", "texture-image"]}
 failure="0.1"
 lazy_static = "1.0"

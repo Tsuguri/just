@@ -1,0 +1,15 @@
+Scene(
+    name: "Super Scene",
+    objects: [
+        (
+            name: "super_obj",
+            renderable: Some(Renderable(
+                mesh: "cow1",
+                texture: "cow_tex",
+            )),
+            script: Some("test2"),
+            position: Some([1.0, -0.5, 20.0]),
+            children: []
+        ),
+    ],
+)

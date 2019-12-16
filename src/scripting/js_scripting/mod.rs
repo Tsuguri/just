@@ -21,6 +21,7 @@ mod resources_api;
 pub enum InternalTypes {
     GameObject,
     Vec3,
+    Quat,
     Matrix,
 }
 
@@ -53,12 +54,17 @@ pub struct JsScriptEngine {
     _runtime: js::Runtime,
     context: ManuallyDrop<js::Context>,
     prototypes: HM,
-
+    creation: Vec<ScriptCreationData>,
 }
 
 pub struct JsScript {
     js_object: js::value::Object,
     update: Option<js::value::Function>,
+}
+
+pub struct ScriptCreationData {
+    object: GameObjectId,
+    script_type: String,
 }
 
 impl JsScript {
@@ -80,6 +86,7 @@ impl JsScriptEngine {
             _runtime: runtime,
             context: ManuallyDrop::new(context),
             prototypes: Default::default(),
+            creation: vec![],
         };
 
         engine.create_api();
@@ -196,6 +203,7 @@ impl ScriptingEngine for JsScriptEngine {
             _runtime: runtime,
             context: ManuallyDrop::new(context),
             prototypes: Default::default(),
+            creation: vec![],
         };
         engine.configure(config);
         engine
@@ -234,36 +242,45 @@ impl ScriptingEngine for JsScriptEngine {
         };
         self.context.insert_user_data::<&mut World>(reference);
 
-        insert_mut(&self.context, &mut testing);
 
         let reference = unsafe{
             std::mem::transmute::<&dyn ResourceProvider, &'static dyn ResourceProvider>(resources)
         };
         self.context.insert_user_data::<&ResourceProvider>(reference);
 
+        let reference = unsafe{
+            std::mem::transmute::<&mut Vec<ScriptCreationData>, &'static mut Vec<ScriptCreationData>>(&mut self.creation)
+        };
+        self.context.insert_user_data::<&mut Vec<ScriptCreationData>>(reference);
         //insert(&self.context, resources);
         insert(&self.context, keyboard);
         insert(&self.context, mouse);
         insert(&self.context, &self.prototypes);
-//        insert(&self.context, &self.prototypes);
 
 
         let guard = self.guard();
 
-        for (_, script) in scripts {
+        for (_, script) in scripts.iter() {
             match &script.update {
                 None => (),
                 Some(fun) => { fun.call_with_this(&guard, &script.js_object, &[]).unwrap(); }
             }
         }
+        drop(guard);
+
+        let to_create : Vec<_> = self.creation.drain(0..self.creation.len()).collect();
+
+        for data in to_create {
+            let script = self.create_script(data.object, &data.script_type);
+            scripts.insert(data.object, script);
+        }
         debug_assert!(self.context.remove_user_data::<&mut World>().is_some());
+        debug_assert!(self.context.remove_user_data::<&mut Vec<ScriptCreationData>>().is_some());
 
         debug_assert!(self.context.remove_user_data::<&ResourceProvider>().is_some());
         debug_assert!(self.context.remove_user_data::<&crate::input::KeyboardState>().is_some());
         debug_assert!(self.context.remove_user_data::<&crate::input::MouseState>().is_some());
         debug_assert!(self.context.remove_user_data::<&HM>().is_some());
-
-        debug_assert!(self.context.remove_user_data::<&mut i32>().is_some());
     }
 }
 

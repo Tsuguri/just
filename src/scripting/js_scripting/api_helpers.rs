@@ -3,6 +3,7 @@ use crate::traits::{World, ResourceProvider};
 use crate::scripting::HM;
 
 use crate::input::{KeyboardState, MouseState};
+use super::ScriptCreationData;
 use js::ContextGuard;
 use js::value::function::FunctionCallback;
 
@@ -39,6 +40,10 @@ pub fn mouse(ctx: &js::Context) -> &MouseState {
 
 pub fn resources(ctx: &js::Context) -> &ResourceProvider {
     *ctx.get_user_data::<&ResourceProvider>().unwrap()
+}
+
+pub fn creation_data(ctx: &js::Context) -> &mut Vec<ScriptCreationData> {
+    *ctx.get_user_data_mut::<&mut Vec<ScriptCreationData>>().unwrap()
 }
 
 macro_rules! mf {

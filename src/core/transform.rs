@@ -2,7 +2,7 @@ use super::WorldData;
 use crate::math::{Vec3, Matrix, Quat};
 use crate::traits::*;
 
-impl WorldData {
+impl<C: Controller> WorldData<C> {
     pub fn get_global_position(&self, id: GameObjectId) -> Vec3 {
         self.object_data[id].get_global_position(self)
     }

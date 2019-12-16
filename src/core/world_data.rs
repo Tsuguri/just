@@ -9,15 +9,16 @@ pub struct Mesh {
     pub texture_id: Option<TextureId>,
 }
 
-pub struct WorldData {
+pub struct WorldData<C: Controller> {
     // at the same time indicates if object is active
     pub objects: Map<bool>,
     pub object_data: Data<GameObject>,
     pub renderables: Data<Mesh>,
+    pub scripts: Data<C>,
     pub to_destroy: Vec<GameObjectId>,
 }
 
-impl World for WorldData {
+impl<C: Controller>  World for WorldData<C> {
     fn get_name(&self, id: GameObjectId) -> String{
         self.object_data[id].name.clone()
 
@@ -88,10 +89,10 @@ impl World for WorldData {
     }
 }
 
-unsafe impl Send for WorldData{}
-unsafe impl Sync for WorldData{}
+unsafe impl<C: Controller> Send for WorldData<C>{}
+unsafe impl<C: Controller> Sync for WorldData<C>{}
 
-impl WorldData {
+impl<C: Controller> WorldData<C> {
     pub fn add_renderable(&mut self, id: GameObjectId,mesh: Mesh){
         self.renderables.insert(id, mesh);
     }
@@ -99,7 +100,7 @@ impl WorldData {
         self.objects.contains_key(id)
     }
 
-    pub fn remove_marked<C: Controller>(&mut self, scripts: &mut Data<C>) {
+    pub fn remove_marked(&mut self, scripts: &mut Data<C>) {
         let objects = std::mem::replace(&mut self.to_destroy, vec![]);
         for obj in objects.into_iter() {
             // might have been removed as child of other object
@@ -111,7 +112,7 @@ impl WorldData {
     }
 
 
-    pub fn remove_game_object<C: Controller>(&mut self, id: GameObjectId, scripts: &mut Data<C>) {
+    pub fn remove_game_object(&mut self, id: GameObjectId, scripts: &mut Data<C>) {
         let data = &self.object_data[id];
         for child in data.children.clone() {
             self.remove_game_object(child, scripts);
@@ -119,7 +120,7 @@ impl WorldData {
         self.remove_single(id, scripts);
     }
 
-    fn remove_single<C: Controller>(&mut self, id: GameObjectId, scripts: &mut Data<C>) {
+    fn remove_single(&mut self, id: GameObjectId, scripts: &mut Data<C>) {
 
         self.set_parent(id, None);
         self.objects.remove(id);
@@ -131,7 +132,7 @@ impl WorldData {
 
 use crate::math::Matrix;
 
-impl RenderingData for WorldData {
+impl<C: Controller> RenderingData for WorldData<C> {
     fn get_projection_matrix(&self) -> Matrix {
         let mut temp = nalgebra_glm::perspective_lh_zo(
             256.0f32 / 108.0, f32::to_radians(45.0f32), 0.1f32, 100.0f32);
