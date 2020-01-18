@@ -9,7 +9,7 @@ Scene(
             )),
             script: Some("test2"),
             position: Some([1.0, -0.5, 20.0]),
-            children: []
+            children: None,
         ),
     ],
 )

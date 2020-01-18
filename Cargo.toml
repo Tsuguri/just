@@ -23,3 +23,4 @@ rendy = {git = "https://github.com/amethyst/rendy", rev="1980054d9efa3355eaa7616
 failure="0.1"
 lazy_static = "1.0"
 wavefront_obj = "6.0"
+rand = "0.7"

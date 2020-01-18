@@ -1,4 +1,4 @@
-use crate::traits::{Data, Map, MeshId, TextureId, World, GameObjectId, RenderingData, Controller};
+use crate::traits::{Data, Map, MeshId, TextureId, World, GameObjectId, RenderingData, Controller, Value};
 
 use crate::math::*;
 
@@ -34,6 +34,14 @@ impl<C: Controller>  World for WorldData<C> {
     }
     fn get_local_pos(&self, id: GameObjectId) -> Result<Vec3, ()>{
         Result::Ok(self.get_local_position(id))
+    }
+
+    fn set_local_sc(&mut self, id: GameObjectId, new_scale: Vec3) -> Result<(), ()>{
+        self.set_local_scale(id, new_scale);
+        Result::Ok(())
+    }
+    fn get_local_sc(&self, id: GameObjectId) -> Result<Vec3, ()>{
+        Result::Ok(self.get_local_scale(id))
     }
 
     fn get_parent(&self, id: GameObjectId) -> Option<GameObjectId>{
@@ -142,6 +150,17 @@ impl<C: Controller> RenderingData for WorldData<C> {
 
     fn get_view_matrix(&self) -> Matrix {
         nalgebra_glm::translation(&nalgebra_glm::vec3(1.0f32, -2.5, 10.0))
+    }
+
+    fn get_rendering_constant(&self, name: &str) -> Value {
+        match name {
+            "projection_mat" => Value::Matrix4(self.get_projection_matrix()),
+            "view_mat" => Value::Matrix4(self.get_view_matrix()),
+            "lightColor" => Value::Vector3(Vec3::new(0.0f32, 1.0f32, 0.9f32)),
+            "lightDir" => Value::Vector3(Vec3::new(0.1f32, 0.9f32, 1.0f32)),
+            _ => Value::None,
+        }
+
     }
 
     fn get_renderables(

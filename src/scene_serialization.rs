@@ -19,7 +19,8 @@ pub struct Object {
     position: Option<Vec3>,
     renderable: Option<Renderable>,
     script: Option<String>,
-    children: Vec<Object>,
+    children: Option<Vec<Object>>,
+    scale: Option<Vec3>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -54,13 +55,16 @@ fn spawn_object(object: Object, parent: Option<GameObjectId>, engine: &mut crate
     engine.set_parent(obj, parent);
 
     object.position.map(|x| {
-        println!("spawning at: {}", x);
         engine.world.set_local_position(obj, x);
     });
+    object.scale.map(|x| engine.world.set_local_scale(obj, x));
     object.renderable.map(|x| engine.add_renderable(obj, &x.mesh));
     object.script.map(|x| engine.add_script(obj, &x));
 
-    for child in object.children {
-        spawn_object(child, Some(obj), engine);
+
+    if object.children.is_some(){
+        for child in object.children.unwrap() {
+            spawn_object(child, Some(obj), engine);
+        }
     }
 }

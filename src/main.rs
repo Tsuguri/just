@@ -9,7 +9,6 @@ mod input;
 mod scene_serialization;
 
 use scripting::JsEngineConfig;
-use traits::World;
 
 
 use nalgebra_glm as glm;

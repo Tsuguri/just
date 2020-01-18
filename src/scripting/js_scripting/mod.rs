@@ -224,9 +224,9 @@ impl ScriptingEngine for JsScriptEngine {
     }
 
     fn update(&mut self,
-              world: &mut World,
+              world: &mut dyn World,
               scripts: &mut Data<JsScript>,
-              resources: &ResourceProvider,
+              resources: &dyn ResourceProvider,
               keyboard: &crate::input::KeyboardState,
               mouse: &crate::input::MouseState,
               current_time: f64,
@@ -240,13 +240,13 @@ impl ScriptingEngine for JsScriptEngine {
         let reference = unsafe{
             std::mem::transmute::<&mut dyn World, &'static mut dyn World>(world)
         };
-        self.context.insert_user_data::<&mut World>(reference);
+        self.context.insert_user_data::<&mut dyn World>(reference);
 
 
         let reference = unsafe{
             std::mem::transmute::<&dyn ResourceProvider, &'static dyn ResourceProvider>(resources)
         };
-        self.context.insert_user_data::<&ResourceProvider>(reference);
+        self.context.insert_user_data::<&dyn ResourceProvider>(reference);
 
         let reference = unsafe{
             std::mem::transmute::<&mut Vec<ScriptCreationData>, &'static mut Vec<ScriptCreationData>>(&mut self.creation)
@@ -274,10 +274,10 @@ impl ScriptingEngine for JsScriptEngine {
             let script = self.create_script(data.object, &data.script_type);
             scripts.insert(data.object, script);
         }
-        debug_assert!(self.context.remove_user_data::<&mut World>().is_some());
+        debug_assert!(self.context.remove_user_data::<&mut dyn World>().is_some());
         debug_assert!(self.context.remove_user_data::<&mut Vec<ScriptCreationData>>().is_some());
 
-        debug_assert!(self.context.remove_user_data::<&ResourceProvider>().is_some());
+        debug_assert!(self.context.remove_user_data::<&dyn ResourceProvider>().is_some());
         debug_assert!(self.context.remove_user_data::<&crate::input::KeyboardState>().is_some());
         debug_assert!(self.context.remove_user_data::<&crate::input::MouseState>().is_some());
         debug_assert!(self.context.remove_user_data::<&HM>().is_some());

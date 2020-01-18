@@ -2,8 +2,10 @@ use crate::glm;
 
 pub type Fl = f32;
 
+pub type Vec2 = glm::TVec2<Fl>;
 pub type Vec3 = glm::TVec3<Fl>;
 pub type Vec4 = glm::TVec4<Fl>;
+pub type Matrix3 = glm::TMat3<Fl>;
 pub type Matrix = glm::TMat4<Fl>;
 pub type Quat = glm::Qua<Fl>;
 

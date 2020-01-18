@@ -1,6 +1,6 @@
 use super::node_prelude::*;
 
-
+use crate::traits::Value;
 
 lazy_static::lazy_static! {
     static ref VERTEX: SpirvShader = SourceShaderInfo::new(
@@ -63,7 +63,7 @@ impl<B: hal::Backend> std::fmt::Debug for DeferredNode<B> {
     }
 }
 
-impl<B> SimpleGraphicsPipelineDesc<B, RenderingData> for DeferredNodeDesc<B>
+impl<B> SimpleGraphicsPipelineDesc<B, dyn RenderingData> for DeferredNodeDesc<B>
     where
         B: hal::Backend,
 {
@@ -93,7 +93,9 @@ impl<B> SimpleGraphicsPipelineDesc<B, RenderingData> for DeferredNodeDesc<B>
         vec![PosNormTex::vertex().gfx_vertex_input_desc(hal::pso::VertexInputRate::Vertex)]
     }
     fn layout(&self) -> Layout {
-        let push_constants = vec![(rendy::hal::pso::ShaderStageFlags::VERTEX, 0..(56 * 4))];
+        let push_constants = vec![
+            (rendy::hal::pso::ShaderStageFlags::VERTEX, 0..(56 * 4))
+        ];
         let sets = vec![
             SetLayout {
                 bindings: vec![
@@ -120,7 +122,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, RenderingData> for DeferredNodeDesc<B>
         }
     }
 
-    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &RenderingData) -> ShaderSet<B> {
+    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &dyn RenderingData) -> ShaderSet<B> {
         SHADERS.build(factory, Default::default()).unwrap()
     }
 
@@ -129,7 +131,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, RenderingData> for DeferredNodeDesc<B>
         _ctx: &GraphContext<B>,
         factory: &mut Factory<B>,
         _queue: QueueId,
-        _data: &RenderingData,
+        _data: &dyn RenderingData,
         buffers: Vec<NodeBuffer>,
         images: Vec<NodeImage>,
         set_layouts: &[Handle<DescriptorSetLayout<B>>],
@@ -170,7 +172,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, RenderingData> for DeferredNodeDesc<B>
 }
 
 
-impl<B> SimpleGraphicsPipeline<B, RenderingData> for DeferredNode<B>
+impl<B> SimpleGraphicsPipeline<B, dyn RenderingData> for DeferredNode<B>
     where
         B: hal::Backend,
 {
@@ -182,12 +184,12 @@ impl<B> SimpleGraphicsPipeline<B, RenderingData> for DeferredNode<B>
         _queue: QueueId,
         _set_layouts: &[Handle<DescriptorSetLayout<B>>],
         _index: usize,
-        _aux: &RenderingData,
+        _aux: &dyn RenderingData,
     ) -> PrepareResult {
         PrepareResult::DrawRecord
     }
 
-    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &RenderingData) {
+    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &dyn RenderingData) {
         unsafe {
             //println!("deferred rendering");
             let vertex = [PosNormTex::vertex()];
@@ -209,7 +211,10 @@ impl<B> SimpleGraphicsPipeline<B, RenderingData> for DeferredNode<B>
                 let view_offset: u32 = 0;
                 let projection_offset: u32 = 16 * 4;
 
-                let view = data.get_view_matrix();
+                let view = match data.get_rendering_constant("view_mat"){
+                    Value::Matrix4(mat)=> mat,
+                    _ => panic!("Internal renderer error E02"),
+                };
 
                 encoder.push_constants(
                     layout,
@@ -218,7 +223,10 @@ impl<B> SimpleGraphicsPipeline<B, RenderingData> for DeferredNode<B>
                     hal::memory::cast_slice::<f32, u32>(&view.data),
                 );
 
-                let projection = data.get_projection_matrix();
+                let projection = match data.get_rendering_constant("projection_mat"){
+                    Value::Matrix4(mat)=> mat,
+                    _ => panic!("internal renderer error E01"),
+                };
                 encoder.push_constants(
                     layout,
                     hal::pso::ShaderStageFlags::VERTEX,
@@ -249,5 +257,5 @@ impl<B> SimpleGraphicsPipeline<B, RenderingData> for DeferredNode<B>
         }
     }
 
-    fn dispose(self, _factory: &mut Factory<B>, _aux: &RenderingData) {}
+    fn dispose(self, _factory: &mut Factory<B>, _aux: &dyn RenderingData) {}
 }

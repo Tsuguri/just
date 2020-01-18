@@ -23,6 +23,10 @@ impl<C: Controller> WorldData<C> {
     pub fn set_local_rotation(&mut self, id: GameObjectId, new_rotation: Quat) {
         self.object_data[id].set_local_rotation(self, new_rotation);
     }
+    
+    pub fn set_local_scale(&mut self, id: GameObjectId, new_scale: Vec3) {
+        self.object_data[id].set_local_scale(self, new_scale);
+    }
 
     pub fn get_local_position(&self, id: GameObjectId) -> Vec3 {
         self.object_data[id].get_local_position()
@@ -30,6 +34,10 @@ impl<C: Controller> WorldData<C> {
 
     pub fn get_local_rotation(&self, id: GameObjectId) -> Quat {
         self.object_data[id].get_local_rotation()
+    }
+    
+    pub fn get_local_scale(&self, id: GameObjectId) -> Vec3 {
+        self.object_data[id].get_local_scale()
     }
 }
 

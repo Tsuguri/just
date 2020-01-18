@@ -40,7 +40,6 @@ fn set_name(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let this = unsafe { external.value::<GameObjectData>() };
 
     let new_name = args.arguments[0].to_string(guard);
-    println!("setting name to {}", new_name);
     world.set_name(this.id, new_name);
 
     Result::Ok(js::value::null(guard))
@@ -62,6 +61,25 @@ fn get_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value
     obj.set_prototype(guard, prototypes[&InternalTypes::Vec3].clone()).unwrap();
 
     Result::Ok(obj.into())
+}
+
+fn get_scale(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
+    let ctx = guard.context();
+    let external = args.this.into_external().unwrap();
+
+    let prototypes = prototypes(&ctx);
+
+
+    let world = world(&ctx);
+    let this = unsafe { external.value::<GameObjectData>() };
+
+    let pos = world.get_local_sc(this.id).unwrap();
+
+    let obj = js::value::External::new(guard, Box::new(pos));
+    obj.set_prototype(guard, prototypes[&InternalTypes::Vec3].clone()).unwrap();
+
+    Result::Ok(obj.into())
+
 }
 
 fn get_parent(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
@@ -122,6 +140,21 @@ fn set_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value
     Result::Ok(js::value::null(guard))
 }
 
+fn set_scale(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
+    debug_assert!(args.arguments.len() == 1);
+    let np = args.arguments[0].clone().into_external().unwrap();
+    let new_pos = unsafe { np.value::<Vec3>() };
+
+    let te = args.this.into_external().unwrap();
+    let this = unsafe { te.value::<GameObjectData>() };
+    let ctx = guard.context();
+    let world = world(&ctx);
+
+    world.set_local_sc(this.id, *new_pos).unwrap();
+
+    Result::Ok(js::value::null(guard))
+}
+
 fn set_renderable(guard: &ContextGuard, args: CallbackInfo)-> Result<Value, Value>{
 
     let ctx = guard.context();
@@ -178,6 +211,7 @@ impl super::JsScriptEngine {
 
         full_prop!(guard, obj, "name", get_name, set_name);
         full_prop!(guard, obj, "position", get_position, set_position);
+        full_prop!(guard, obj, "scale", get_scale, set_scale);
         full_prop!(guard, obj, "parent", get_parent, set_parent);
 
         add_function(guard, &obj, "destroy", mf!(destroy));

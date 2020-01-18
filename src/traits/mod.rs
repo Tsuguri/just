@@ -49,6 +49,9 @@ pub trait World: Send + Sync {
     fn set_local_pos(&mut self, id: GameObjectId, new_position: Vec3) -> Result<(), ()>;
     fn get_local_pos(&self, id: GameObjectId) -> Result<Vec3, ()>;
 
+    fn set_local_sc(&mut self, id: GameObjectId, new_scale: Vec3) -> Result<(), ()>;
+    fn get_local_sc(&self, id: GameObjectId) -> Result<Vec3, ()>;
+
     fn get_parent(&self, id: GameObjectId) -> Option<GameObjectId>;
     fn set_parent(&mut self, id: GameObjectId, new_parent: Option<GameObjectId>) -> Result<(), ()>;
 
@@ -73,7 +76,7 @@ pub trait ScriptingEngine: Sized {
     fn update(&mut self,
               world: &mut dyn World,
               scripts: &mut Data<Self::Controller>,
-              resources: &ResourceProvider,
+              resources: &dyn ResourceProvider,
               keyboard: &crate::input::KeyboardState,
               mouse: &crate::input::MouseState,
               current_time: f64,
@@ -81,9 +84,21 @@ pub trait ScriptingEngine: Sized {
 }
 
 
+pub enum Value{
+    Matrix4(Matrix),
+    Matrix3(Matrix3),
+    Vector2(Vec2),
+    Vector3(Vec3),
+    Vector4(Vec4),
+    Float(f32),
+    None,
+}
+
 pub trait RenderingData {
     fn get_projection_matrix(&self) -> Matrix;
     fn get_view_matrix(&self) -> Matrix;
+
+    fn get_rendering_constant(&self, name: &str) -> Value;
 
     fn get_renderables(
         &self,

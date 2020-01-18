@@ -43,6 +43,7 @@ pub struct GameObject {
 
     pub position: RefCell<Vec3>,
     pub rotation: RefCell<Quat>,
+    pub scale: RefCell<Vec3>,
 
     local_matrix: RefCell<MatrixState>,
     global_matrix: RefCell<MatrixState>,
@@ -58,6 +59,7 @@ impl GameObject {
             parent: Option::None,
 
             position: Vec3::zeros().into(),
+            scale: Vec3::new(1.0, 1.0, 1.0).into(),
             rotation: Quat::identity().into(),
 
             local_matrix: RefCell::new(MatrixState::new()),
@@ -101,7 +103,7 @@ impl GameObject {
         let mut tr = self.local_matrix.borrow_mut();
 
         if tr.changed {
-            tr.item = crate::glm::translation(&self.position.borrow()) * crate::glm::quat_to_mat4(&self.rotation.borrow());
+            tr.item = crate::glm::translation(&self.position.borrow()) * crate::glm::quat_to_mat4(&self.rotation.borrow()) * crate::glm::scaling(&self.scale.borrow());
             tr.changed = false;
         }
         tr.item
@@ -153,5 +155,14 @@ impl GameObject {
 
     pub fn get_local_rotation(&self) -> Quat {
         *self.rotation.borrow()
+    }
+    
+    pub fn set_local_scale<C: Controller>(&self, scene: &super::WorldData<C>, new_scale: Vec3) {
+        *self.scale.borrow_mut() = new_scale;
+        self.void_local_matrix(scene);
+    }
+
+    pub fn get_local_scale(&self)-> Vec3 {
+        *self.scale.borrow()
     }
 }

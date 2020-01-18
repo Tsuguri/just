@@ -8,24 +8,45 @@ use super::api_helpers::*;
 use crate::scripting::InternalTypes;
 use chakracore::value::function::CallbackInfo;
 
-fn sin(guard: &ContextGuard, info: CallbackInfo) -> Result<Value, Value>{
-    debug_assert!(info.arguments.len()==1);
-    let arg = double!(guard, info.arguments[0]);
 
-    return Result::Ok(make_double!(guard, arg.sin()).into());
+macro_rules! unary_fun {
+    ($g: ident) => {
+        fn $g(guard: &ContextGuard, info: CallbackInfo) -> Result<Value, Value>{
+            debug_assert!(info.arguments.len()==1);
+            let arg = double!(guard, info.arguments[0]);
+
+            return Result::Ok(make_double!(guard, arg.$g()).into());
+        }
+    };
 }
 
-fn cos(guard: &ContextGuard, info: CallbackInfo) -> Result<Value, Value>{
-    debug_assert!(info.arguments.len()==1);
-    let arg = double!(guard, info.arguments[0]);
+unary_fun!(sqrt);
+unary_fun!(sin);
+unary_fun!(cos);
 
-    return Result::Ok(make_double!(guard, arg.cos()).into());
+fn rand(guard: &ContextGuard, info: CallbackInfo) ->Result<Value, Value> {
+    let val: f64 = rand::random();
+
+    Result::Ok(make_double!(guard, val).into())
 }
+
+// fn sin(guard: &ContextGuard, info: CallbackInfo) -> Result<Value, Value>{
+//     debug_assert!(info.arguments.len()==1);
+//     let arg = double!(guard, info.arguments[0]);
+
+//     return Result::Ok(make_double!(guard, arg.sin()).into());
+// }
+
+// fn cos(guard: &ContextGuard, info: CallbackInfo) -> Result<Value, Value>{
+//     debug_assert!(info.arguments.len()==1);
+//     let arg = double!(guard, info.arguments[0]);
+
+//     return Result::Ok(make_double!(guard, arg.cos()).into());
+// }
 
 fn vec3_get_x(guard: &ContextGuard, info: CallbackInfo) -> Result<Value, Value> {
     let external = info.this.into_external().unwrap();
     let this = unsafe {external.value::<Vec3>()};
-    println!("vec content: {:?}", this);
 
     Result::Ok(make_double!(guard, this.data[0] as f64).into())
 }
@@ -86,6 +107,23 @@ fn vec3_clone(guard: &ContextGuard, info: CallbackInfo) -> Result<Value, Value> 
 
     Result::Ok(obj.into())
 }
+
+fn vec3_len(guard: &ContextGuard, info:CallbackInfo) ->Result<Value, Value> {
+    let mut info = info;
+    debug_assert!(info.arguments.len() == 2);
+    let external2 = info.arguments.pop().unwrap().into_external().unwrap();
+    let external1 = info.arguments.pop().unwrap().into_external().unwrap();
+    let vec1 = unsafe {external1.value::<Vec3>()};
+    let vec2 = unsafe {external2.value::<Vec3>()};
+
+    let ctx = guard.context();
+    let prototypes = prototypes(&ctx);
+    let len = nalgebra_glm::distance(&vec1, &vec2);
+
+
+    Result::Ok(make_double!(guard, len as f64).into())
+
+}
 fn create_vec3_prototype(guard: &ContextGuard) -> js::value::Object {
     let obj = js::value::Object::new(guard);
 
@@ -123,6 +161,8 @@ impl super::JsScriptEngine {
 
         add_function(&guard, &math, "Sin", mf!(sin));
         add_function(&guard, &math, "Cos", mf!(cos));
+        add_function(&guard, &math, "Sqrt", mf!(sqrt));
+        add_function(&guard, &math, "Random", mf!(rand));
 
         drop(guard);
         self.prototypes.0.insert(InternalTypes::Vec3, vec3_prototype);

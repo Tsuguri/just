@@ -18,8 +18,6 @@ use crate::traits::{
     Renderer,
 };
 
-use crate::math::*;
-
 
 use crate::input;
 use crate::scripting::JsScriptEngine;

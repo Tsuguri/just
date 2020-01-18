@@ -1,6 +1,12 @@
-pipeline main(position: vec4, normal: vec4, albedo: vec4) -> (vec4){
-    let lightDir = vec3(1.0, 1.0, 0.0);
-    let lightColor = vec3(0.7, 0.7, 0.7);
+pipeline main(position: vec4, normal: vec4, albedo: vec4) -> (vec4)
+with {
+    camera_pos: vec3,
+    lightDir: vec3,
+    lightColor: vec3,
+}
+{
+    //let lightDir = vec3(1.0, 1.0, 0.0);
+    //let lightColor = vec3(0.7, 0.7, 0.7);
 
     let ambient = lightColor * vec3(0.3, 0.3, 0.3);
 

@@ -30,27 +30,31 @@ use octo_runtime::OctoModule;
 
 
 pub struct Renderer<B: hal::Backend> {
-    graph: Option<rendy::graph::Graph<B, traits::RenderingData>>,
+    graph: Option<rendy::graph::Graph<B, dyn traits::RenderingData>>,
+    push_constants_block: Arc<octo_node::PushConstantsBlock>,
 }
 
 
 impl<B: hal::Backend> traits::Renderer<Hardware<B>> for Renderer<B> {
-    fn create(hardware: &mut Hardware<B>, world: &(traits::RenderingData + 'static), res: Arc<ResourceManager<B>>) -> Self {
-        let graph = fill_render_graph(hardware, world, res);
+    fn create(hardware: &mut Hardware<B>, world: &(dyn traits::RenderingData + 'static), res: Arc<ResourceManager<B>>) -> Self {
+        let (graph, block) = fill_render_graph(hardware, world, res);
         Self {
             graph: Some(graph),
+            push_constants_block: block,
         }
     }
-    fn run(&mut self, hardware: &mut Hardware<B>, _res: &ResourceManager<B>, world: &(traits::RenderingData + 'static)) {
+    fn run(&mut self, hardware: &mut Hardware<B>, _res: &ResourceManager<B>, world: &(dyn traits::RenderingData + 'static)) {
         match &mut self.graph {
             Some(x) => {
+                self.push_constants_block.clear();
+                self.push_constants_block.fill(world);
                 x.run(&mut hardware.factory, &mut hardware.families, world);
             }
             None => ()
         }
     }
 
-    fn dispose(&mut self, hardware: &mut Hardware<B>, world: &(traits::RenderingData + 'static)) {
+    fn dispose(&mut self, hardware: &mut Hardware<B>, world: &(dyn traits::RenderingData + 'static)) {
         match self.graph.take() {
             Some(x) => {
                 x.dispose(&mut hardware.factory, world);
@@ -120,8 +124,8 @@ impl<B: hal::Backend> Hardware<B> {
     }
 }
 
-pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world: &(traits::RenderingData + 'static), resources: Arc<ResourceManager<B>>) -> rendy::graph::Graph<B, traits::RenderingData> {
-    let mut graph_builder = GraphBuilder::<B, traits::RenderingData>::new();
+pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world: &(dyn traits::RenderingData + 'static), resources: Arc<ResourceManager<B>>) -> (rendy::graph::Graph<B, dyn traits::RenderingData>, Arc<octo_node::PushConstantsBlock>) {
+    let mut graph_builder = GraphBuilder::<B, dyn traits::RenderingData>::new();
 
     assert!(hardware.surface.is_some());
 
@@ -200,9 +204,15 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
 
     // make sure that our renderer fits objects rendering
     assert!(octo_module.required_input.len() == 3);
-    assert!(octo_module.required_input[0].1 == octo_runtime::TextureType::Vec4);
-    assert!(octo_module.required_input[1].1 == octo_runtime::TextureType::Vec4);
-    assert!(octo_module.required_input[2].1 == octo_runtime::TextureType::Vec4);
+    assert!(octo_module.required_input[0].1 == octo_runtime::ValueType::Vec4);
+    assert!(octo_module.required_input[1].1 == octo_runtime::ValueType::Vec4);
+    assert!(octo_module.required_input[2].1 == octo_runtime::ValueType::Vec4);
+
+    for uni in &octo_module.uniform_block {
+        println!("loading push constant of type {:?} and name {:?}", uni.1,uni.0);
+    }
+
+    let uniform_block = Arc::new(octo_node::PushConstantsBlock::new(&octo_module.uniform_block));
 
     // create needed textures
     // size not used for now
@@ -256,6 +266,8 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
             fragment_shader: std::cell::RefCell::new(octo_module.fragment_shaders[&pass.shader].clone()),
             stage_name: "test_stage".to_owned(),
             stage_id: id,
+            push_constants_size: octo_module.uniform_block_size,
+            push_constants_block: uniform_block.clone(),
         };
         passes.push(node_desc.builder());
     }
@@ -339,8 +351,8 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
     let frames = present_builder.image_count();
 
     graph_builder.add_node(present_builder);
-    graph_builder
+    (graph_builder
         .with_frames_in_flight(frames)
         .build(&mut hardware.factory, &mut hardware.families, world)
-        .unwrap()
+        .unwrap(), uniform_block)
 }
