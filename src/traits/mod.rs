@@ -62,6 +62,8 @@ pub trait World: Send + Sync {
     fn destroy_gameobject(&mut self, id: GameObjectId);
 
     fn set_renderable(&mut self, id: GameObjectId, mesh: MeshId);
+
+    fn set_camera_position(&mut self, new_pos: Vec3);
 }
 
 

@@ -1,14 +1,16 @@
 Scene(
     name: "Super Scene",
+    viewport_height: 15.0,
+    camera_rotation: [0.0, 0.0, 0.0],
     objects: [
         (
             name: "super_obj",
             renderable: Some(Renderable(
-                mesh: "cow1",
+                mesh: "monkey",
                 texture: "cow_tex",
             )),
             script: Some("test2"),
-            position: Some([1.0, -0.5, 20.0]),
+            position: Some([0.0, 0.0, 20.0]),
             children: None,
         ),
     ],

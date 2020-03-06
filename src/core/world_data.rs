@@ -16,6 +16,9 @@ pub struct WorldData<C: Controller> {
     pub renderables: Data<Mesh>,
     pub scripts: Data<C>,
     pub to_destroy: Vec<GameObjectId>,
+    pub camera_position: Vec3,
+    pub camera_rotation: Quat,
+    pub viewport_height: f32,
 }
 
 impl<C: Controller>  World for WorldData<C> {
@@ -95,6 +98,11 @@ impl<C: Controller>  World for WorldData<C> {
     fn set_renderable(&mut self, id: GameObjectId, mesh: MeshId){
         self.add_renderable(id, Mesh{mesh_id: mesh, texture_id: None});
     }
+
+    fn set_camera_position(&mut self, new_pos: Vec3) {
+        println!("setting camera_pos to {:?}", new_pos);
+        self.camera_position = new_pos;
+    }
 }
 
 unsafe impl<C: Controller> Send for WorldData<C>{}
@@ -142,14 +150,21 @@ use crate::math::Matrix;
 
 impl<C: Controller> RenderingData for WorldData<C> {
     fn get_projection_matrix(&self) -> Matrix {
-        let mut temp = nalgebra_glm::perspective_lh_zo(
-            256.0f32 / 108.0, f32::to_radians(45.0f32), 0.1f32, 100.0f32);
+        let top = self.viewport_height / 2.0f32;
+        let bot = - top;
+        let right = 1920.0f32 / 1080.0f32 * top;
+        let left = -right;
+        let near = 0.1f32;
+        let far = 300.0f32;
+        let mut temp = nalgebra_glm::ortho_lh_zo(left, right, bot, top, near, far);
+        // let mut temp = nalgebra_glm::perspective_lh_zo(
+        //     256.0f32 / 108.0, f32::to_radians(45.0f32), 0.1f32, 100.0f32);
         temp[(1, 1)] *= -1.0;
         temp
     }
 
     fn get_view_matrix(&self) -> Matrix {
-        nalgebra_glm::translation(&nalgebra_glm::vec3(1.0f32, -2.5, 10.0))
+        nalgebra_glm::quat_to_mat4(&self.camera_rotation) * nalgebra_glm::translation(&self.camera_position)
     }
 
     fn get_rendering_constant(&self, name: &str) -> Value {
@@ -158,6 +173,7 @@ impl<C: Controller> RenderingData for WorldData<C> {
             "view_mat" => Value::Matrix4(self.get_view_matrix()),
             "lightColor" => Value::Vector3(Vec3::new(0.0f32, 1.0f32, 0.9f32)),
             "lightDir" => Value::Vector3(Vec3::new(0.1f32, 0.9f32, 1.0f32)),
+            "camera_pos" => Value::Vector3(self.camera_position),
             _ => Value::None,
         }
 

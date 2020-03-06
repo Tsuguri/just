@@ -20,6 +20,7 @@ use crate::traits::{
 
 
 use crate::input;
+use crate::math::*;
 use crate::scripting::JsScriptEngine;
 #[cfg(test)]
 use crate::scripting::test_scripting::MockScriptEngine;
@@ -76,6 +77,9 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
             renderables: Data::new(),
             to_destroy: vec![],
             scripts: Data::new(),
+            camera_position: Vec3::zeros(),
+            camera_rotation: Quat::identity(),
+            viewport_height: 10.0f32,
         };
         let renderer = HW::Renderer::create(&mut hardware, &world, resources.clone());
         let eng =Engine {
