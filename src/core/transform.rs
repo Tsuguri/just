@@ -1,45 +1,142 @@
 use super::WorldData;
-use crate::math::{Vec3, Matrix, Quat};
+use crate::math::*;
 use crate::traits::*;
+use super::game_object::Transform;
 
 impl<C: Controller> WorldData<C> {
     pub fn get_global_position(&self, id: GameObjectId) -> Vec3 {
-        self.object_data[id].get_global_position(self)
+        let mat = self.get_parent_matrix(id);
+        let ent_id = self.other_id[id];
+        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+        pos(&(mat*pos_vec(&transform.position)))
     }
 
     pub fn get_global_rotation(&self, id: GameObjectId) -> Quat {
-        self.object_data[id].get_global_rotation(self)
+        let ent_id = self.other_id[id];
+        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+        let rotation = transform.rotation;
+        drop(transform);
+
+        let parent_rotation = match self.object_data[id].parent {
+            None => Quat::identity(),
+            Some(parent_id) => self.get_global_rotation(parent_id),
+        };
+        parent_rotation*(rotation)
     }
 
     pub fn get_global_matrix(&self, id: GameObjectId) -> Matrix {
-        //let obj_data = &mut self.object_data[id];
-        self.object_data[id].get_global_matrix(self)
+        let ent_id = self.other_id[id];
+        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+        let mut global_mat = transform.global_matrix.borrow_mut();
+
+        if global_mat.changed {
+            let parent_matrix = self.get_parent_matrix(id);
+            let mat = parent_matrix * self.get_local_matrix(id);
+
+            global_mat.item = mat;
+            global_mat.changed = false;
+        }
+
+
+        return global_mat.item;
+    //         let parent_matrix = self.get_parent_matrix(world);
+    //         tr.item = parent_matrix * self.get_local_matrix();
+    //         tr.changed = false;
+    }
+
+    fn get_parent_matrix(&self, id: GameObjectId) -> Matrix{
+        match self.object_data[id].parent {
+            None => Matrix::identity(),
+            Some(parent_id) => {
+                self.get_global_matrix(parent_id)
+            }
+        }
+
+    }
+
+    fn get_local_matrix(&self, id: GameObjectId) -> Matrix{
+        let ent_id = self.other_id[id];
+        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+        let mut local_matrix = transform.local_matrix.borrow_mut();
+
+        if local_matrix.changed {
+            local_matrix.item = crate::glm::translation(&transform.position) * crate::glm::quat_to_mat4(&transform.rotation) * crate::glm::scaling(&transform.scale);
+            local_matrix.changed = false;
+
+        }
+
+        return local_matrix.item;
+    }
+
+    pub fn void_local_matrix(&self, id: GameObjectId) {
+        let ent_id = self.other_id[id];
+        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+        transform.local_matrix.borrow_mut().changed = true;
+        drop(transform);
+        
+        self.void_global_matrix(id);
+
+    }
+
+    fn void_global_matrix(&self, id: GameObjectId) {
+        let ent_id = self.other_id[id];
+        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+        let mut global_matrix = transform.global_matrix.borrow_mut();
+        if global_matrix.changed == true {
+            return;
+        }
+        global_matrix.changed = true;
+
+        for child in self.object_data[id].children.clone() {
+            self.void_global_matrix(child);
+        }
+
     }
 
     pub fn set_local_position(&mut self, id: GameObjectId, new_position: Vec3) {
-        self.object_data[id].set_local_position(self, new_position);
+        let ent_id = self.other_id[id];
+        let mut transform = self.wor.get_component_mut::<Transform>(ent_id).unwrap();
+        transform.position = new_position;
+        drop(transform);
+        self.void_local_matrix(id);
     }
 
     pub fn set_local_rotation(&mut self, id: GameObjectId, new_rotation: Quat) {
-        self.object_data[id].set_local_rotation(self, new_rotation);
+        let ent_id = self.other_id[id];
+        let mut transform = self.wor.get_component_mut::<Transform>(ent_id).unwrap();
+        transform.rotation = new_rotation;
+        drop(transform);
+        self.void_local_matrix(id);
     }
     
     pub fn set_local_scale(&mut self, id: GameObjectId, new_scale: Vec3) {
-        self.object_data[id].set_local_scale(self, new_scale);
+        let ent_id = self.other_id[id];
+        let mut transform = self.wor.get_component_mut::<Transform>(ent_id).unwrap();
+        transform.scale = new_scale;
+        drop(transform);
+        self.void_local_matrix(id);
     }
 
     pub fn get_local_position(&self, id: GameObjectId) -> Vec3 {
-        self.object_data[id].get_local_position()
+        let ent_id = self.other_id[id];
+        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+        return transform.position;
     }
 
     pub fn get_local_rotation(&self, id: GameObjectId) -> Quat {
-        self.object_data[id].get_local_rotation()
+        let ent_id = self.other_id[id];
+        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+        return transform.rotation;
     }
     
     pub fn get_local_scale(&self, id: GameObjectId) -> Vec3 {
-        self.object_data[id].get_local_scale()
+        let ent_id = self.other_id[id];
+        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+        return transform.scale;
     }
 }
+
+
 
 #[cfg(test)]
 mod tests {

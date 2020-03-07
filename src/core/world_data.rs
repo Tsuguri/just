@@ -1,8 +1,10 @@
 use crate::traits::{Data, Map, MeshId, TextureId, World, GameObjectId, RenderingData, Controller, Value};
 
+use std::cell::RefCell;
 use crate::math::*;
+use legion::prelude::*;
 
-use super::game_object::GameObject;
+use super::game_object::{GameObject, Transform};
 
 pub struct Mesh {
     pub mesh_id: MeshId,
@@ -16,9 +18,12 @@ pub struct WorldData<C: Controller> {
     pub renderables: Data<Mesh>,
     pub scripts: Data<C>,
     pub to_destroy: Vec<GameObjectId>,
+    pub other_id: Data<legion::prelude::Entity>,
     pub camera_position: Vec3,
     pub camera_rotation: Quat,
     pub viewport_height: f32,
+
+    pub wor: legion::prelude::World,
 }
 
 impl<C: Controller>  World for WorldData<C> {
@@ -72,7 +77,8 @@ impl<C: Controller>  World for WorldData<C> {
             }
         }
         self.object_data[obj].parent = new_parent;
-        self.object_data[obj].void_local_matrix(&self);
+        self.void_local_matrix(obj);
+        //self.object_data[obj].void_local_matrix(&self);
 
         Result::Ok(())
     }
@@ -86,7 +92,16 @@ impl<C: Controller>  World for WorldData<C> {
     fn create_gameobject(&mut self) -> GameObjectId {
         let id = self.objects.insert(true);
         let go = GameObject::new(id);
+
+        let tr = Transform::new();
         self.object_data.insert(id, go);
+        let ent_id = self.wor.insert(
+            (),
+            vec![
+                (Transform::new(),),
+            ],
+        ).to_vec();
+        self.other_id.insert(id, ent_id[0]);
         id
     }
 
@@ -100,7 +115,7 @@ impl<C: Controller>  World for WorldData<C> {
     }
 
     fn set_camera_position(&mut self, new_pos: Vec3) {
-        println!("setting camera_pos to {:?}", new_pos);
+        // println!("setting camera_pos to {:?}", new_pos);
         self.camera_position = new_pos;
     }
 }
@@ -129,6 +144,7 @@ impl<C: Controller> WorldData<C> {
 
 
     pub fn remove_game_object(&mut self, id: GameObjectId, scripts: &mut Data<C>) {
+        let ent_id = self.other_id[id];
         let data = &self.object_data[id];
         for child in data.children.clone() {
             self.remove_game_object(child, scripts);
@@ -138,10 +154,15 @@ impl<C: Controller> WorldData<C> {
 
     fn remove_single(&mut self, id: GameObjectId, scripts: &mut Data<C>) {
 
+        let ent_id = self.other_id[id];
+        self.wor.delete(ent_id);
+        drop(ent_id);
+        self.other_id.remove(id);
         self.set_parent(id, None);
         self.objects.remove(id);
         self.object_data.remove(id);
         self.renderables.remove(id);
+        
         scripts.remove(id);
     }
 }
@@ -154,7 +175,7 @@ impl<C: Controller> RenderingData for WorldData<C> {
         let bot = - top;
         let right = 1920.0f32 / 1080.0f32 * top;
         let left = -right;
-        let near = 0.1f32;
+        let near = -50.0f32;
         let far = 300.0f32;
         let mut temp = nalgebra_glm::ortho_lh_zo(left, right, bot, top, near, far);
         // let mut temp = nalgebra_glm::perspective_lh_zo(
@@ -164,15 +185,15 @@ impl<C: Controller> RenderingData for WorldData<C> {
     }
 
     fn get_view_matrix(&self) -> Matrix {
-        nalgebra_glm::quat_to_mat4(&self.camera_rotation) * nalgebra_glm::translation(&self.camera_position)
+        nalgebra_glm::quat_to_mat4(&self.camera_rotation) * nalgebra_glm::translation(&(-self.camera_position))
     }
 
     fn get_rendering_constant(&self, name: &str) -> Value {
         match name {
             "projection_mat" => Value::Matrix4(self.get_projection_matrix()),
             "view_mat" => Value::Matrix4(self.get_view_matrix()),
-            "lightColor" => Value::Vector3(Vec3::new(0.0f32, 1.0f32, 0.9f32)),
-            "lightDir" => Value::Vector3(Vec3::new(0.1f32, 0.9f32, 1.0f32)),
+            "lightColor" => Value::Vector3(Vec3::new(0.6f32, 0.6f32, 0.6f32)),
+            "lightDir" => Value::Vector3(Vec3::new(2.0f32, 1.0f32, -0.1f32)),
             "camera_pos" => Value::Vector3(self.camera_position),
             _ => Value::None,
         }
@@ -196,9 +217,7 @@ impl<C: Controller> RenderingData for WorldData<C> {
 
         //fill here
         for renderable in &self.renderables {
-
-            let mat = self.object_data[renderable.0].get_global_matrix(self);
-
+            let mat = self.get_global_matrix(renderable.0);
             buf.push((renderable.1.mesh_id, renderable.1.texture_id, mat));
         }
         buf

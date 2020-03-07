@@ -32,18 +32,17 @@ pub struct Scene {
     objects: Vec<Object>,
 }
 
-pub fn deserialize_scene(path: &str, engine: &mut crate::core::JsEngine) {
+pub fn deserialize_scene(path: &str, engine: &mut crate::core::JsEngine)-> Result<(),String> {
     let data_string = std::fs::read_to_string(path).unwrap();
 
     let scene: Scene = match from_str(&data_string){
         Ok(x) => x,
         Err(e)=>{
-            println!("Error reading scene file: {}", e);
-            panic!();
+            return Err(format!("Error reading scene file: {}", e));
         }
     };
 
-    let camera_rot = glm::rotate_x(&glm::rotate_y(&glm::rotate_x(&glm::identity(), scene.camera_rotation[0]), scene.camera_rotation[1]), scene.camera_rotation[2]);
+    let camera_rot = glm::rotate_x(&glm::rotate_y(&glm::rotate_x(&glm::identity(), -scene.camera_rotation[0]), -scene.camera_rotation[1]), -scene.camera_rotation[2]);
     engine.world.camera_rotation = glm::to_quat(&camera_rot);
     engine.world.viewport_height = scene.viewport_height;
 
@@ -52,6 +51,7 @@ pub fn deserialize_scene(path: &str, engine: &mut crate::core::JsEngine) {
         spawn_object(obj, None, engine);
     }
 
+    return Result::Ok(());
 
 }
 

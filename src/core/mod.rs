@@ -27,6 +27,9 @@ use crate::scripting::test_scripting::MockScriptEngine;
 use std::sync::Arc;
 
 use world_data::WorldData;
+use std::cell::RefCell;
+
+use legion::prelude::*;
 
 
 struct Animator;
@@ -75,11 +78,13 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
             objects: Map::with_key(),
             object_data: Data::new(),
             renderables: Data::new(),
+            other_id: Data::new(),
             to_destroy: vec![],
             scripts: Data::new(),
             camera_position: Vec3::zeros(),
             camera_rotation: Quat::identity(),
             viewport_height: 10.0f32,
+            wor: legion::prelude::World::new(),
         };
         let renderer = HW::Renderer::create(&mut hardware, &world, resources.clone());
         let eng =Engine {
