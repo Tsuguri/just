@@ -66,7 +66,7 @@ fn spawn_object(object: Object, parent: Option<GameObjectId>, engine: &mut crate
         engine.world.set_local_position(obj, x);
     });
     object.scale.map(|x| engine.world.set_local_scale(obj, x));
-    object.renderable.map(|x| engine.add_renderable(obj, &x.mesh));
+    object.renderable.map(|x| engine.add_renderable(obj, &x.mesh, Some(&x.texture)));
     object.script.map(|x| engine.add_script(obj, entity_id, &x));
 
 

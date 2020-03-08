@@ -153,7 +153,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, dyn RenderingData> for DeferredNodeDesc<B>
                     binding: 0,
                     array_offset: 0,
                     descriptors: vec![hal::pso::Descriptor::Image(
-                        texture.view().raw(),
+                        texture.texture.view().raw(),
                         hal::image::Layout::ShaderReadOnlyOptimal,
                     )],
                 },
@@ -161,7 +161,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, dyn RenderingData> for DeferredNodeDesc<B>
                     set: descriptor_set.raw(),
                     binding: 1,
                     array_offset: 0,
-                    descriptors: vec![hal::pso::Descriptor::Sampler(texture.sampler().raw())],
+                    descriptors: vec![hal::pso::Descriptor::Sampler(texture.texture.sampler().raw())],
                 },
             ]);
         }
@@ -198,14 +198,6 @@ impl<B> SimpleGraphicsPipeline<B, dyn RenderingData> for DeferredNode<B>
             // 16 fields, 4 bytes each, 2 matrices before.
             let model_offset: u32 = 16 * 4 * 2;
 
-            {
-                encoder.bind_graphics_descriptor_sets(
-                    layout,
-                    0,
-                    std::iter::once(self.descriptor_set.raw()),
-                    std::iter::empty::<u32>(),
-                );
-            }
 
             {
                 let view_offset: u32 = 0;
@@ -249,6 +241,25 @@ impl<B> SimpleGraphicsPipeline<B, dyn RenderingData> for DeferredNode<B>
                     hal::memory::cast_slice::<f32, u32>(&model.data),
                 );
                 let mesh = self.res.get_real_mesh(renderable.0);
+                match renderable.1 {
+                    None => {
+                        encoder.bind_graphics_descriptor_sets(
+                            layout,
+                            0,
+                            std::iter::once(self.descriptor_set.raw()),
+                            std::iter::empty::<u32>(),
+                        );
+                    },
+                    Some(x) => {
+                        let tex = self.res.get_real_texture(x);
+                        encoder.bind_graphics_descriptor_sets(
+                            layout,
+                            0,
+                            std::iter::once(tex.desc.raw()),
+                            std::iter::empty::<u32>(),
+                        );
+                    }
+                };
                 mesh.bind_and_draw(0, &vertex, 0..1, &mut encoder).unwrap();
 
             }

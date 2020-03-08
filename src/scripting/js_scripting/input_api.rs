@@ -22,6 +22,17 @@ fn keyboard_is_key_pressed(guard: &ContextGuard, args: CallbackInfo) -> Result<V
     Result::Ok(js::value::Boolean::new(guard, result).into())
 }
 
+fn keyboard_was_pressed_in_last_frame(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
+    let ctx = guard.context();
+    let keyboard = keyboard(&ctx);
+    debug_assert_eq!(1, args.arguments.len());
+    let arg = args.arguments[0].to_string(guard);
+
+    let result = keyboard.button_pressed_in_last_frame(KeyCode::from_string(&arg));
+    Result::Ok(js::value::Boolean::new(guard, result).into())
+
+}
+
 fn mouse_is_key_pressed(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let ctx = guard.context();
     let mouse = mouse(&ctx);
@@ -51,6 +62,7 @@ impl super::JsScriptEngine {
         let guard = self.guard();
 
         add_function(&guard, &module, "isKeyboardKeyPressed", Box::new(|a,b| keyboard_is_key_pressed(a,b)));
+        add_function(&guard, &module, "keyPressedInLastFrame", Box::new(|a,b| keyboard_was_pressed_in_last_frame(a,b)));
         add_function(&guard, &module, "isMouseKeyPressed", Box::new(|a,b| mouse_is_key_pressed(a,b)));
         add_function(&guard, &module, "mousePosition", Box::new(|a,b| mouse_position(a,b)));
 

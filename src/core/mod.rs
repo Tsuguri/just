@@ -140,11 +140,18 @@ impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
         self.world.create_gameobject()
     }
 
-    pub fn add_renderable(&mut self, id: GameObjectId, mesh: &str) {
+    pub fn add_renderable(&mut self, id: GameObjectId, mesh: &str, tex: Option<&str>) {
         let mesh = self.resources.get_mesh(mesh).unwrap();
+        let tex = match tex {
+            None => None,
+            Some(tex_name) => {
+                let tex_res = self.resources.get_texture(tex_name).unwrap();
+                Some(tex_res)
+            }
+        };
         let mesh = world_data::Mesh{
             mesh_id: mesh,
-            texture_id: None,
+            texture_id: tex,
         };
 
         self.world.add_renderable(id, mesh);

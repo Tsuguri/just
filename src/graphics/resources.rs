@@ -1,7 +1,9 @@
 use rendy::{
     mesh::{Mesh, MeshBuilder, Normal, Position, TexCoord, PosNormTex},
     hal,
+    hal::device::Device,
     texture::image as image,
+    resource::Escape,
 };
 use wavefront_obj::obj;
 
@@ -9,11 +11,16 @@ use wavefront_obj::obj;
 use std::collections::HashMap;
 use crate::traits;
 
+pub struct TextureRes<B: hal::Backend> {
+    pub texture: rendy::texture::Texture<B>,
+    pub desc: rendy::resource::DescriptorSet<B>,
+}
+
 pub struct ResourceManager<B: hal::Backend> {
     mesh_names: HashMap<String, usize>,
     meshes: Vec<Mesh<B>>,
     texture_names: HashMap<String, usize>,
-    textures: Vec<rendy::texture::Texture<B>>,
+    textures: Vec<TextureRes<B>>,
 }
 
 impl<B: hal::Backend> Default for ResourceManager<B> {
@@ -68,7 +75,7 @@ impl<B: hal::Backend> ResourceManager<B> {
         return &self.meshes[id];
     }
 
-    pub fn get_real_texture(&self, id: usize) -> &rendy::texture::Texture<B> {
+    pub fn get_real_texture(&self, id: usize) -> &TextureRes<B> {
         return &self.textures[id];
     }
 
@@ -221,7 +228,55 @@ impl<B: hal::Backend> ResourceManager<B> {
         let id = self.textures.len();
         let name = filename.file_stem().unwrap().to_str().unwrap();
 
-        self.textures.push(texture);
+        
+            // set_layout! {
+            //     factory,
+            //     [1] UniformBuffer hal::pso::ShaderStageFlags::FRAGMENT,
+            //     [T::len()] CombinedImageSampler hal::pso::ShaderStageFlags::FRAGMENT
+            // },
+        let factory = &mut hardware.factory;
+        let layout = factory.create_descriptor_set_layout(
+            vec![
+                    hal::pso::DescriptorSetLayoutBinding {
+                        binding: 0,
+                        ty: hal::pso::DescriptorType::SampledImage,
+                        count: 1,
+                        stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
+                        immutable_samplers: false,
+                    },
+                    hal::pso::DescriptorSetLayoutBinding {
+                        binding: 1,
+                        ty: hal::pso::DescriptorType::Sampler,
+                        count: 1,
+                        stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
+                        immutable_samplers: false,
+                    },
+            ],
+        ).unwrap();
+        let descriptor_set = factory.create_descriptor_set(Escape::share(layout)).unwrap();
+
+        unsafe {
+            factory.device().write_descriptor_sets(vec![
+                hal::pso::DescriptorSetWrite {
+                    set: descriptor_set.raw(),
+                    binding: 0,
+                    array_offset: 0,
+                    descriptors: vec![hal::pso::Descriptor::Image(
+                        texture.view().raw(),
+                        hal::image::Layout::ShaderReadOnlyOptimal,
+                    )],
+                },
+                hal::pso::DescriptorSetWrite {
+                    set: descriptor_set.raw(),
+                    binding: 1,
+                    array_offset: 0,
+                    descriptors: vec![hal::pso::Descriptor::Sampler(texture.sampler().raw())],
+                },
+            ]);
+
+        }
+
+        self.textures.push(TextureRes{ texture: texture, desc: Escape::unescape(descriptor_set)});
         self.texture_names.insert(name.to_owned(), id);
     }
 }

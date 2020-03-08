@@ -5,16 +5,8 @@ class nice {
     }
 
     update() {
-        //        console.log("wut from script");
-
-
-        let n = World.findByName("super_obj");
-        if (n.length > 0) {
-            let go = n[0];
-            let script = go.getScript();
-            if (script !== null) {
-                script.dotto();
-            }
-        }
+        const pos = this.go.globalPosition;
+        const name = this.go.name;
+        console.log(name, " position: ", pos.x, " ", pos.y, " ", pos.z);
     }
 }

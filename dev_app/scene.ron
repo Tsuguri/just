@@ -7,11 +7,20 @@ Scene(
             name: "super_obj",
             renderable: Some(Renderable(
                 mesh: "monkey",
-                texture: "cow_tex",
+                texture: "creature",
             )),
-            script: Some("test2"),
+            script: Some("test_script"),
             position: Some([0.0, 0.0, 20.0]),
-            children: None,
+            scale: Some([0.5, 0.5, 0.5]),
+            children: Some([
+                (
+                    name: "child",
+                    renderable: None,
+                    script: Some("test_script"),
+                    position: Some([0.0, 0.1, 0.2]),
+                    children: None,
+                )
+            ]),
         ),
     ],
 )
