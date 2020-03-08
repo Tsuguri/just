@@ -3,6 +3,7 @@ mod parent_child_manipulation;
 mod transform;
 mod components;
 mod world_data;
+mod colliders;
 use crate::traits::{
     Data,
     Map,
@@ -40,10 +41,7 @@ struct Audio;
 
 
 pub struct Engine<E: ScriptingEngine, HW: Hardware + 'static> {
-    pub world: WorldData<E::Controller>,
-
-    controllers: Data<E::Controller>,
-
+    pub world: WorldData,
 
     scripting_engine: E,
     pub resources: Arc<HW::RM>,
@@ -74,22 +72,10 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
     pub fn new(engine_config: &E::Config, hw_config: &HW::Config, rm_config: &<HW::RM as ResourceManager<HW>>::Config) -> Self {
         let mut hardware = HW::create(hw_config);
         let resources = Arc::new(HW::RM::create(rm_config, &mut hardware));
-        let world = WorldData {
-            objects: Map::with_key(),
-            object_data: Data::new(),
-            renderables: Data::new(),
-            other_id: Data::new(),
-            to_destroy: vec![],
-            scripts: Data::new(),
-            camera_position: Vec3::zeros(),
-            camera_rotation: Quat::identity(),
-            viewport_height: 10.0f32,
-            wor: legion::prelude::World::new(),
-        };
+        let world = WorldData::new();
         let renderer = HW::Renderer::create(&mut hardware, &world, resources.clone());
         let eng =Engine {
             world,
-            controllers: Data::new(),
             scripting_engine: E::create(engine_config),
             resources,
             renderer,
@@ -107,7 +93,6 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
         let rm = self.resources.deref();
         self.scripting_engine.update(
             &mut self.world,
-            &mut self.controllers,
             rm,
             &self.keyboard,
             &self.mouse,
@@ -141,7 +126,7 @@ impl JsEngine {
             self.update_scripts(elapsed);
             self.renderer.run(&mut self.hardware, &self.resources, &self.world);
 
-            self.world.remove_marked(&mut self.controllers);
+            self.world.remove_marked();
         }
     }
 }
@@ -165,10 +150,8 @@ impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
         self.world.add_renderable(id, mesh);
     }
 
-    pub fn add_script(&mut self, id: GameObjectId, typ: &str) {
-        let obj = self.scripting_engine.create_script(id, typ);
-
-        self.controllers.insert(id, obj);
+    pub fn add_script(&mut self, id: GameObjectId, entity_id: Entity, typ: &str) {
+        let obj = self.scripting_engine.create_script(id, entity_id, typ, &mut self.world.wor);
     }
 }
 

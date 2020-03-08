@@ -3,6 +3,7 @@ use std::sync::Arc;
 use serde::Deserialize;
 
 use crate::math::*;
+use legion::prelude::Entity;
 
 pub type MeshId = usize;
 pub type TextureId = usize;
@@ -43,11 +44,14 @@ pub trait Controller {
 }
 
 pub trait World: Send + Sync {
+    fn get_legion(&mut self) -> &mut legion::prelude::World;
+    fn map_id(&self, id: GameObjectId) -> Entity;
     fn get_name(&self, id: GameObjectId) -> String;
 
     fn set_name(&mut self, id: GameObjectId, name: String);
     fn set_local_pos(&mut self, id: GameObjectId, new_position: Vec3) -> Result<(), ()>;
     fn get_local_pos(&self, id: GameObjectId) -> Result<Vec3, ()>;
+    fn get_global_pos(&self, id: GameObjectId) -> Result<Vec3, ()>;
 
     fn set_local_sc(&mut self, id: GameObjectId, new_scale: Vec3) -> Result<(), ()>;
     fn get_local_sc(&self, id: GameObjectId) -> Result<Vec3, ()>;
@@ -63,6 +67,8 @@ pub trait World: Send + Sync {
 
     fn set_renderable(&mut self, id: GameObjectId, mesh: MeshId);
 
+    //fn get_script()
+
     fn set_camera_position(&mut self, new_pos: Vec3);
 }
 
@@ -73,11 +79,10 @@ pub trait ScriptingEngine: Sized {
 
     fn create(config: &Self::Config) -> Self;
 
-    fn create_script(&mut self, gameobject_id: GameObjectId, typ: &str) -> Self::Controller;
+    fn create_script(&mut self, gameobject_id: GameObjectId, entity_id: Entity, typ: &str, world: &mut legion::prelude::World);
 
     fn update(&mut self,
               world: &mut dyn World,
-              scripts: &mut Data<Self::Controller>,
               resources: &dyn ResourceProvider,
               keyboard: &crate::input::KeyboardState,
               mouse: &crate::input::MouseState,

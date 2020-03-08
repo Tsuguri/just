@@ -1,4 +1,4 @@
-use crate::traits::{Controller, ScriptingEngine, GameObjectId, Hardware, ResourceManager, Data, World, ResourceProvider};
+use crate::traits::{Controller, ScriptingEngine, GameObjectId, Hardware, ResourceManager, Data, ResourceProvider};
 
 use chakracore as js;
 use std::mem::ManuallyDrop;
@@ -15,6 +15,8 @@ mod game_object_api;
 mod time_api;
 mod world_api;
 mod resources_api;
+
+use legion::prelude::*;
 
 
 #[derive(PartialEq, Eq, Hash)]
@@ -61,6 +63,9 @@ pub struct JsScript {
     js_object: js::value::Object,
     update: Option<js::value::Function>,
 }
+
+unsafe impl Send for JsScript {}
+unsafe impl Sync for JsScript {}
 
 pub struct ScriptCreationData {
     object: GameObjectId,
@@ -209,7 +214,7 @@ impl ScriptingEngine for JsScriptEngine {
         engine
     }
 
-    fn create_script(&mut self, gameobject_id: GameObjectId, typ: &str) -> JsScript {
+    fn create_script(&mut self, gameobject_id: GameObjectId, entity_id: Entity, typ: &str, world: &mut World) {
         let command = format!("new {}();", typ);
         let guard = self.guard();
 
@@ -220,12 +225,13 @@ impl ScriptingEngine for JsScriptEngine {
 
         obj.set(&guard, js::Property::new(&guard, "go"), prot);
 
-        JsScript::new(obj, &guard)
+        let script = JsScript::new(obj, &guard);
+        world.add_component(entity_id, script);
+
     }
 
     fn update(&mut self,
-              world: &mut dyn World,
-              scripts: &mut Data<JsScript>,
+              world: &mut dyn crate::traits::World,
               resources: &dyn ResourceProvider,
               keyboard: &crate::input::KeyboardState,
               mouse: &crate::input::MouseState,
@@ -238,9 +244,9 @@ impl ScriptingEngine for JsScriptEngine {
         //set context data
 
         let reference = unsafe{
-            std::mem::transmute::<&mut dyn World, &'static mut dyn World>(world)
+            std::mem::transmute::<&mut dyn crate::traits::World, &'static mut dyn crate::traits::World>(world)
         };
-        self.context.insert_user_data::<&mut dyn World>(reference);
+        self.context.insert_user_data::<&mut dyn crate::traits::World>(reference);
 
 
         let reference = unsafe{
@@ -260,21 +266,25 @@ impl ScriptingEngine for JsScriptEngine {
 
         let guard = self.guard();
 
-        for (_, script) in scripts.iter() {
+        let query = <(Read<JsScript>, Read<GameObjectId>)>::query();
+
+        for (entity_id, (script, id)) in query.iter_entities_immutable(world.get_legion()) {
             match &script.update {
                 None => (),
                 Some(fun) => { fun.call_with_this(&guard, &script.js_object, &[]).unwrap(); }
             }
+
         }
+
         drop(guard);
 
         let to_create : Vec<_> = self.creation.drain(0..self.creation.len()).collect();
 
         for data in to_create {
-            let script = self.create_script(data.object, &data.script_type);
-            scripts.insert(data.object, script);
+            self.create_script(data.object, world.map_id(data.object), &data.script_type, world.get_legion());
+            //scripts.insert(data.object, script);
         }
-        debug_assert!(self.context.remove_user_data::<&mut dyn World>().is_some());
+        debug_assert!(self.context.remove_user_data::<&mut dyn crate::traits::World>().is_some());
         debug_assert!(self.context.remove_user_data::<&mut Vec<ScriptCreationData>>().is_some());
 
         debug_assert!(self.context.remove_user_data::<&dyn ResourceProvider>().is_some());

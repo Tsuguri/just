@@ -12,6 +12,7 @@ use crate::traits::GameObjectId;
 use super::api_helpers::*;
 use super::ScriptCreationData;
 use crate::scripting::InternalTypes;
+use crate::scripting::js_scripting::JsScript;
 use crate::scripting::js_scripting::resources_api::MeshData;
 
 pub struct GameObjectData {
@@ -61,6 +62,24 @@ fn get_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value
     obj.set_prototype(guard, prototypes[&InternalTypes::Vec3].clone()).unwrap();
 
     Result::Ok(obj.into())
+}
+
+fn get_global_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
+    let ctx = guard.context();
+    let external = args.this.into_external().unwrap();
+
+    let prototypes = prototypes(&ctx);
+
+    let world = world(&ctx);
+    let this = unsafe { external.value::<GameObjectData>() };
+
+    let pos = world.get_global_pos(this.id).unwrap();
+
+    let obj = js::value::External::new(guard, Box::new(pos));
+    obj.set_prototype(guard, prototypes[&InternalTypes::Vec3].clone()).unwrap();
+
+    Result::Ok(obj.into())
+
 }
 
 fn get_scale(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
@@ -173,7 +192,6 @@ fn set_renderable(guard: &ContextGuard, args: CallbackInfo)-> Result<Value, Valu
 
 fn set_script(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let ctx = guard.context();
-    let world = world(&ctx);
     let creation_data = creation_data(&ctx);
 
     let te = args.this.into_external().unwrap();
@@ -182,7 +200,21 @@ fn set_script(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> 
 
     creation_data.push(ScriptCreationData{object: this.id, script_type: m.value()});
     Result::Ok(js::value::null(guard))
+}
 
+fn get_script(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
+    let ctx = guard.context();
+    let world = world(&ctx);
+    let te = args.this.into_external().unwrap();
+    let this = unsafe { te.value::<GameObjectData>() };
+    let ent_id = world.map_id(this.id);
+    let script = world.get_legion().get_component::<JsScript>(ent_id);
+    match script {
+        None => Result::Err(js::value::null(guard)),
+        Some(x) => {
+            Result::Ok(x.js_object.clone().into())
+        }
+    }
 }
 
 fn destroy(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
@@ -214,9 +246,14 @@ impl super::JsScriptEngine {
         full_prop!(guard, obj, "scale", get_scale, set_scale);
         full_prop!(guard, obj, "parent", get_parent, set_parent);
 
+        let prop = js::value::Object::new(guard);
+        getter!(guard, prop, get_global_position);
+        obj.define_property(guard, js::Property::new(guard, "globalPosition"), prop);
+
         add_function(guard, &obj, "destroy", mf!(destroy));
         add_function(guard, &obj, "setRenderable", mf!(set_renderable));
         add_function(guard, &obj, "setScript", mf!(set_script));
+        add_function(guard, &obj, "getScript", mf!(get_script));
 
         obj
     }

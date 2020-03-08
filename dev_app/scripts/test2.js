@@ -7,6 +7,10 @@ class nojs {
         this.some = new Math.Vector();
     }
 
+    dotto() {
+        console.log("success");
+    }
+
     update() {
         let posit = this.go.position;
         console.log(posit.x, " ", posit.y, " ", posit.z);
@@ -17,6 +21,9 @@ class nojs {
         let pos = new Math.Vector(0.1, 0.2, 0.3);
         pos.x = 12.0;
         console.log("test: ", pos.x, " ", pos.y, " ", pos.z)
+        let pos2 = this.go.globalPosition;
+        console.log("test: ", pos2.x, " ", pos2.y, " ", pos2.z)
+
         if (!this.mesh) {
             this.mesh = Resources.getMesh("monkey");
         }
@@ -31,7 +38,9 @@ class nojs {
             n.position = pos;
             n.name = "heh2";
             n.setRenderable(this.mesh);
-            n.setScript("test2");
+            n.setScript("test_script");
+
+
         }
         if (Time.elapsed > this.last_dest + 2.0) {
             this.last_dest = Time.elapsed;

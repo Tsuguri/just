@@ -4,19 +4,19 @@ use std::cell::RefCell;
 use crate::math::*;
 use legion::prelude::*;
 
-use super::game_object::{GameObject, Transform};
+use super::game_object::{GameObject};
+use super::transform::Transform;
 
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Mesh {
     pub mesh_id: MeshId,
     pub texture_id: Option<TextureId>,
 }
 
-pub struct WorldData<C: Controller> {
+pub struct WorldData {
     // at the same time indicates if object is active
     pub objects: Map<bool>,
     pub object_data: Data<GameObject>,
-    pub renderables: Data<Mesh>,
-    pub scripts: Data<C>,
     pub to_destroy: Vec<GameObjectId>,
     pub other_id: Data<legion::prelude::Entity>,
     pub camera_position: Vec3,
@@ -24,9 +24,39 @@ pub struct WorldData<C: Controller> {
     pub viewport_height: f32,
 
     pub wor: legion::prelude::World,
+    pub res: legion::prelude::Resources,
 }
 
-impl<C: Controller>  World for WorldData<C> {
+#[derive(Clone)]
+pub struct ObjectsToDelete(Vec<GameObjectId>);
+
+impl WorldData {
+    pub fn new() -> WorldData {
+        let mut resources = legion::prelude::Resources::default();
+        resources.insert(ObjectsToDelete(Vec::new()));
+        WorldData {
+            objects: Map::with_key(),
+            object_data: Data::new(),
+            other_id: Data::new(),
+            to_destroy: vec![],
+            camera_position: Vec3::zeros(),
+            camera_rotation: Quat::identity(),
+            viewport_height: 10.0f32,
+            wor: legion::prelude::World::new(),
+            res: resources,
+        }
+    }
+}
+
+impl World for WorldData {
+    fn get_legion(&mut self) -> &mut legion::prelude::World{
+        &mut self.wor
+    }
+
+    fn map_id(&self, id: GameObjectId) -> legion::prelude::Entity {
+        self.other_id[id]
+    }
+
     fn get_name(&self, id: GameObjectId) -> String{
         self.object_data[id].name.clone()
 
@@ -42,6 +72,10 @@ impl<C: Controller>  World for WorldData<C> {
     }
     fn get_local_pos(&self, id: GameObjectId) -> Result<Vec3, ()>{
         Result::Ok(self.get_local_position(id))
+    }
+
+    fn get_global_pos(&self, id: GameObjectId) -> Result<Vec3, ()>{
+        Result::Ok(self.get_global_position(id))
     }
 
     fn set_local_sc(&mut self, id: GameObjectId, new_scale: Vec3) -> Result<(), ()>{
@@ -78,7 +112,6 @@ impl<C: Controller>  World for WorldData<C> {
         }
         self.object_data[obj].parent = new_parent;
         self.void_local_matrix(obj);
-        //self.object_data[obj].void_local_matrix(&self);
 
         Result::Ok(())
     }
@@ -98,7 +131,7 @@ impl<C: Controller>  World for WorldData<C> {
         let ent_id = self.wor.insert(
             (),
             vec![
-                (Transform::new(),),
+                (Transform::new(),id,),
             ],
         ).to_vec();
         self.other_id.insert(id, ent_id[0]);
@@ -120,39 +153,40 @@ impl<C: Controller>  World for WorldData<C> {
     }
 }
 
-unsafe impl<C: Controller> Send for WorldData<C>{}
-unsafe impl<C: Controller> Sync for WorldData<C>{}
+unsafe impl Send for WorldData{}
+unsafe impl Sync for WorldData{}
 
-impl<C: Controller> WorldData<C> {
+impl WorldData {
     pub fn add_renderable(&mut self, id: GameObjectId,mesh: Mesh){
-        self.renderables.insert(id, mesh);
+        let ent_id = self.other_id[id];
+        self.wor.add_component(ent_id, mesh);
     }
     pub fn exists(&self, id: GameObjectId) -> bool {
         self.objects.contains_key(id)
     }
 
-    pub fn remove_marked(&mut self, scripts: &mut Data<C>) {
+    pub fn remove_marked(&mut self) {
         let objects = std::mem::replace(&mut self.to_destroy, vec![]);
         for obj in objects.into_iter() {
             // might have been removed as child of other object
             if !self.exists(obj) {
                 continue;
             }
-            self.remove_game_object(obj, scripts);
+            self.remove_game_object(obj);
         }
     }
 
 
-    pub fn remove_game_object(&mut self, id: GameObjectId, scripts: &mut Data<C>) {
+    pub fn remove_game_object(&mut self, id: GameObjectId) {
         let ent_id = self.other_id[id];
         let data = &self.object_data[id];
         for child in data.children.clone() {
-            self.remove_game_object(child, scripts);
+            self.remove_game_object(child);
         }
-        self.remove_single(id, scripts);
+        self.remove_single(id);
     }
 
-    fn remove_single(&mut self, id: GameObjectId, scripts: &mut Data<C>) {
+    fn remove_single(&mut self, id: GameObjectId) {
 
         let ent_id = self.other_id[id];
         self.wor.delete(ent_id);
@@ -161,15 +195,12 @@ impl<C: Controller> WorldData<C> {
         self.set_parent(id, None);
         self.objects.remove(id);
         self.object_data.remove(id);
-        self.renderables.remove(id);
-        
-        scripts.remove(id);
     }
 }
 
 use crate::math::Matrix;
 
-impl<C: Controller> RenderingData for WorldData<C> {
+impl RenderingData for WorldData {
     fn get_projection_matrix(&self) -> Matrix {
         let top = self.viewport_height / 2.0f32;
         let bot = - top;
@@ -204,21 +235,25 @@ impl<C: Controller> RenderingData for WorldData<C> {
         &self,
         buffer: Option<Vec<(MeshId, Option<TextureId>, Matrix)>>
     ) -> Vec<(MeshId, Option<TextureId>, Matrix)> {
+        use legion::prelude::*;
+
+        let query = <(Read<Transform>, Read<Mesh>, Read<GameObjectId>)>::query();
+
+
         let mut buf = match buffer {
             Some(mut vec) => {
-                if vec.len() < self.renderables.len() {
-                    vec.reserve(self.renderables.len() - vec.len());
-                }
+                // if vec.len() < self.renderables.len() {
+                //     vec.reserve(self.renderables.len() - vec.len());
+                // }
                 vec.clear();
                 vec
             }
-            None => Vec::with_capacity(self.renderables.len()),
+            None => Vec::new(),
         };
 
-        //fill here
-        for renderable in &self.renderables {
-            let mat = self.get_global_matrix(renderable.0);
-            buf.push((renderable.1.mesh_id, renderable.1.texture_id, mat));
+        for (entity_id, (transform, mesh, id)) in query.iter_entities_immutable(&self.wor) {
+            let mat = self.get_global_matrix(*id);
+            buf.push((mesh.mesh_id, mesh.texture_id, mat));
         }
         buf
     }
