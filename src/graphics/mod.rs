@@ -219,9 +219,9 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
     let textures: Vec<_> = octo_module.textures.iter().map(|(id, t, _size)| {
         use octo_runtime::TextureType::*;
         let t = match t {
-            Float => rendy::hal::format::Format::R32Sfloat,
-            Vec2 => rendy::hal::format::Format::Rg32Sfloat,
-            Vec3 => rendy::hal::format::Format::Rgb32Sfloat,
+            Float => rendy::hal::format::Format::Rgba32Sfloat,
+            Vec2 => rendy::hal::format::Format::Rgba32Sfloat,
+            Vec3 => rendy::hal::format::Format::Rgba32Sfloat,
             Vec4 => rendy::hal::format::Format::Rgba32Sfloat,
         };
 
