@@ -10,7 +10,6 @@ use js::{
 use super::api_helpers::*;
 
 use crate::traits::{
-    GameObjectId,
     TextureId,
     MeshId,
 };

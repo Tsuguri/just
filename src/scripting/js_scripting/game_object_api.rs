@@ -7,7 +7,6 @@ use js::{
         function::CallbackInfo,
     },
 };
-use crate::traits::GameObjectId;
 
 use super::api_helpers::*;
 use super::ScriptCreationData;

@@ -8,11 +8,6 @@ use legion::prelude::Entity;
 pub type MeshId = usize;
 pub type TextureId = usize;
 
-slotmap::new_key_type!(pub struct GameObjectId;);
-
-pub type Map<T> = slotmap::HopSlotMap<GameObjectId, T>;
-pub type Data<T> = slotmap::SecondaryMap<GameObjectId, T>;
-
 pub trait ResourceProvider: Send + Sync {
     fn get_mesh(&self, name: &str) -> Option<MeshId>;
     fn get_texture(&self, name: &str) -> Option<TextureId>;
@@ -45,7 +40,6 @@ pub trait Controller {
 
 pub trait World: Send + Sync {
     fn get_legion(&mut self) -> &mut legion::prelude::World;
-    fn map_id(&self, id: GameObjectId) -> Entity;
     fn get_name(&self, id: Entity) -> String;
 
     fn set_name(&mut self, id: Entity, name: String);

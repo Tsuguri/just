@@ -1,4 +1,4 @@
-use crate::traits::{Controller, ScriptingEngine, GameObjectId, Hardware, ResourceManager, Data, ResourceProvider};
+use crate::traits::{Controller, ScriptingEngine, ResourceManager, ResourceProvider};
 
 use chakracore as js;
 use std::mem::ManuallyDrop;
@@ -267,9 +267,9 @@ impl ScriptingEngine for JsScriptEngine {
 
         let guard = self.guard();
 
-        let query = <(Read<JsScript>, Read<GameObjectId>)>::query();
+        let query = <(Read<JsScript>)>::query();
 
-        for (entity_id, (script, id)) in query.iter_entities_immutable(world.get_legion()) {
+        for (_entity_id, script) in query.iter_entities_immutable(world.get_legion()) {
             match &script.update {
                 None => (),
                 Some(fun) => { fun.call_with_this(&guard, &script.js_object, &[]).unwrap(); }

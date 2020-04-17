@@ -1,18 +1,16 @@
-use crate::traits::{GameObjectId, Controller};
 use legion::prelude::Entity;
 
+#[derive(Clone)]
 pub struct GameObject {
     pub name: String,
-    pub id: GameObjectId,
     pub children: Vec<Entity>,
     pub parent: Option<Entity>,
 }
 
 impl GameObject {
-    pub fn new(id: GameObjectId) -> Self {
+    pub fn new() -> Self {
         GameObject {
             name: "".to_string(),
-            id,
             children: vec![],
             parent: Option::None,
         }

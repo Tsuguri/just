@@ -5,14 +5,11 @@ mod components;
 mod world_data;
 mod colliders;
 use crate::traits::{
-    Data,
-    Map,
     World,
     Hardware,
     RenderingData,
     MeshId,
     TextureId,
-    GameObjectId,
     ScriptingEngine,
     ResourceManager,
     ResourceProvider as _,
@@ -36,6 +33,8 @@ use legion::prelude::*;
 struct Animator;
 
 struct Audio;
+
+pub use world_data::{CameraData, ViewportData};
 
 
 
@@ -132,7 +131,7 @@ impl JsEngine {
 }
 
 impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
-    pub fn exists(&self, id: GameObjectId) -> bool {
+    pub fn exists(&self, id: Entity) -> bool {
         self.world.exists(id)
     }
 

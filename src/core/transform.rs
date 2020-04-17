@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use super::WorldData;
+use super::game_object::GameObject;
 use crate::math::*;
 use crate::traits::*;
 use legion::prelude::*;
@@ -72,9 +73,9 @@ impl WorldData {
         let transform = self.wor.get_component::<Transform>(id).unwrap();
         let rotation = transform.rotation;
         drop(transform);
-        let go_id = self.wor.get_component::<GameObjectId>(id).unwrap();
 
-        let parent_rotation = match self.object_data[*go_id].parent {
+        let parent = self.wor.get_component::<GameObject>(id).unwrap().parent;
+        let parent_rotation = match parent {
             None => Quat::identity(),
             Some(parent_id) => self.get_global_rotation(parent_id),
         };
@@ -99,8 +100,8 @@ impl WorldData {
     }
 
     fn get_parent_matrix(&self, id: Entity) -> Matrix{
-        let go_id = self.wor.get_component::<GameObjectId>(id).unwrap();
-        match self.object_data[*go_id].parent {
+        let parent = self.wor.get_component::<GameObject>(id).unwrap().parent;
+        match parent {
             None => Matrix::identity(),
             Some(parent_id) => {
                 self.get_global_matrix(parent_id)
@@ -139,9 +140,8 @@ impl WorldData {
         }
         global_matrix.changed = true;
 
-        let go_id = self.wor.get_component::<GameObjectId>(id).unwrap();
-        for child in self.object_data[*go_id].children.clone() {
-            self.void_global_matrix(child);
+        for child in self.wor.get_component::<GameObject>(id).unwrap().children.iter() {
+            self.void_global_matrix(*child);
         }
 
     }
@@ -214,7 +214,6 @@ mod tests {
         scene.world.set_local_position(obj2, pos2);
 
         // invalidated by parent
-        assert!(!scene.world.object_data[obj].valid_global());
 
         let result_pos = scene.world.get_global_position(obj);
         assert_eq!(result_pos, pos + pos2);
@@ -228,11 +227,8 @@ mod tests {
         let obj3 = scene.create_game_object();
 
         scene.set_parent(obj, Some(obj2)).unwrap();
-        assert!(!scene.world.object_data[obj].valid_global());
         scene.world.get_global_matrix(obj);
-        assert!(scene.world.object_data[obj].valid_global());
         scene.set_parent(obj, Some(obj3)).unwrap();
-        assert!(!scene.world.object_data[obj].valid_global());
     }
 
     #[test]
