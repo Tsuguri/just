@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use super::WorldData;
 use crate::math::*;
 use crate::traits::*;
+use legion::prelude::*;
 
 pub trait Ident {
     fn empty() -> Self;
@@ -58,31 +59,30 @@ impl Transform {
             global_matrix: RefCell::new(MatrixState::new()),
         }
     }
+
 }
 impl WorldData {
-    pub fn get_global_position(&self, id: GameObjectId) -> Vec3 {
+    pub fn get_global_position(&self, id: Entity) -> Vec3 {
         let mat = self.get_parent_matrix(id);
-        let ent_id = self.other_id[id];
-        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+        let transform = self.wor.get_component::<Transform>(id).unwrap();
         pos(&(mat*pos_vec(&transform.position)))
     }
 
-    pub fn get_global_rotation(&self, id: GameObjectId) -> Quat {
-        let ent_id = self.other_id[id];
-        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+    pub fn get_global_rotation(&self, id: Entity) -> Quat {
+        let transform = self.wor.get_component::<Transform>(id).unwrap();
         let rotation = transform.rotation;
         drop(transform);
+        let go_id = self.wor.get_component::<GameObjectId>(id).unwrap();
 
-        let parent_rotation = match self.object_data[id].parent {
+        let parent_rotation = match self.object_data[*go_id].parent {
             None => Quat::identity(),
             Some(parent_id) => self.get_global_rotation(parent_id),
         };
         parent_rotation*(rotation)
     }
 
-    pub fn get_global_matrix(&self, id: GameObjectId) -> Matrix {
-        let ent_id = self.other_id[id];
-        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+    pub fn get_global_matrix(&self, id: legion::prelude::Entity) -> Matrix{
+        let transform = self.wor.get_component::<Transform>(id).unwrap();
         let mut global_mat = transform.global_matrix.borrow_mut();
 
         if global_mat.changed {
@@ -95,10 +95,12 @@ impl WorldData {
 
 
         return global_mat.item;
+
     }
 
-    fn get_parent_matrix(&self, id: GameObjectId) -> Matrix{
-        match self.object_data[id].parent {
+    fn get_parent_matrix(&self, id: Entity) -> Matrix{
+        let go_id = self.wor.get_component::<GameObjectId>(id).unwrap();
+        match self.object_data[*go_id].parent {
             None => Matrix::identity(),
             Some(parent_id) => {
                 self.get_global_matrix(parent_id)
@@ -107,9 +109,8 @@ impl WorldData {
 
     }
 
-    fn get_local_matrix(&self, id: GameObjectId) -> Matrix{
-        let ent_id = self.other_id[id];
-        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+    fn get_local_matrix(&self, id: Entity) -> Matrix{
+        let transform = self.wor.get_component::<Transform>(id).unwrap();
         let mut local_matrix = transform.local_matrix.borrow_mut();
 
         if local_matrix.changed {
@@ -121,9 +122,8 @@ impl WorldData {
         return local_matrix.item;
     }
 
-    pub fn void_local_matrix(&self, id: GameObjectId) {
-        let ent_id = self.other_id[id];
-        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+    pub fn void_local_matrix(&self, id: Entity) {
+        let transform = self.wor.get_component::<Transform>(id).unwrap();
         transform.local_matrix.borrow_mut().changed = true;
         drop(transform);
         
@@ -131,60 +131,54 @@ impl WorldData {
 
     }
 
-    fn void_global_matrix(&self, id: GameObjectId) {
-        let ent_id = self.other_id[id];
-        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+    fn void_global_matrix(&self, id: Entity) {
+        let transform = self.wor.get_component::<Transform>(id).unwrap();
         let mut global_matrix = transform.global_matrix.borrow_mut();
         if global_matrix.changed == true {
             return;
         }
         global_matrix.changed = true;
 
-        for child in self.object_data[id].children.clone() {
+        let go_id = self.wor.get_component::<GameObjectId>(id).unwrap();
+        for child in self.object_data[*go_id].children.clone() {
             self.void_global_matrix(child);
         }
 
     }
 
-    pub fn set_local_position(&mut self, id: GameObjectId, new_position: Vec3) {
-        let ent_id = self.other_id[id];
-        let mut transform = self.wor.get_component_mut::<Transform>(ent_id).unwrap();
+    pub fn set_local_position(&mut self, id: Entity, new_position: Vec3) {
+        let mut transform = self.wor.get_component_mut::<Transform>(id).unwrap();
         transform.position = new_position;
         drop(transform);
         self.void_local_matrix(id);
     }
 
-    pub fn set_local_rotation(&mut self, id: GameObjectId, new_rotation: Quat) {
-        let ent_id = self.other_id[id];
-        let mut transform = self.wor.get_component_mut::<Transform>(ent_id).unwrap();
+    pub fn set_local_rotation(&mut self, id: Entity, new_rotation: Quat) {
+        let mut transform = self.wor.get_component_mut::<Transform>(id).unwrap();
         transform.rotation = new_rotation;
         drop(transform);
         self.void_local_matrix(id);
     }
     
-    pub fn set_local_scale(&mut self, id: GameObjectId, new_scale: Vec3) {
-        let ent_id = self.other_id[id];
-        let mut transform = self.wor.get_component_mut::<Transform>(ent_id).unwrap();
+    pub fn set_local_scale(&mut self, id: Entity, new_scale: Vec3) {
+        let mut transform = self.wor.get_component_mut::<Transform>(id).unwrap();
         transform.scale = new_scale;
         drop(transform);
         self.void_local_matrix(id);
     }
 
-    pub fn get_local_position(&self, id: GameObjectId) -> Vec3 {
-        let ent_id = self.other_id[id];
-        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+    pub fn get_local_position(&self, id: Entity) -> Vec3 {
+        let transform = self.wor.get_component::<Transform>(id).unwrap();
         return transform.position;
     }
 
-    pub fn get_local_rotation(&self, id: GameObjectId) -> Quat {
-        let ent_id = self.other_id[id];
-        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+    pub fn get_local_rotation(&self, id: Entity) -> Quat {
+        let transform = self.wor.get_component::<Transform>(id).unwrap();
         return transform.rotation;
     }
     
-    pub fn get_local_scale(&self, id: GameObjectId) -> Vec3 {
-        let ent_id = self.other_id[id];
-        let transform = self.wor.get_component::<Transform>(ent_id).unwrap();
+    pub fn get_local_scale(&self, id: Entity) -> Vec3 {
+        let transform = self.wor.get_component::<Transform>(id).unwrap();
         return transform.scale;
     }
 }

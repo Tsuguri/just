@@ -17,7 +17,7 @@ pub struct WorldData {
     // at the same time indicates if object is active
     pub objects: Map<bool>,
     pub object_data: Data<GameObject>,
-    pub to_destroy: Vec<GameObjectId>,
+    pub to_destroy: Vec<Entity>,
     pub other_id: Data<legion::prelude::Entity>,
     pub camera_position: Vec3,
     pub camera_rotation: Quat,
@@ -28,7 +28,7 @@ pub struct WorldData {
 }
 
 #[derive(Clone)]
-pub struct ObjectsToDelete(Vec<GameObjectId>);
+pub struct ObjectsToDelete(Vec<Entity>);
 
 impl WorldData {
     pub fn new() -> WorldData {
@@ -57,72 +57,78 @@ impl World for WorldData {
         self.other_id[id]
     }
 
-    fn get_name(&self, id: GameObjectId) -> String{
-        self.object_data[id].name.clone()
+    fn get_name(&self, id: Entity) -> String{
+        let go_id = self.wor.get_component::<GameObjectId>(id).unwrap();
+        self.object_data[*go_id].name.clone()
 
     }
 
-    fn set_name(&mut self, id: GameObjectId, name: String){
-        self.object_data[id].name = name;
+    fn set_name(&mut self, id: Entity, name: String){
+        let go_id = self.wor.get_component::<GameObjectId>(id).unwrap();
+        self.object_data[*go_id].name = name;
     }
 
-    fn set_local_pos(&mut self, id: GameObjectId, new_position: Vec3) -> Result<(), ()>{
+    fn set_local_pos(&mut self, id: Entity, new_position: Vec3) -> Result<(), ()>{
         self.set_local_position(id, new_position);
         Result::Ok(())
     }
-    fn get_local_pos(&self, id: GameObjectId) -> Result<Vec3, ()>{
+    fn get_local_pos(&self, id: Entity) -> Result<Vec3, ()>{
         Result::Ok(self.get_local_position(id))
     }
 
-    fn get_global_pos(&self, id: GameObjectId) -> Result<Vec3, ()>{
+    fn get_global_pos(&self, id: Entity) -> Result<Vec3, ()>{
         Result::Ok(self.get_global_position(id))
     }
 
-    fn set_local_sc(&mut self, id: GameObjectId, new_scale: Vec3) -> Result<(), ()>{
+    fn set_local_sc(&mut self, id: Entity, new_scale: Vec3) -> Result<(), ()>{
         self.set_local_scale(id, new_scale);
         Result::Ok(())
     }
-    fn get_local_sc(&self, id: GameObjectId) -> Result<Vec3, ()>{
+    fn get_local_sc(&self, id: Entity) -> Result<Vec3, ()>{
         Result::Ok(self.get_local_scale(id))
     }
 
-    fn get_parent(&self, id: GameObjectId) -> Option<GameObjectId>{
-        self.object_data[id].parent
+    fn get_parent(&self, id: Entity) -> Option<Entity>{
+        let go_id =self.wor.get_component::<GameObjectId>(id).unwrap();
+        self.object_data[*go_id].parent
     }
 
-    fn set_parent(&mut self, obj: GameObjectId, new_parent: Option<GameObjectId>) -> Result<(),()>{
-        if !self.exists(obj) {
+    fn set_parent(&mut self, obj: Entity, new_parent: Option<Entity>) -> Result<(),()>{
+        let go_id =self.wor.get_component::<GameObjectId>(obj).unwrap();
+        if !self.exists(*go_id) {
             return Result::Err(());
         }
         match new_parent {
             Some(x) => {
-                if !self.exists(x) {
+                let parent_go_id =self.wor.get_component::<GameObjectId>(x).unwrap();
+                if !self.exists(*parent_go_id) {
                     return Result::Err(());
                 }
-                self.object_data[x].children.push(obj);
+                self.object_data[*parent_go_id].children.push(obj);
             }
             None => (),
         }
-        match self.object_data[obj].parent {
+        match self.object_data[*go_id].parent {
             None => (),
             Some(x) => {
-                let index = self.object_data[x].children.iter().position(|y| *y == obj).unwrap();
-                self.object_data[x].children.remove(index);
+                let parent_go_id =self.wor.get_component::<GameObjectId>(x).unwrap();
+                let index = self.object_data[*parent_go_id].children.iter().position(|y| *y == obj).unwrap();
+                self.object_data[*parent_go_id].children.remove(index);
             }
         }
-        self.object_data[obj].parent = new_parent;
+        self.object_data[*go_id].parent = new_parent;
         self.void_local_matrix(obj);
 
         Result::Ok(())
     }
 
-    fn find_by_name(&self, name: &str) -> Vec<GameObjectId>{
+    fn find_by_name(&self, name: &str) -> Vec<Entity>{
         self.object_data.iter().filter(|(x, y)| {
             y.name == name
-        }).map(|(x,y)| x).collect()
+        }).map(|(x,y)| self.map_id(x)).collect()
     }
 
-    fn create_gameobject(&mut self) -> GameObjectId {
+    fn create_gameobject(&mut self) -> Entity {
         let id = self.objects.insert(true);
         let go = GameObject::new(id);
 
@@ -135,15 +141,15 @@ impl World for WorldData {
             ],
         ).to_vec();
         self.other_id.insert(id, ent_id[0]);
-        id
+        ent_id[0]
     }
 
-    fn destroy_gameobject(&mut self, id: GameObjectId) {
+    fn destroy_gameobject(&mut self, id: Entity) {
         self.to_destroy.push(id);
 
     }
 
-    fn set_renderable(&mut self, id: GameObjectId, mesh: MeshId){
+    fn set_renderable(&mut self, id: Entity, mesh: MeshId){
         self.add_renderable(id, Mesh{mesh_id: mesh, texture_id: None});
     }
 
@@ -157,9 +163,8 @@ unsafe impl Send for WorldData{}
 unsafe impl Sync for WorldData{}
 
 impl WorldData {
-    pub fn add_renderable(&mut self, id: GameObjectId,mesh: Mesh){
-        let ent_id = self.other_id[id];
-        self.wor.add_component(ent_id, mesh);
+    pub fn add_renderable(&mut self, id: Entity,mesh: Mesh){
+        self.wor.add_component(id, mesh);
     }
     pub fn exists(&self, id: GameObjectId) -> bool {
         self.objects.contains_key(id)
@@ -169,7 +174,8 @@ impl WorldData {
         let objects = std::mem::replace(&mut self.to_destroy, vec![]);
         for obj in objects.into_iter() {
             // might have been removed as child of other object
-            if !self.exists(obj) {
+            let go_id = *self.wor.get_component::<GameObjectId>(obj).unwrap();
+            if !self.exists(go_id) {
                 continue;
             }
             self.remove_game_object(obj);
@@ -177,24 +183,22 @@ impl WorldData {
     }
 
 
-    pub fn remove_game_object(&mut self, id: GameObjectId) {
-        let ent_id = self.other_id[id];
-        let data = &self.object_data[id];
+    pub fn remove_game_object(&mut self, id: Entity) {
+        let go_id = *self.wor.get_component::<GameObjectId>(id).unwrap();
+        let data = &self.object_data[go_id];
         for child in data.children.clone() {
             self.remove_game_object(child);
         }
         self.remove_single(id);
     }
 
-    fn remove_single(&mut self, id: GameObjectId) {
-
-        let ent_id = self.other_id[id];
-        self.wor.delete(ent_id);
-        drop(ent_id);
-        self.other_id.remove(id);
+    fn remove_single(&mut self, id: Entity) {
+        let go_id = *self.wor.get_component::<GameObjectId>(id).unwrap();
+        self.wor.delete(id);
+        self.other_id.remove(go_id);
         self.set_parent(id, None);
-        self.objects.remove(id);
-        self.object_data.remove(id);
+        self.objects.remove(go_id);
+        self.object_data.remove(go_id);
     }
 }
 
@@ -237,7 +241,7 @@ impl RenderingData for WorldData {
     ) -> Vec<(MeshId, Option<TextureId>, Matrix)> {
         use legion::prelude::*;
 
-        let query = <(Read<Transform>, Read<Mesh>, Read<GameObjectId>)>::query();
+        let query = <(Read<Mesh>)>::query();
 
 
         let mut buf = match buffer {
@@ -251,8 +255,8 @@ impl RenderingData for WorldData {
             None => Vec::new(),
         };
 
-        for (entity_id, (transform, mesh, id)) in query.iter_entities_immutable(&self.wor) {
-            let mat = self.get_global_matrix(*id);
+        for (entity_id, mesh) in query.iter_entities_immutable(&self.wor) {
+            let mat = self.get_global_matrix(entity_id);
             buf.push((mesh.mesh_id, mesh.texture_id, mat));
         }
         buf

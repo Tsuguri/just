@@ -15,6 +15,7 @@ mod game_object_api;
 mod time_api;
 mod world_api;
 mod resources_api;
+mod der;
 
 use legion::prelude::*;
 
@@ -68,7 +69,7 @@ unsafe impl Send for JsScript {}
 unsafe impl Sync for JsScript {}
 
 pub struct ScriptCreationData {
-    object: GameObjectId,
+    object: Entity,
     script_type: String,
 }
 
@@ -214,19 +215,19 @@ impl ScriptingEngine for JsScriptEngine {
         engine
     }
 
-    fn create_script(&mut self, gameobject_id: GameObjectId, entity_id: Entity, typ: &str, world: &mut World) {
+    fn create_script(&mut self, id: Entity, typ: &str, world: &mut World) {
         let command = format!("new {}();", typ);
         let guard = self.guard();
 
         let obj = js::script::eval(&guard, &command).unwrap();
 
-        let prot = self.create_script_external(&guard, gameobject_id);
+        let prot = self.create_script_external(&guard, id);
         let obj = obj.into_object().unwrap();
 
         obj.set(&guard, js::Property::new(&guard, "go"), prot);
 
         let script = JsScript::new(obj, &guard);
-        world.add_component(entity_id, script);
+        world.add_component(id, script);
 
     }
 
@@ -281,7 +282,7 @@ impl ScriptingEngine for JsScriptEngine {
         let to_create : Vec<_> = self.creation.drain(0..self.creation.len()).collect();
 
         for data in to_create {
-            self.create_script(data.object, world.map_id(data.object), &data.script_type, world.get_legion());
+            self.create_script(data.object, &data.script_type, world.get_legion());
             //scripts.insert(data.object, script);
         }
         debug_assert!(self.context.remove_user_data::<&mut dyn crate::traits::World>().is_some());
@@ -322,7 +323,7 @@ impl Controller for JsScript {
     fn set_string_property(&mut self, _name: &str, _value: String) {}
 
     fn set_controller_property(&mut self, _name: &str, _value: &Self) {}
-    fn set_gameobject_property(&mut self, _name: &str, _value: GameObjectId) {}
+    fn set_gameobject_property(&mut self, _name: &str, _value: Entity) {}
 }
 
 #[cfg(test)]

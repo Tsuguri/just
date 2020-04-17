@@ -1,10 +1,11 @@
 use crate::traits::{GameObjectId, Controller};
+use legion::prelude::Entity;
 
 pub struct GameObject {
     pub name: String,
     pub id: GameObjectId,
-    pub children: Vec<GameObjectId>,
-    pub parent: Option<GameObjectId>,
+    pub children: Vec<Entity>,
+    pub parent: Option<Entity>,
 }
 
 impl GameObject {

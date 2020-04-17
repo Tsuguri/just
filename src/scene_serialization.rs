@@ -55,19 +55,19 @@ pub fn deserialize_scene(path: &str, engine: &mut crate::core::JsEngine)-> Resul
 
 }
 
-fn spawn_object(object: Object, parent: Option<GameObjectId>, engine: &mut crate::core::JsEngine) {
+fn spawn_object(object: Object, parent: Option<legion::prelude::Entity>, engine: &mut crate::core::JsEngine) {
     println!("loading object {}.",object.name);
     let obj = engine.create_game_object();
+
     engine.world.set_name(obj, object.name);
     engine.set_parent(obj, parent);
-    let entity_id = engine.world.other_id[obj];
 
     object.position.map(|x| {
         engine.world.set_local_position(obj, x);
     });
     object.scale.map(|x| engine.world.set_local_scale(obj, x));
     object.renderable.map(|x| engine.add_renderable(obj, &x.mesh, Some(&x.texture)));
-    object.script.map(|x| engine.add_script(obj, entity_id, &x));
+    object.script.map(|x| engine.add_script(obj, &x));
 
 
     if object.children.is_some(){

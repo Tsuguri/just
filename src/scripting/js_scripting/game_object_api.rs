@@ -14,9 +14,10 @@ use super::ScriptCreationData;
 use crate::scripting::InternalTypes;
 use crate::scripting::js_scripting::JsScript;
 use crate::scripting::js_scripting::resources_api::MeshData;
+use legion::prelude::Entity;
 
 pub struct GameObjectData {
-    pub id: GameObjectId,
+    pub id: Entity,
 }
 
 fn get_name(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
@@ -207,8 +208,7 @@ fn get_script(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> 
     let world = world(&ctx);
     let te = args.this.into_external().unwrap();
     let this = unsafe { te.value::<GameObjectData>() };
-    let ent_id = world.map_id(this.id);
-    let script = world.get_legion().get_component::<JsScript>(ent_id);
+    let script = world.get_legion().get_component::<JsScript>(this.id);
     match script {
         None => Result::Err(js::value::null(guard)),
         Some(x) => {
@@ -258,7 +258,7 @@ impl super::JsScriptEngine {
         obj
     }
 
-    pub fn create_script_external(&self, guard: &ContextGuard, id: GameObjectId) -> js::value::Value {
+    pub fn create_script_external(&self, guard: &ContextGuard, id: Entity) -> js::value::Value {
         let obj = js::value::External::new(guard, Box::new(GameObjectData { id }));
         obj.set_prototype(guard, (self.prototypes[&InternalTypes::GameObject]).clone()).unwrap();
         obj.into()

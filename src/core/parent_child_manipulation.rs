@@ -1,9 +1,10 @@
 use super::Engine;
 use super::GameObjectError;
 use crate::traits::*;
+use legion::prelude::Entity;
 
 impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
-    pub fn set_parent(&mut self, obj: GameObjectId, new_parent: Option<GameObjectId>) -> Result<(), ()> {
+    pub fn set_parent(&mut self, obj: Entity, new_parent: Option<Entity>) -> Result<(), ()> {
         self.world.set_parent(obj, new_parent)
     }
 }

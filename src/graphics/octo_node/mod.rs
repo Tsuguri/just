@@ -50,11 +50,18 @@ impl PushConstantsBlock {
         self.buffer.borrow_mut().iter_mut().map(|x| *x = 0).count();
     }
 
-    pub fn fill(&self, info_provider: &dyn RenderingData) {
+    pub fn fill(&self, info_provider: &dyn RenderingData, view_size: crate::math::Vec2) {
         let mut buff = self.buffer.borrow_mut();
         use rendy::hal::memory;
 
         for (name, info) in &self.definitions {
+            if name == "view_size" {
+                println!("setting view_size from super data");
+                for (offset, value) in memory::cast_slice::<f32, u32>(&view_size.data).iter().enumerate() {
+                    buff[info.1+ offset] = *value;
+                }
+                continue;
+            }
             match info_provider.get_rendering_constant(&name) {
                 Value::None => {
                     println!("WARNING: There is no data for {} uniform value. Using 0.", name);
@@ -139,6 +146,7 @@ pub struct OctoNodeDesc<B: hal::Backend> {
     pub stage_id: usize,
     pub push_constants_size: usize, 
     pub push_constants_block: Arc<PushConstantsBlock>,
+    pub view_size: (f64, f64),
 }
 
 
@@ -148,6 +156,7 @@ pub struct OctoNode<B: hal::Backend> {
     descriptor_set: Escape<DescriptorSet<B>>,
     image_sampler: Escape<Sampler<B>>,
     image_views: Vec<Escape<ImageView<B>>>,
+    pub view_size: (f64, f64),
 }
 
 impl<B: hal::Backend> std::fmt::Debug for OctoNodeDesc<B> {
@@ -306,6 +315,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, dyn RenderingData> for OctoNodeDesc<B>
             descriptor_set,
             image_sampler,
             image_views,
+            view_size: self.view_size,
         })
     }
 }

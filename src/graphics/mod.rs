@@ -2,6 +2,7 @@ mod resources;
 mod deferred_node;
 mod octo_node;
 mod node_prelude;
+mod ui_node;
 
 use rendy;
 
@@ -27,6 +28,8 @@ use {
 use std::sync::Arc;
 
 use octo_runtime::OctoModule;
+use ui_node::UiNodeDesc;
+
 
 
 pub struct Renderer<B: hal::Backend> {
@@ -46,8 +49,12 @@ impl<B: hal::Backend> traits::Renderer<Hardware<B>> for Renderer<B> {
     fn run(&mut self, hardware: &mut Hardware<B>, _res: &ResourceManager<B>, world: &(dyn traits::RenderingData + 'static)) {
         match &mut self.graph {
             Some(x) => {
+                let size = hardware.window
+                    .get_inner_size()
+                    .unwrap()
+                    .to_physical(hardware.window.get_hidpi_factor());
                 self.push_constants_block.clear();
-                self.push_constants_block.fill(world);
+                self.push_constants_block.fill(world, crate::math::Vec2::new(size.width as f32, size.height as f32));
                 x.run(&mut hardware.factory, &mut hardware.families, world);
             }
             None => ()
@@ -268,6 +275,7 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
             stage_id: id,
             push_constants_size: octo_module.uniform_block_size,
             push_constants_block: uniform_block.clone(),
+            view_size: (size.width as f64, size.height as f64),
         };
         passes.push(node_desc.builder());
     }
@@ -324,6 +332,9 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
         surface,
         color,
     );
+
+    //let mut ui_node = SubpassBuilder::new()
+        //.with_group(UiNodeDesc{}).into_pass();
 
     let mut id = 0;
     for mut pass in subpasses.drain(0..subpasses.len()) {

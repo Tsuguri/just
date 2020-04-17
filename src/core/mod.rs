@@ -136,11 +136,11 @@ impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
         self.world.exists(id)
     }
 
-    pub fn create_game_object(&mut self) -> GameObjectId {
+    pub fn create_game_object(&mut self) -> Entity {
         self.world.create_gameobject()
     }
 
-    pub fn add_renderable(&mut self, id: GameObjectId, mesh: &str, tex: Option<&str>) {
+    pub fn add_renderable(&mut self, id: Entity, mesh: &str, tex: Option<&str>) {
         let mesh = self.resources.get_mesh(mesh).unwrap();
         let tex = match tex {
             None => None,
@@ -157,8 +157,8 @@ impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
         self.world.add_renderable(id, mesh);
     }
 
-    pub fn add_script(&mut self, id: GameObjectId, entity_id: Entity, typ: &str) {
-        let obj = self.scripting_engine.create_script(id, entity_id, typ, &mut self.world.wor);
+    pub fn add_script(&mut self, entity_id: Entity, typ: &str) {
+        let obj = self.scripting_engine.create_script(entity_id, typ, &mut self.world.wor);
     }
 }
 
