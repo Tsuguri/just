@@ -166,7 +166,7 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
 
     let window_size = hal::image::Kind::D2(size.width as u32, size.height as u32, 1, 1);
     // deferred_pass producing base data
-    let (deferred_pass, (position, normal, albedo)) = {
+    let (deferred_pass, (position, normal, albedo), depth) = {
         let deferred_desc = deferred_node::DeferredNodeDesc { res: resources.clone() };
 
         let gbuffer_size = window_size;
@@ -210,7 +210,7 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
                 .into_pass(),
         );
 
-        (deferred_pass, (position, normal, albedo))
+        (deferred_pass, (position, normal, albedo), depth)
     };
 
     // loading renderer definition
@@ -338,14 +338,9 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
 
     let mut nodes = vec![];
 
-    let mut present_builder = PresentNode::builder(
-        &hardware.factory,
-        surface,
-        color,
-    );
 
-    //let mut ui_node = SubpassBuilder::new()
-        //.with_group(UiNodeDesc{}).into_pass();
+    let mut ui_node = SubpassBuilder::new()
+        .with_group(UiNodeDesc::default().builder()).with_color(color).with_depth_stencil(depth);
 
     let mut id = 0;
     for mut pass in subpasses.drain(0..subpasses.len()) {
@@ -363,12 +358,20 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
         let node_id = graph_builder.add_node(pass.into_pass());
 
         if definition.output == octo_runtime::OutputType::Result{
-            present_builder.add_dependency(node_id);
+            ui_node.add_dependency(node_id);
 
         }
         nodes.push(node_id);
 
     }
+    let ui_node = graph_builder.add_node(ui_node.into_pass());
+
+    let mut present_builder = PresentNode::builder(
+        &hardware.factory,
+        surface,
+        color,
+    );
+    present_builder.add_dependency(ui_node);
 
     let frames = present_builder.image_count();
 

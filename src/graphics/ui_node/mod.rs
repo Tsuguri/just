@@ -4,10 +4,16 @@ use rendy::graph::render::{RenderGroup, RenderGroupDesc, PrepareResult};
 use failure;
 use legion::prelude::*;
 
-#[derive(Default)]
 pub struct UiNodeDesc<B: hal::Backend> {
     _mark: std::marker::PhantomData<B>,
+}
 
+impl<B: hal::Backend> std::default::Default for UiNodeDesc<B> {
+    fn default() -> Self {
+        Self {
+            _mark: Default::default(),
+        }
+    }
 }
 
 pub struct UiNode<B: hal::Backend> {
