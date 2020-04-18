@@ -6,6 +6,7 @@ use legion::prelude::*;
 
 use super::game_object::{GameObject};
 use super::transform::Transform;
+use super::hierarchy::TransformHierarchy;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Mesh {
@@ -53,60 +54,6 @@ impl World for WorldData {
 
     fn set_name(&mut self, id: Entity, name: String){
         self.wor.get_component_mut::<GameObject>(id).unwrap().name = name;
-    }
-
-    fn set_local_pos(&mut self, id: Entity, new_position: Vec3) -> Result<(), ()>{
-        self.set_local_position(id, new_position);
-        Result::Ok(())
-    }
-    fn get_local_pos(&self, id: Entity) -> Result<Vec3, ()>{
-        Result::Ok(self.get_local_position(id))
-    }
-
-    fn get_global_pos(&self, id: Entity) -> Result<Vec3, ()>{
-        Result::Ok(self.get_global_position(id))
-    }
-
-    fn set_local_sc(&mut self, id: Entity, new_scale: Vec3) -> Result<(), ()>{
-        self.set_local_scale(id, new_scale);
-        Result::Ok(())
-    }
-    fn get_local_sc(&self, id: Entity) -> Result<Vec3, ()>{
-        Result::Ok(self.get_local_scale(id))
-    }
-
-    fn get_parent(&self, id: Entity) -> Option<Entity>{
-        self.wor.get_component::<GameObject>(id).unwrap().parent
-    }
-
-    fn set_parent(&mut self, obj: Entity, new_parent: Option<Entity>) -> Result<(),()>{
-        if !self.exists(obj) {
-            return Result::Err(());
-        }
-        match new_parent {
-            Some(x) => {
-                if !self.exists(x) {
-                    return Result::Err(());
-                }
-                self.wor.get_component_mut::<GameObject>(x).unwrap().children.push(obj);
-            }
-            None => (),
-        }
-        let parent = self.wor.get_component::<GameObject>(obj).unwrap().parent;
-        match parent {
-            None => (),
-            Some(x) => {
-                let mut data = self.wor.get_component_mut::<GameObject>(x).unwrap();
-                let index = data.children.iter().position(|y| *y == obj).unwrap();
-                data.children.remove(index);
-            }
-        }
-        let mut data = self.wor.get_component_mut::<GameObject>(obj).unwrap();
-        data.parent = new_parent;
-        drop(data);
-        self.void_local_matrix(obj);
-
-        Result::Ok(())
     }
 
     fn find_by_name(&self, name: &str) -> Vec<Entity>{
@@ -175,8 +122,8 @@ impl WorldData {
     }
 
     fn remove_single(&mut self, id: Entity) {
+        TransformHierarchy::set_parent(&mut self.wor, id, None).unwrap();
         self.wor.delete(id);
-        self.set_parent(id, None).unwrap();
     }
 }
 
@@ -237,7 +184,7 @@ impl RenderingData for WorldData {
         };
 
         for (entity_id, mesh) in query.iter_entities_immutable(&self.wor) {
-            let mat = self.get_global_matrix(entity_id);
+            let mat = TransformHierarchy::get_global_matrix(&self.wor, entity_id);
             buf.push((mesh.mesh_id, mesh.texture_id, mat));
         }
         buf

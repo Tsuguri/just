@@ -4,6 +4,8 @@ mod transform;
 mod components;
 mod world_data;
 mod colliders;
+mod hierarchy;
+
 use crate::traits::{
     World,
     Hardware,
@@ -28,6 +30,8 @@ use world_data::WorldData;
 use std::cell::RefCell;
 
 use legion::prelude::*;
+
+pub use hierarchy::TransformHierarchy;
 
 
 struct Animator;

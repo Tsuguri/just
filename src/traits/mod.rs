@@ -16,7 +16,6 @@ pub trait ResourceProvider: Send + Sync {
 pub trait ResourceManager<HW: Hardware + ?Sized>: ResourceProvider {
     type Config: Deserialize<'static>;
 
-
     fn load_resources(&mut self, config: &Self::Config, hardware: &mut HW);
     fn create(config: &Self::Config, hardware: &mut HW) -> Self;
 }
@@ -43,15 +42,6 @@ pub trait World: Send + Sync {
     fn get_name(&self, id: Entity) -> String;
 
     fn set_name(&mut self, id: Entity, name: String);
-    fn set_local_pos(&mut self, id: Entity, new_position: Vec3) -> Result<(), ()>;
-    fn get_local_pos(&self, id: Entity) -> Result<Vec3, ()>;
-    fn get_global_pos(&self, id: Entity) -> Result<Vec3, ()>;
-
-    fn set_local_sc(&mut self, id: Entity, new_scale: Vec3) -> Result<(), ()>;
-    fn get_local_sc(&self, id: Entity) -> Result<Vec3, ()>;
-
-    fn get_parent(&self, id: Entity) -> Option<Entity>;
-    fn set_parent(&mut self, id: Entity, new_parent: Option<Entity>) -> Result<(), ()>;
 
     fn find_by_name(&self, name: &str) -> Vec<Entity>;
 

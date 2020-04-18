@@ -14,6 +14,7 @@ use crate::scripting::InternalTypes;
 use crate::scripting::js_scripting::JsScript;
 use crate::scripting::js_scripting::resources_api::MeshData;
 use legion::prelude::Entity;
+use crate::core::TransformHierarchy;
 
 pub struct GameObjectData {
     pub id: Entity,
@@ -56,7 +57,7 @@ fn get_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value
     let world = world(&ctx);
     let this = unsafe { external.value::<GameObjectData>() };
 
-    let pos = world.get_local_pos(this.id).unwrap();
+    let pos = TransformHierarchy::get_local_position(world.get_legion(), this.id);
 
     let obj = js::value::External::new(guard, Box::new(pos));
     obj.set_prototype(guard, prototypes[&InternalTypes::Vec3].clone()).unwrap();
@@ -73,7 +74,7 @@ fn get_global_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value
     let world = world(&ctx);
     let this = unsafe { external.value::<GameObjectData>() };
 
-    let pos = world.get_global_pos(this.id).unwrap();
+    let pos = TransformHierarchy::get_global_position(world.get_legion(), this.id);
 
     let obj = js::value::External::new(guard, Box::new(pos));
     obj.set_prototype(guard, prototypes[&InternalTypes::Vec3].clone()).unwrap();
@@ -92,7 +93,7 @@ fn get_scale(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let world = world(&ctx);
     let this = unsafe { external.value::<GameObjectData>() };
 
-    let pos = world.get_local_sc(this.id).unwrap();
+    let pos = TransformHierarchy::get_local_scale(world.get_legion(), this.id);
 
     let obj = js::value::External::new(guard, Box::new(pos));
     obj.set_prototype(guard, prototypes[&InternalTypes::Vec3].clone()).unwrap();
@@ -111,7 +112,7 @@ fn get_parent(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> 
     let world = world(&ctx);
     let this = unsafe { external.value::<GameObjectData>() };
 
-    let parent = world.get_parent(this.id);
+    let parent = TransformHierarchy::get_parent(world.get_legion(), this.id);
     match parent {
         Some(x) => {
             let obj = js::value::External::new(guard, Box::new(GameObjectData { id: x }));
@@ -140,7 +141,7 @@ fn set_parent(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> 
         Some(par.id)
     };
 
-    world.set_parent(this.id, new_parent);
+    TransformHierarchy::set_parent(world.get_legion(), this.id, new_parent);
     Result::Ok(js::value::null(guard))
 }
 
@@ -154,7 +155,7 @@ fn set_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value
     let ctx = guard.context();
     let world = world(&ctx);
 
-    world.set_local_pos(this.id, *new_pos).unwrap();
+    TransformHierarchy::set_local_position(world.get_legion(), this.id, *new_pos);
 
     Result::Ok(js::value::null(guard))
 }
@@ -162,14 +163,14 @@ fn set_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value
 fn set_scale(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     debug_assert!(args.arguments.len() == 1);
     let np = args.arguments[0].clone().into_external().unwrap();
-    let new_pos = unsafe { np.value::<Vec3>() };
+    let new_scale = unsafe { np.value::<Vec3>() };
 
     let te = args.this.into_external().unwrap();
     let this = unsafe { te.value::<GameObjectData>() };
     let ctx = guard.context();
     let world = world(&ctx);
 
-    world.set_local_sc(this.id, *new_pos).unwrap();
+    TransformHierarchy::set_local_scale(world.get_legion(), this.id, *new_scale);
 
     Result::Ok(js::value::null(guard))
 }
