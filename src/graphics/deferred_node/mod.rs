@@ -1,6 +1,10 @@
 use super::node_prelude::*;
 
-use crate::traits::Value;
+use super::octo_node::{Value, RenderingConstants};
+use legion::prelude::*;
+use crate::core::Mesh;
+use crate::core::TransformHierarchy;
+
 
 lazy_static::lazy_static! {
     static ref VERTEX: SpirvShader = SourceShaderInfo::new(
@@ -43,7 +47,7 @@ impl<B: hal::Backend> DeferredNodeDesc<B> {
     }
 }
 
-use crate::traits::{MeshId, TextureId, RenderingData};
+use crate::traits::{MeshId, TextureId};
 
 pub struct DeferredNode<B: hal::Backend> {
     res: Arc<ResourceManager<B>>,
@@ -63,7 +67,7 @@ impl<B: hal::Backend> std::fmt::Debug for DeferredNode<B> {
     }
 }
 
-impl<B> SimpleGraphicsPipelineDesc<B, dyn RenderingData> for DeferredNodeDesc<B>
+impl<B> SimpleGraphicsPipelineDesc<B, World> for DeferredNodeDesc<B>
     where
         B: hal::Backend,
 {
@@ -122,7 +126,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, dyn RenderingData> for DeferredNodeDesc<B>
         }
     }
 
-    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &dyn RenderingData) -> ShaderSet<B> {
+    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &World) -> ShaderSet<B> {
         SHADERS.build(factory, Default::default()).unwrap()
     }
 
@@ -131,7 +135,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, dyn RenderingData> for DeferredNodeDesc<B>
         _ctx: &GraphContext<B>,
         factory: &mut Factory<B>,
         _queue: QueueId,
-        _data: &dyn RenderingData,
+        _data: &World,
         buffers: Vec<NodeBuffer>,
         images: Vec<NodeImage>,
         set_layouts: &[Handle<DescriptorSetLayout<B>>],
@@ -172,7 +176,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, dyn RenderingData> for DeferredNodeDesc<B>
 }
 
 
-impl<B> SimpleGraphicsPipeline<B, dyn RenderingData> for DeferredNode<B>
+impl<B> SimpleGraphicsPipeline<B, World> for DeferredNode<B>
     where
         B: hal::Backend,
 {
@@ -184,12 +188,12 @@ impl<B> SimpleGraphicsPipeline<B, dyn RenderingData> for DeferredNode<B>
         _queue: QueueId,
         _set_layouts: &[Handle<DescriptorSetLayout<B>>],
         _index: usize,
-        _aux: &dyn RenderingData,
+        _aux: &World,
     ) -> PrepareResult {
         PrepareResult::DrawRecord
     }
 
-    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &dyn RenderingData) {
+    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &World) {
         unsafe {
             //println!("deferred rendering");
             let vertex = [PosNormTex::vertex()];
@@ -203,7 +207,7 @@ impl<B> SimpleGraphicsPipeline<B, dyn RenderingData> for DeferredNode<B>
                 let view_offset: u32 = 0;
                 let projection_offset: u32 = 16 * 4;
 
-                let view = match data.get_rendering_constant("view_mat"){
+                let view = match RenderingConstants::get_rendering_constant(data, "view_mat"){
                     Value::Matrix4(mat)=> mat,
                     _ => panic!("Internal renderer error E02"),
                 };
@@ -215,7 +219,7 @@ impl<B> SimpleGraphicsPipeline<B, dyn RenderingData> for DeferredNode<B>
                     hal::memory::cast_slice::<f32, u32>(&view.data),
                 );
 
-                let projection = match data.get_rendering_constant("projection_mat"){
+                let projection = match RenderingConstants::get_rendering_constant(data, "projection_mat"){
                     Value::Matrix4(mat)=> mat,
                     _ => panic!("internal renderer error E01"),
                 };
@@ -229,7 +233,27 @@ impl<B> SimpleGraphicsPipeline<B, dyn RenderingData> for DeferredNode<B>
 
             let buf = self.renderables_buffer.take();
 
-            let buf = data.get_renderables(buf);
+            let buf = {
+                let query = <(Read<Mesh>)>::query();
+
+
+                let mut buf = match buf {
+                    Some(mut vec) => {
+                        // if vec.len() < self.renderables.len() {
+                        //     vec.reserve(self.renderables.len() - vec.len());
+                        // }
+                        vec.clear();
+                        vec
+                    }
+                    None => Vec::new(),
+                };
+
+                for (entity_id, mesh) in query.iter_entities_immutable(data) {
+                    let mat = TransformHierarchy::get_global_matrix(data, entity_id);
+                    buf.push((mesh.mesh_id, mesh.texture_id, mat));
+                }
+                buf
+            };
 
             for renderable in &buf {
                 let model = renderable.2;
@@ -268,5 +292,5 @@ impl<B> SimpleGraphicsPipeline<B, dyn RenderingData> for DeferredNode<B>
         }
     }
 
-    fn dispose(self, _factory: &mut Factory<B>, _aux: &dyn RenderingData) {}
+    fn dispose(self, _factory: &mut Factory<B>, _aux: &World) {}
 }

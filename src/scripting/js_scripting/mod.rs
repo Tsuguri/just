@@ -57,7 +57,6 @@ pub struct JsScriptEngine {
     _runtime: js::Runtime,
     context: ManuallyDrop<js::Context>,
     prototypes: HM,
-    creation: Vec<ScriptCreationData>,
 }
 
 pub struct JsScript {
@@ -71,6 +70,10 @@ unsafe impl Sync for JsScript {}
 pub struct ScriptCreationData {
     object: Entity,
     script_type: String,
+}
+
+pub struct ScriptCreationQueue {
+    q: Vec<ScriptCreationData>,
 }
 
 impl JsScript {
@@ -92,7 +95,6 @@ impl JsScriptEngine {
             _runtime: runtime,
             context: ManuallyDrop::new(context),
             prototypes: Default::default(),
-            creation: vec![],
         };
 
         engine.create_api();
@@ -202,14 +204,14 @@ impl ScriptingEngine for JsScriptEngine {
     type Controller = JsScript;
     type Config = JsEngineConfig;
 
-    fn create(config: &Self::Config) -> Self {
+    fn create(config: &Self::Config, world: &mut World) -> Self {
+        world.resources.insert(ScriptCreationQueue{q:vec![]});
         let runtime = js::Runtime::new().unwrap();
         let context = js::Context::new(&runtime).unwrap();
         let mut engine = Self {
             _runtime: runtime,
             context: ManuallyDrop::new(context),
             prototypes: Default::default(),
-            creation: vec![],
         };
         engine.configure(config);
         engine
@@ -232,8 +234,7 @@ impl ScriptingEngine for JsScriptEngine {
     }
 
     fn update(&mut self,
-              world: &mut dyn crate::traits::World,
-              resources: &dyn ResourceProvider,
+              world: &mut World,
               keyboard: &crate::input::KeyboardState,
               mouse: &crate::input::MouseState,
               current_time: f64,
@@ -241,25 +242,14 @@ impl ScriptingEngine for JsScriptEngine {
     ) {
 
         self.set_time(current_time);
-        let mut testing = 33i32;
+        let testing = 33i32;
         //set context data
 
         let reference = unsafe{
-            std::mem::transmute::<&mut dyn crate::traits::World, &'static mut dyn crate::traits::World>(world)
+            std::mem::transmute::<&mut World, &'static mut World>(world)
         };
-        self.context.insert_user_data::<&mut dyn crate::traits::World>(reference);
+        self.context.insert_user_data::<&mut World>(reference);
 
-
-        let reference = unsafe{
-            std::mem::transmute::<&dyn ResourceProvider, &'static dyn ResourceProvider>(resources)
-        };
-        self.context.insert_user_data::<&dyn ResourceProvider>(reference);
-
-        let reference = unsafe{
-            std::mem::transmute::<&mut Vec<ScriptCreationData>, &'static mut Vec<ScriptCreationData>>(&mut self.creation)
-        };
-        self.context.insert_user_data::<&mut Vec<ScriptCreationData>>(reference);
-        //insert(&self.context, resources);
         insert(&self.context, keyboard);
         insert(&self.context, mouse);
         insert(&self.context, &self.prototypes);
@@ -269,7 +259,7 @@ impl ScriptingEngine for JsScriptEngine {
 
         let query = <(Read<JsScript>)>::query();
 
-        for (_entity_id, script) in query.iter_entities_immutable(world.get_legion()) {
+        for (_entity_id, script) in query.iter_entities_immutable(world) {
             match &script.update {
                 None => (),
                 Some(fun) => { fun.call_with_this(&guard, &script.js_object, &[]).unwrap(); }
@@ -279,16 +269,13 @@ impl ScriptingEngine for JsScriptEngine {
 
         drop(guard);
 
-        let to_create : Vec<_> = self.creation.drain(0..self.creation.len()).collect();
+        let to_create : Vec<_> = std::mem::replace(&mut world.resources.get_mut::<ScriptCreationQueue>().unwrap().q, vec![]);
 
         for data in to_create {
-            self.create_script(data.object, &data.script_type, world.get_legion());
-            //scripts.insert(data.object, script);
+            self.create_script(data.object, &data.script_type, world);
         }
-        debug_assert!(self.context.remove_user_data::<&mut dyn crate::traits::World>().is_some());
-        debug_assert!(self.context.remove_user_data::<&mut Vec<ScriptCreationData>>().is_some());
+        debug_assert!(self.context.remove_user_data::<&mut World>().is_some());
 
-        debug_assert!(self.context.remove_user_data::<&dyn ResourceProvider>().is_some());
         debug_assert!(self.context.remove_user_data::<&crate::input::KeyboardState>().is_some());
         debug_assert!(self.context.remove_user_data::<&crate::input::MouseState>().is_some());
         debug_assert!(self.context.remove_user_data::<&HM>().is_some());

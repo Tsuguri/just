@@ -20,7 +20,7 @@ fn gameobject_find_by_name(guard: &ContextGuard, args: CallbackInfo) -> Result<V
     let prototypes = prototypes(&ctx);
     let name = args.arguments[0].to_string(guard);
 
-    let objs = GameObject::find_by_name(world.get_legion(), &name);
+    let objs = GameObject::find_by_name(world, &name);
 
     let result = js::value::Array::new(guard, objs.len() as u32);
 
@@ -42,7 +42,7 @@ fn gameobject_create(guard: &ContextGuard, args: CallbackInfo)-> Result<Value, V
     let world = world(&ctx);
 
     let prototypes = prototypes(&ctx);
-    let obj = GameObject::create_empty(world.get_legion());
+    let obj = GameObject::create_empty(world);
 
     let proto = prototypes[&InternalTypes::GameObject].clone();
     let res = js::value::External::new(guard, Box::new(GameObjectData{id: obj}));
@@ -59,7 +59,7 @@ fn set_camera_pos(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Val
     let np = args.arguments[0].clone().into_external().unwrap();
     let new_pos = unsafe { np.value::<Vec3>() };
 
-    world.set_camera_position(*new_pos);
+    world.resources.get_mut::<crate::graphics::CameraData>().unwrap().position = *new_pos;
 
     Result::Ok(js::value::null(guard))
 }

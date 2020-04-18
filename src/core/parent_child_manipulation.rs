@@ -6,7 +6,7 @@ use super::TransformHierarchy;
 
 impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
     pub fn set_parent(&mut self, obj: Entity, new_parent: Option<Entity>) -> Result<(), ()> {
-        TransformHierarchy::set_parent(self.world.get_legion(), obj, new_parent)
+        TransformHierarchy::set_parent(&mut self.world, obj, new_parent)
     }
 }
 

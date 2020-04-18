@@ -24,6 +24,10 @@ impl GameObject {
             parent: Option::None,
         }
     }
+    pub fn initialize(world: &mut World) {
+        world.resources.insert(ObjectsToDelete::new());
+
+    }
 }
 
 impl GameObject {

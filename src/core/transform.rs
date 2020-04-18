@@ -1,9 +1,5 @@
 use std::cell::RefCell;
-use super::WorldData;
-use super::game_object::GameObject;
 use crate::math::*;
-use crate::traits::*;
-use legion::prelude::*;
 
 pub trait Ident {
     fn empty() -> Self;

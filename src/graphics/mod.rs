@@ -5,6 +5,7 @@ mod node_prelude;
 mod ui_node;
 
 use rendy;
+use legion::prelude::World;
 
 use crate::traits;
 
@@ -29,24 +30,34 @@ use std::sync::Arc;
 
 use octo_runtime::OctoModule;
 use ui_node::UiNodeDesc;
+use crate::math::{Vec3, Quat};
 
+#[derive(Clone)]
+pub struct CameraData {
+    pub position: Vec3,
+    pub rotation: Quat,
+}
 
+#[derive(Clone)]
+pub struct ViewportData(pub f32);
 
 pub struct Renderer<B: hal::Backend> {
-    graph: Option<rendy::graph::Graph<B, dyn traits::RenderingData>>,
+    graph: Option<rendy::graph::Graph<B, World>>,
     push_constants_block: Arc<octo_node::PushConstantsBlock>,
 }
 
 
 impl<B: hal::Backend> traits::Renderer<Hardware<B>> for Renderer<B> {
-    fn create(hardware: &mut Hardware<B>, world: &(dyn traits::RenderingData + 'static), res: Arc<ResourceManager<B>>) -> Self {
+    fn create(hardware: &mut Hardware<B>, world: &mut World, res: Arc<ResourceManager<B>>) -> Self {
+        world.resources.insert(CameraData{position: Vec3::zeros(), rotation: Quat::identity()});
+        world.resources.insert(ViewportData(10.0f32));
         let (graph, block) = fill_render_graph(hardware, world, res);
         Self {
             graph: Some(graph),
             push_constants_block: block,
         }
     }
-    fn run(&mut self, hardware: &mut Hardware<B>, _res: &ResourceManager<B>, world: &(dyn traits::RenderingData + 'static)) {
+    fn run(&mut self, hardware: &mut Hardware<B>, _res: &ResourceManager<B>, world: &World) {
         match &mut self.graph {
             Some(x) => {
                 let size = hardware.window
@@ -61,7 +72,7 @@ impl<B: hal::Backend> traits::Renderer<Hardware<B>> for Renderer<B> {
         }
     }
 
-    fn dispose(&mut self, hardware: &mut Hardware<B>, world: &(dyn traits::RenderingData + 'static)) {
+    fn dispose(&mut self, hardware: &mut Hardware<B>, world: &World) {
         match self.graph.take() {
             Some(x) => {
                 x.dispose(&mut hardware.factory, world);
@@ -131,8 +142,8 @@ impl<B: hal::Backend> Hardware<B> {
     }
 }
 
-pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world: &(dyn traits::RenderingData + 'static), resources: Arc<ResourceManager<B>>) -> (rendy::graph::Graph<B, dyn traits::RenderingData>, Arc<octo_node::PushConstantsBlock>) {
-    let mut graph_builder = GraphBuilder::<B, dyn traits::RenderingData>::new();
+pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world: &World, resources: Arc<ResourceManager<B>>) -> (rendy::graph::Graph<B, World>, Arc<octo_node::PushConstantsBlock>) {
+    let mut graph_builder = GraphBuilder::<B, World>::new();
 
     assert!(hardware.surface.is_some());
 

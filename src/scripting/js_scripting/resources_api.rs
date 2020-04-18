@@ -28,7 +28,7 @@ pub struct TextureData {
 fn get_mesh(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let ctx = guard.context();
     let world = world(&ctx);
-    let resources = world.get_legion().resources.get::<Arc<dyn ResourceProvider>>().unwrap();
+    let resources = world.resources.get::<Arc<dyn ResourceProvider>>().unwrap();
 
     let name = args.arguments[0].to_string(guard);
 

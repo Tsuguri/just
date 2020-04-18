@@ -1,11 +1,12 @@
 use super::js;
-use crate::traits::{World, ResourceProvider};
+use crate::traits::{ResourceProvider};
 use crate::scripting::HM;
 
 use crate::input::{KeyboardState, MouseState};
 use super::ScriptCreationData;
 use js::ContextGuard;
 use js::value::function::FunctionCallback;
+use legion::prelude::World;
 
 impl super::JsScriptEngine {
     pub fn create_api_module(&mut self, name: &str) -> js::value::Object {
@@ -22,8 +23,8 @@ pub fn add_function(guard: &ContextGuard, obj: &js::value::Object, name: &str, f
     obj.set(&guard, js::Property::new(&guard, name), fun);
 }
 
-pub fn world(ctx: &js::Context) -> &mut dyn World {
-    *ctx.get_user_data_mut::<&mut dyn World>().unwrap()
+pub fn world(ctx: &js::Context) -> &mut World {
+    *ctx.get_user_data_mut::<&mut World>().unwrap()
 }
 
 pub fn prototypes(ctx: &js::Context) -> &HM {
@@ -36,10 +37,6 @@ pub fn keyboard(ctx: &js::Context) -> &KeyboardState {
 
 pub fn mouse(ctx: &js::Context) -> &MouseState {
     *ctx.get_user_data::<&MouseState>().unwrap()
-}
-
-pub fn creation_data(ctx: &js::Context) -> &mut Vec<ScriptCreationData> {
-    *ctx.get_user_data_mut::<&mut Vec<ScriptCreationData>>().unwrap()
 }
 
 macro_rules! mf {

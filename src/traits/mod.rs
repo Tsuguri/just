@@ -3,7 +3,7 @@ use std::sync::Arc;
 use serde::Deserialize;
 
 use crate::math::*;
-use legion::prelude::Entity;
+use legion::prelude::{Entity, World};
 
 pub type MeshId = usize;
 pub type TextureId = usize;
@@ -37,59 +37,26 @@ pub trait Controller {
     fn set_gameobject_property(&mut self, name: &str, value: Entity);
 }
 
-pub trait World: Send + Sync {
-    fn get_legion(&mut self) -> &mut legion::prelude::World;
-
-    fn set_renderable(&mut self, id: Entity, mesh: MeshId);
-
-    fn set_camera_position(&mut self, new_pos: Vec3);
-}
-
-
 pub trait ScriptingEngine: Sized {
     type Controller: Controller + 'static;
     type Config: Deserialize<'static>;
 
-    fn create(config: &Self::Config) -> Self;
+    fn create(config: &Self::Config, world: &mut World) -> Self;
 
-    fn create_script(&mut self, gameobject_id: Entity, typ: &str, world: &mut legion::prelude::World);
+    fn create_script(&mut self, gameobject_id: Entity, typ: &str, world: &mut World);
 
     fn update(&mut self,
-              world: &mut dyn World,
-              resources: &dyn ResourceProvider,
+              world: &mut World,
               keyboard: &crate::input::KeyboardState,
               mouse: &crate::input::MouseState,
               current_time: f64,
     );
 }
 
-
-pub enum Value{
-    Matrix4(Matrix),
-    Matrix3(Matrix3),
-    Vector2(Vec2),
-    Vector3(Vec3),
-    Vector4(Vec4),
-    Float(f32),
-    None,
-}
-
-pub trait RenderingData {
-    fn get_projection_matrix(&self) -> Matrix;
-    fn get_view_matrix(&self) -> Matrix;
-
-    fn get_rendering_constant(&self, name: &str) -> Value;
-
-    fn get_renderables(
-        &self,
-        buffer: Option<Vec<(MeshId, Option<TextureId>, Matrix)>>,
-    ) -> Vec<(MeshId, Option<TextureId>, Matrix)>;
-}
-
 pub trait Renderer<H: Hardware + ?Sized> {
-    fn create(hardware: &mut H, world: &(dyn RenderingData + 'static), res: Arc<H::RM>) -> Self;
-    fn run(&mut self, hardware: &mut H, res: &H::RM, world: &(dyn RenderingData + 'static));
-    fn dispose(&mut self, hardware: &mut H, world: &(dyn RenderingData + 'static));
+    fn create(hardware: &mut H, world: &mut World, res: Arc<H::RM>) -> Self;
+    fn run(&mut self, hardware: &mut H, res: &H::RM, world: &World);
+    fn dispose(&mut self, hardware: &mut H, world: &World);
 }
 
 pub trait Hardware {

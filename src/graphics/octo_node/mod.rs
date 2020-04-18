@@ -1,9 +1,10 @@
 use super::node_prelude::*;
 use std::collections::HashMap;
 
-use crate::traits::{RenderingData, Value};
 use octo_runtime::ValueType;
 use std::cell::RefCell;
+use crate::math::*;
+use legion::prelude::*;
 
 
 pub struct PushConstantsBlock {
@@ -29,6 +30,52 @@ fn uniform_size(typ: ValueType) -> usize {
     }
 }
 
+pub enum Value{
+    Matrix4(Matrix),
+    Matrix3(Matrix3),
+    Vector2(Vec2),
+    Vector3(Vec3),
+    Vector4(Vec4),
+    Float(f32),
+    None,
+}
+
+pub struct RenderingConstants;
+
+impl RenderingConstants {
+    pub fn get_projection_matrix(world: &World) -> Matrix {
+        let viewport_height = world.resources.get::<super::ViewportData>().unwrap().0;
+        let top = viewport_height / 2.0f32;
+        let bot = - top;
+        let right = 1920.0f32 / 1080.0f32 * top;
+        let left = -right;
+        let near = -50.0f32;
+        let far = 300.0f32;
+        let mut temp = nalgebra_glm::ortho_lh_zo(left, right, bot, top, near, far);
+        // let mut temp = nalgebra_glm::perspective_lh_zo(
+        //     256.0f32 / 108.0, f32::to_radians(45.0f32), 0.1f32, 100.0f32);
+        temp[(1, 1)] *= -1.0;
+        temp
+    }
+
+    pub fn get_view_matrix(world: &World) -> Matrix {
+        let camera_data = world.resources.get::<crate::graphics::CameraData>().unwrap();
+
+        nalgebra_glm::quat_to_mat4(&camera_data.rotation) * nalgebra_glm::translation(&(-camera_data.position))
+    }
+
+    pub fn get_rendering_constant(world: &World, name: &str) -> Value{
+        match name {
+            "projection_mat" => Value::Matrix4(Self::get_projection_matrix(world)),
+            "view_mat" => Value::Matrix4(Self::get_view_matrix(world)),
+            "lightColor" => Value::Vector3(Vec3::new(0.6f32, 0.6f32, 0.6f32)),
+            "lightDir" => Value::Vector3(Vec3::new(2.0f32, 1.0f32, -0.1f32)),
+            "camera_pos" => Value::Vector3(world.resources.get::<super::CameraData>().unwrap().position),
+            _ => Value::None,
+        }
+    }
+}
+
 impl PushConstantsBlock {
     pub fn new(constants: &[(String, ValueType)]) -> PushConstantsBlock {
         let mut offset = 0usize;
@@ -50,7 +97,7 @@ impl PushConstantsBlock {
         self.buffer.borrow_mut().iter_mut().map(|x| *x = 0).count();
     }
 
-    pub fn fill(&self, info_provider: &dyn RenderingData, view_size: crate::math::Vec2) {
+    pub fn fill(&self, world: &World, view_size: crate::math::Vec2) {
         let mut buff = self.buffer.borrow_mut();
         use rendy::hal::memory;
 
@@ -62,7 +109,7 @@ impl PushConstantsBlock {
                 }
                 continue;
             }
-            match info_provider.get_rendering_constant(&name) {
+            match RenderingConstants::get_rendering_constant(world, &name) {
                 Value::None => {
                     println!("WARNING: There is no data for {} uniform value. Using 0.", name);
                     continue;
@@ -171,7 +218,7 @@ impl<B: hal::Backend> std::fmt::Debug for OctoNode<B> {
     }
 }
 
-impl<B> SimpleGraphicsPipelineDesc<B, dyn RenderingData> for OctoNodeDesc<B>
+impl<B> SimpleGraphicsPipelineDesc<B, World> for OctoNodeDesc<B>
     where B: hal::Backend {
     type Pipeline = OctoNode<B>;
 
@@ -225,7 +272,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, dyn RenderingData> for OctoNodeDesc<B>
         }
     }
 
-    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &dyn RenderingData) -> ShaderSet<B> {
+    fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &World) -> ShaderSet<B> {
 
         let fragment_spirv= self.fragment_shader.replace(vec![]);
         let vertex_spirv= self.vertex_shader.replace(vec![]);
@@ -244,7 +291,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, dyn RenderingData> for OctoNodeDesc<B>
         ctx: &GraphContext<B>,
         factory: &mut Factory<B>,
         _queue: QueueId,
-        _data: &dyn RenderingData,
+        _data: &World,
         buffers: Vec<NodeBuffer>,
         images: Vec<NodeImage>,
         set_layouts: &[Handle<DescriptorSetLayout<B>>],
@@ -320,7 +367,7 @@ impl<B> SimpleGraphicsPipelineDesc<B, dyn RenderingData> for OctoNodeDesc<B>
     }
 }
 
-impl<B: hal::Backend> SimpleGraphicsPipeline<B, dyn RenderingData> for OctoNode<B> {
+impl<B: hal::Backend> SimpleGraphicsPipeline<B, World> for OctoNode<B> {
     type Desc = OctoNodeDesc<B>;
 
     fn prepare(
@@ -329,12 +376,12 @@ impl<B: hal::Backend> SimpleGraphicsPipeline<B, dyn RenderingData> for OctoNode<
         _queue: QueueId,
         _set_layouts: &[Handle<DescriptorSetLayout<B>>],
         _index: usize,
-        _aux: &dyn RenderingData,
+        _aux: &World,
     ) -> PrepareResult {
         PrepareResult::DrawReuse
     }
 
-    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, _data: &dyn RenderingData) {
+    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, _data: &World) {
         unsafe {
             let buf = self.push_constants_block.buffer.borrow();
 
@@ -355,6 +402,6 @@ impl<B: hal::Backend> SimpleGraphicsPipeline<B, dyn RenderingData> for OctoNode<
         }
     }
 
-    fn dispose(self, _factory: &mut Factory<B>, _aux: &dyn RenderingData) {
+    fn dispose(self, _factory: &mut Factory<B>, _aux: &World) {
     }
 }

@@ -7,9 +7,7 @@ mod colliders;
 mod hierarchy;
 
 use crate::traits::{
-    World,
     Hardware,
-    RenderingData,
     MeshId,
     TextureId,
     ScriptingEngine,
@@ -26,26 +24,21 @@ use crate::scripting::JsScriptEngine;
 use crate::scripting::test_scripting::MockScriptEngine;
 use std::sync::Arc;
 
-use world_data::WorldData;
 use std::cell::RefCell;
 
 use legion::prelude::*;
 
 pub use hierarchy::TransformHierarchy;
 pub use game_object::GameObject;
+pub use world_data::Mesh;
 
 
 struct Animator;
 
 struct Audio;
 
-pub use world_data::{CameraData, ViewportData};
-
-
-
-
 pub struct Engine<E: ScriptingEngine, HW: Hardware + 'static> {
-    pub world: WorldData,
+    pub world: World,
 
     scripting_engine: E,
     pub resources: Arc<HW::RM>,
@@ -77,12 +70,14 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
         let mut hardware = HW::create(hw_config);
         let resources = Arc::new(HW::RM::create(rm_config, &mut hardware));
 
-        let mut world = WorldData::new();
-        world.get_legion().resources.insert::<Arc<dyn ResourceProvider>>(resources.clone());
-        let renderer = HW::Renderer::create(&mut hardware, &world, resources.clone());
+        let mut world = World::default();
+        world.resources.insert::<Arc<dyn ResourceProvider>>(resources.clone());
+        GameObject::initialize(&mut world);
+        let renderer = HW::Renderer::create(&mut hardware, &mut world, resources.clone());
+        let scripting_engine = E::create(engine_config, &mut world);
         let eng =Engine {
             world,
-            scripting_engine: E::create(engine_config),
+            scripting_engine,
             resources,
             renderer,
             hardware,
@@ -94,12 +89,9 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
     }
 
     fn update_scripts(&mut self, time: f64) {
-        use std::ops::Deref as _;
 
-        let rm = self.resources.deref();
         self.scripting_engine.update(
             &mut self.world,
-            rm,
             &self.keyboard,
             &self.mouse,
             time,
@@ -132,18 +124,18 @@ impl JsEngine {
             self.update_scripts(elapsed);
             self.renderer.run(&mut self.hardware, &self.resources, &self.world);
 
-            GameObject::remove_marked(self.world.get_legion());
+            GameObject::remove_marked(&mut self.world);
         }
     }
 }
 
 impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
     pub fn exists(&self, id: Entity) -> bool {
-        self.world.exists(id)
+        self.world.is_alive(id)
     }
 
     pub fn create_game_object(&mut self) -> Entity {
-        GameObject::create_empty(self.world.get_legion())
+        GameObject::create_empty(&mut self.world)
     }
 
     pub fn add_renderable(&mut self, id: Entity, mesh: &str, tex: Option<&str>) {
@@ -160,11 +152,11 @@ impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
             texture_id: tex,
         };
 
-        self.world.add_renderable(id, mesh);
+        Mesh::add_tex_renderable(&mut self.world, id, mesh);
     }
 
     pub fn add_script(&mut self, entity_id: Entity, typ: &str) {
-        let obj = self.scripting_engine.create_script(entity_id, typ, &mut self.world.wor);
+        let obj = self.scripting_engine.create_script(entity_id, typ, &mut self.world);
     }
 }
 
