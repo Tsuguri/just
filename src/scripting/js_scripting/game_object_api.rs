@@ -14,7 +14,7 @@ use crate::scripting::InternalTypes;
 use crate::scripting::js_scripting::JsScript;
 use crate::scripting::js_scripting::resources_api::MeshData;
 use legion::prelude::Entity;
-use crate::core::TransformHierarchy;
+use crate::core::{TransformHierarchy, GameObject};
 
 pub struct GameObjectData {
     pub id: Entity,
@@ -27,7 +27,7 @@ fn get_name(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let world = world(&ctx);
     let this = unsafe { external.value::<GameObjectData>() };
 
-    let name = world.get_name(this.id);
+    let name = GameObject::get_name(world.get_legion(), this.id);
 
     let val = js::value::String::new(guard, &name);
 
@@ -42,7 +42,7 @@ fn set_name(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let this = unsafe { external.value::<GameObjectData>() };
 
     let new_name = args.arguments[0].to_string(guard);
-    world.set_name(this.id, new_name);
+    GameObject::set_name(world.get_legion(), this.id, new_name);
 
     Result::Ok(js::value::null(guard))
 }
@@ -141,7 +141,7 @@ fn set_parent(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> 
         Some(par.id)
     };
 
-    TransformHierarchy::set_parent(world.get_legion(), this.id, new_parent);
+    TransformHierarchy::set_parent(world.get_legion(), this.id, new_parent).unwrap();
     Result::Ok(js::value::null(guard))
 }
 
@@ -224,7 +224,7 @@ fn destroy(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let te = args.this.into_external().unwrap();
     let this = unsafe { te.value::<GameObjectData>() };
 
-    world.destroy_gameobject(this.id);
+    GameObject::delete(world.get_legion(), this.id);
 
     Result::Ok(js::value::null(guard))
 

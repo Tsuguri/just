@@ -38,10 +38,6 @@ pub fn mouse(ctx: &js::Context) -> &MouseState {
     *ctx.get_user_data::<&MouseState>().unwrap()
 }
 
-pub fn resources(ctx: &js::Context) -> &dyn ResourceProvider {
-    *ctx.get_user_data::<&dyn ResourceProvider>().unwrap()
-}
-
 pub fn creation_data(ctx: &js::Context) -> &mut Vec<ScriptCreationData> {
     *ctx.get_user_data_mut::<&mut Vec<ScriptCreationData>>().unwrap()
 }

@@ -14,7 +14,7 @@ use crate::traits::{
     TextureId,
     ScriptingEngine,
     ResourceManager,
-    ResourceProvider as _,
+    ResourceProvider,
     Renderer,
 };
 
@@ -32,6 +32,7 @@ use std::cell::RefCell;
 use legion::prelude::*;
 
 pub use hierarchy::TransformHierarchy;
+pub use game_object::GameObject;
 
 
 struct Animator;
@@ -75,7 +76,9 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
     pub fn new(engine_config: &E::Config, hw_config: &HW::Config, rm_config: &<HW::RM as ResourceManager<HW>>::Config) -> Self {
         let mut hardware = HW::create(hw_config);
         let resources = Arc::new(HW::RM::create(rm_config, &mut hardware));
-        let world = WorldData::new();
+
+        let mut world = WorldData::new();
+        world.get_legion().resources.insert::<Arc<dyn ResourceProvider>>(resources.clone());
         let renderer = HW::Renderer::create(&mut hardware, &world, resources.clone());
         let eng =Engine {
             world,
@@ -129,7 +132,7 @@ impl JsEngine {
             self.update_scripts(elapsed);
             self.renderer.run(&mut self.hardware, &self.resources, &self.world);
 
-            self.world.remove_marked();
+            GameObject::remove_marked(self.world.get_legion());
         }
     }
 }
@@ -140,7 +143,7 @@ impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
     }
 
     pub fn create_game_object(&mut self) -> Entity {
-        self.world.create_gameobject()
+        GameObject::create_empty(self.world.get_legion())
     }
 
     pub fn add_renderable(&mut self, id: Entity, mesh: &str, tex: Option<&str>) {

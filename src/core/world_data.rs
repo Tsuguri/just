@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use crate::math::*;
 use legion::prelude::*;
 
-use super::game_object::{GameObject};
+use super::game_object::{GameObject, ObjectsToDelete};
 use super::transform::Transform;
 use super::hierarchy::TransformHierarchy;
 
@@ -15,7 +15,6 @@ pub struct Mesh {
 }
 
 pub struct WorldData {
-    // at the same time indicates if object is active
     pub wor: legion::prelude::World,
 }
 
@@ -28,13 +27,10 @@ pub struct CameraData {
 #[derive(Clone)]
 pub struct ViewportData(pub f32);
 
-#[derive(Clone)]
-pub struct ObjectsToDelete(Vec<Entity>);
-
 impl WorldData {
     pub fn new() -> WorldData {
         let mut wor = legion::prelude::World::new();
-        wor.resources.insert(ObjectsToDelete(Vec::new()));
+        wor.resources.insert(ObjectsToDelete::new());
         wor.resources.insert(ViewportData(10.0f32));
         wor.resources.insert(CameraData{position: Vec3::zeros(), rotation: Quat::identity()});
         WorldData {
@@ -46,36 +42,6 @@ impl WorldData {
 impl World for WorldData {
     fn get_legion(&mut self) -> &mut legion::prelude::World{
         &mut self.wor
-    }
-
-    fn get_name(&self, id: Entity) -> String{
-        self.wor.get_component::<GameObject>(id).unwrap().name.clone()
-    }
-
-    fn set_name(&mut self, id: Entity, name: String){
-        self.wor.get_component_mut::<GameObject>(id).unwrap().name = name;
-    }
-
-    fn find_by_name(&self, name: &str) -> Vec<Entity>{
-        legion::prelude::Read::<GameObject>::query().iter_entities_immutable(&self.wor).filter(|(x, y)| {
-            y.name == name
-        }).map(|(x,_y)| x).collect()
-    }
-
-    fn create_gameobject(&mut self) -> Entity {
-        let go = GameObject::new();
-
-        let ent_id = self.wor.insert(
-            (),
-            vec![
-                (Transform::new(),go,),
-            ],
-        ).to_vec();
-        ent_id[0]
-    }
-
-    fn destroy_gameobject(&mut self, id: Entity) {
-        self.wor.resources.get_mut::<ObjectsToDelete>().unwrap().0.push(id);
     }
 
     fn set_renderable(&mut self, id: Entity, mesh: MeshId){
@@ -97,33 +63,6 @@ impl WorldData {
     }
     pub fn exists(&self, id: Entity) -> bool {
         self.wor.is_alive(id)
-    }
-
-    pub fn remove_marked(&mut self) {
-        let mut to_destroy = self.wor.resources.get_mut::<ObjectsToDelete>().unwrap();
-        let objects = std::mem::replace(&mut to_destroy.0, vec![]);
-        drop(to_destroy);
-        for obj in objects.into_iter() {
-            // might have been removed as child of other object
-            if !self.exists(obj) {
-                continue;
-            }
-            self.remove_game_object(obj);
-        }
-    }
-
-
-    pub fn remove_game_object(&mut self, id: Entity) {
-        let data = (*self.wor.get_component::<GameObject>(id).unwrap()).clone();
-        for child in data.children {
-            self.remove_game_object(child);
-        }
-        self.remove_single(id);
-    }
-
-    fn remove_single(&mut self, id: Entity) {
-        TransformHierarchy::set_parent(&mut self.wor, id, None).unwrap();
-        self.wor.delete(id);
     }
 }
 

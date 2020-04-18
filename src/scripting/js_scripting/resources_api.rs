@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use super::js;
 use js::{
     ContextGuard,
@@ -12,6 +13,7 @@ use super::api_helpers::*;
 use crate::traits::{
     TextureId,
     MeshId,
+    ResourceProvider,
 };
 
 pub struct MeshData {
@@ -25,7 +27,8 @@ pub struct TextureData {
 
 fn get_mesh(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let ctx = guard.context();
-    let resources = resources(&ctx);
+    let world = world(&ctx);
+    let resources = world.get_legion().resources.get::<Arc<dyn ResourceProvider>>().unwrap();
 
     let name = args.arguments[0].to_string(guard);
 

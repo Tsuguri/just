@@ -39,15 +39,6 @@ pub trait Controller {
 
 pub trait World: Send + Sync {
     fn get_legion(&mut self) -> &mut legion::prelude::World;
-    fn get_name(&self, id: Entity) -> String;
-
-    fn set_name(&mut self, id: Entity, name: String);
-
-    fn find_by_name(&self, name: &str) -> Vec<Entity>;
-
-    fn create_gameobject(&mut self) -> Entity;
-
-    fn destroy_gameobject(&mut self, id: Entity);
 
     fn set_renderable(&mut self, id: Entity, mesh: MeshId);
 

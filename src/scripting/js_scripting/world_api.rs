@@ -10,6 +10,7 @@ use super::api_helpers::*;
 use super::game_object_api::GameObjectData;
 use crate::scripting::InternalTypes;
 use crate::math::Vec3;
+use crate::core::GameObject;
 
 fn gameobject_find_by_name(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     debug_assert_eq!(args.arguments.len(), 1);
@@ -19,7 +20,7 @@ fn gameobject_find_by_name(guard: &ContextGuard, args: CallbackInfo) -> Result<V
     let prototypes = prototypes(&ctx);
     let name = args.arguments[0].to_string(guard);
 
-    let objs = world.find_by_name(&name);
+    let objs = GameObject::find_by_name(world.get_legion(), &name);
 
     let result = js::value::Array::new(guard, objs.len() as u32);
 
@@ -41,7 +42,7 @@ fn gameobject_create(guard: &ContextGuard, args: CallbackInfo)-> Result<Value, V
     let world = world(&ctx);
 
     let prototypes = prototypes(&ctx);
-    let obj = world.create_gameobject();
+    let obj = GameObject::create_empty(world.get_legion());
 
     let proto = prototypes[&InternalTypes::GameObject].clone();
     let res = js::value::External::new(guard, Box::new(GameObjectData{id: obj}));

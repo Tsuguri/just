@@ -5,7 +5,7 @@ use crate::math::*;
 use crate::traits::{
     World,
 };
-use crate::core::TransformHierarchy;
+use crate::core::{TransformHierarchy, GameObject};
 use crate::core::{CameraData, ViewportData};
 
 #[derive(Serialize, Deserialize)]
@@ -59,7 +59,8 @@ fn spawn_object(object: Object, parent: Option<legion::prelude::Entity>, engine:
     println!("loading object {}.",object.name);
     let obj = engine.create_game_object();
 
-    engine.world.set_name(obj, object.name);
+
+    GameObject::set_name(engine.world.get_legion(), obj, object.name);
     engine.set_parent(obj, parent).unwrap();
 
     object.position.map(|x| {
