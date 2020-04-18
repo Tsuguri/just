@@ -14,7 +14,6 @@ layout (location = 0) out gl_PerVertex {
   vec4 gl_Position;
 };
 
-
 layout (location = 1) out OutData {
     vec2 uv;
     vec3 worldPosition;

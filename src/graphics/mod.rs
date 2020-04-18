@@ -339,9 +339,8 @@ pub fn fill_render_graph<'a, B: hal::Backend>(hardware: &mut Hardware<B>, world:
     let mut nodes = vec![];
 
 
-    let mut ui_node = SubpassBuilder::new()
-        .with_group(UiNodeDesc::default().builder()).with_color(color).with_depth_stencil(depth);
 
+    let mut ui_node = UiNodeDesc{res: resources.clone()}.builder().into_subpass().with_color(color).with_depth_stencil(depth);
     let mut id = 0;
     for mut pass in subpasses.drain(0..subpasses.len()) {
         let definition = &octo_module.passes[id];
