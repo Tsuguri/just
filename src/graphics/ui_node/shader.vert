@@ -29,7 +29,7 @@ const vec2 positions[4] = vec2[](
 void main()
 {
     vec2 pos = positions[gl_VertexIndex];
-	vec2 uv= vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
+	vec2 uv= vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2)/ 2.0;
 
     vec2 coords_base = pos + vec2(0.5);
     vert.uv = mix(push.tex_coord_bounds.xy, push.tex_coord_bounds.zw, uv);

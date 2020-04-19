@@ -7,6 +7,7 @@ mod core;
 mod graphics;
 mod input;
 mod scene_serialization;
+mod ui;
 
 use scripting::JsEngineConfig;
 

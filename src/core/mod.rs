@@ -15,6 +15,7 @@ use crate::traits::{
     ResourceProvider,
     Renderer,
 };
+use crate::ui;
 
 
 use crate::input;
@@ -73,6 +74,8 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
         let mut world = World::default();
         world.resources.insert::<Arc<dyn ResourceProvider>>(resources.clone());
         GameObject::initialize(&mut world);
+        ui::UiSystem::initialize(&mut world, resources.clone());
+
         let renderer = HW::Renderer::create(&mut hardware, &mut world, resources.clone());
         let scripting_engine = E::create(engine_config, &mut world);
         let eng =Engine {
@@ -84,7 +87,6 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
             keyboard: Default::default(),
             mouse: Default::default(),
         };
-//        eng.scripting_engine.set_world_data(&mut eng.world);
         eng
     }
 
@@ -102,6 +104,7 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
 impl<E: ScriptingEngine, HW: Hardware + 'static> std::ops::Drop for Engine<E, HW> {
     fn drop(&mut self) {
         self.renderer.dispose(&mut self.hardware, &self.world);
+        ui::UiSystem::shut_down(&mut self.world);
     }
 }
 
@@ -122,6 +125,7 @@ impl JsEngine {
                 + duration.subsec_nanos() as f64 * 1e-9;
 
             self.update_scripts(elapsed);
+            ui::UiSystem::update(&mut self.world);
             self.renderer.run(&mut self.hardware, &self.resources, &self.world);
 
             GameObject::remove_marked(&mut self.world);

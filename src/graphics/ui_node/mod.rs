@@ -3,6 +3,7 @@ use rendy::hal::{self, pass::Subpass, pso::{CreationError, GraphicsPipelineDesc}
 use rendy::graph::render::{RenderGroup, RenderGroupDesc, PrepareResult};
 use failure;
 use legion::prelude::*;
+use crate::ui::*;
 
 lazy_static::lazy_static! {
     static ref VERTEX: SpirvShader = SourceShaderInfo::new(
@@ -74,6 +75,10 @@ impl<B> SimpleGraphicsPipelineDesc<B, World> for UiNodeDesc<B>
                 blend: None,
             },
         ]
+    }
+
+    fn input_assembler(&self) -> hal::pso::InputAssemblerDesc {
+        hal::pso::InputAssemblerDesc::new(hal::Primitive::TriangleStrip)
     }
 
     fn layout(&self) -> Layout {
@@ -236,22 +241,31 @@ impl<B> SimpleGraphicsPipeline<B, World> for UiNode<B>
 
     fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &World) {
         unsafe {
-            let args = UiArgs {
-                coords: Vec2::new(0.0f32, 0.0f32),
-                dimensions: Vec2::new(600.0f32, 200.0f32),
-                tex_coord_bounds: Vec4::new(0.0f32, 0.0f32, 1.0f32, 1.0f32),
-                color: Vec4::new(1.0f32, 1.0f32, 1.0f32, 1.0f32),
-                color_bias: Vec4::new(1.0f32, 1.0f32, 1.0f32, 1.0f32),
+            let ui_system = data.resources.get::<UiSystem>();
+            let ui_system = match ui_system {
+                None => return,
+                Some(x) => x,
             };
-            push_ui_consts(&mut encoder, &args, layout);
 
-            encoder.bind_graphics_descriptor_sets(
-                layout,
-                0,
-                std::iter::once(self.descriptor_set.raw()),
-                std::iter::empty::<u32>(),
-            );
-            encoder.draw(0..3, 0..1);
+            for button in &ui_system.buttons {
+                let args = UiArgs {
+                    coords: button.position,
+                    dimensions: button.size,
+                    tex_coord_bounds: Vec4::new(0.0f32, 0.0f32, 1.0f32, 1.0f32),
+                    color: Vec4::new(1.0f32, 1.0f32, 1.0f32, 1.0f32),
+                    color_bias: Vec4::new(1.0f32, 1.0f32, 1.0f32, 1.0f32),
+                };
+                push_ui_consts(&mut encoder, &args, layout);
+
+                let tex = self.res.get_real_texture(button.texture);
+                encoder.bind_graphics_descriptor_sets(
+                    layout,
+                    0,
+                    std::iter::once(tex.desc.raw()),
+                    std::iter::empty::<u32>(),
+                );
+                encoder.draw(0..4, 0..2);
+            }
         }
     }
 
