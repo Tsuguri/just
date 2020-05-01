@@ -13,16 +13,16 @@ class nojs {
 
     update() {
         let posit = this.go.position;
-        console.log(posit.x, " ", posit.y, " ", posit.z);
+        //console.log(posit.x, " ", posit.y, " ", posit.z);
         this.some.x = Math.Sin(Time.elapsed);
         World.setCameraPosition(this.some);
 
 
         let pos = new Math.Vector(0.1, 0.2, 0.3);
         pos.x = 12.0;
-        console.log("test: ", pos.x, " ", pos.y, " ", pos.z)
+        //console.log("test: ", pos.x, " ", pos.y, " ", pos.z)
         let pos2 = this.go.globalPosition;
-        console.log("test: ", pos2.x, " ", pos2.y, " ", pos2.z)
+        //console.log("test: ", pos2.x, " ", pos2.y, " ", pos2.z)
 
         if (!this.mesh) {
             this.mesh = Resources.getMesh("monkey");
@@ -44,7 +44,7 @@ class nojs {
         }
         if (Time.elapsed > this.last_dest + 2.0) {
             this.last_dest = Time.elapsed;
-            console.log("destroying");
+            //console.log("destroying");
             let n = World.findByName("heh");
             if (n.length > 0) {
                 n[0].destroy();

@@ -247,24 +247,36 @@ impl<B> SimpleGraphicsPipeline<B, World> for UiNode<B>
                 Some(x) => x,
             };
 
-            for button in &ui_system.buttons {
-                let args = UiArgs {
-                    coords: button.position,
-                    dimensions: button.size,
-                    tex_coord_bounds: Vec4::new(0.0f32, 0.0f32, 1.0f32, 1.0f32),
-                    color: Vec4::new(1.0f32, 1.0f32, 1.0f32, 1.0f32),
-                    color_bias: Vec4::new(1.0f32, 1.0f32, 1.0f32, 1.0f32),
-                };
-                push_ui_consts(&mut encoder, &args, layout);
+            let q = <(Read<UiTransform>, Read<UiRenderable>)>::query();
 
-                let tex = self.res.get_real_texture(button.texture);
-                encoder.bind_graphics_descriptor_sets(
-                    layout,
-                    0,
-                    std::iter::once(tex.desc.raw()),
-                    std::iter::empty::<u32>(),
-                );
-                encoder.draw(0..4, 0..2);
+            for (index, (id, (transform, renderable))) in q.iter_entities_immutable(&data).enumerate() {
+                let lt = ui_system.layout.layout(transform.node).unwrap();
+                let pos = Vec2::new(lt.location.x, lt.location.y);
+                let size = Vec2::new(lt.size.width, lt.size.height);
+
+                match *renderable {
+                    UiRenderable::Rect(tex_id) => {
+                        let args = UiArgs {
+                            // shader wants center of element
+                            coords: pos + size * 0.5f32,
+                            dimensions: size,
+                            tex_coord_bounds: Vec4::new(0.0f32, 0.0f32, 1.0f32, 1.0f32),
+                            color: Vec4::new(1.0f32, 1.0f32, 1.0f32, 1.0f32),
+                            color_bias: Vec4::new(1.0f32, 1.0f32, 1.0f32, 1.0f32),
+                        };
+                        push_ui_consts(&mut encoder, &args, layout);
+
+                        let tex = self.res.get_real_texture(tex_id);
+                        encoder.bind_graphics_descriptor_sets(
+                            layout,
+                            0,
+                            std::iter::once(tex.desc.raw()),
+                            std::iter::empty::<u32>(),
+                        );
+                        encoder.draw(0..4, 0..2);
+                    }
+                }
+
             }
         }
     }

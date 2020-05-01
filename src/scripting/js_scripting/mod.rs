@@ -2,7 +2,9 @@ use crate::traits::{Controller, ScriptingEngine, ResourceManager, ResourceProvid
 
 use chakracore as js;
 use std::mem::ManuallyDrop;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+
+use crate::ui::UiEvent;
 
 
 #[macro_use]
@@ -57,6 +59,7 @@ pub struct JsScriptEngine {
     _runtime: js::Runtime,
     context: ManuallyDrop<js::Context>,
     prototypes: HM,
+    ui_events_handler: EventDispatcher<UiEvent>,
 }
 
 pub struct JsScript {
@@ -83,22 +86,6 @@ impl JsScript {
             js_object: object,
             update,
         }
-    }
-}
-
-#[cfg(test)]
-impl JsScriptEngine {
-    pub fn without_scripts() -> Self {
-        let runtime = js::Runtime::new().unwrap();
-        let context = js::Context::new(&runtime).unwrap();
-        let mut engine = Self {
-            _runtime: runtime,
-            context: ManuallyDrop::new(context),
-            prototypes: Default::default(),
-        };
-
-        engine.create_api();
-        engine
     }
 }
 
@@ -208,12 +195,15 @@ impl ScriptingEngine for JsScriptEngine {
         world.resources.insert(ScriptCreationQueue{q:vec![]});
         let runtime = js::Runtime::new().unwrap();
         let context = js::Context::new(&runtime).unwrap();
+        let ui_events_handler = EventDispatcher::<UiEvent>::create(world);
         let mut engine = Self {
             _runtime: runtime,
             context: ManuallyDrop::new(context),
             prototypes: Default::default(),
+            ui_events_handler,
         };
         engine.configure(config);
+
         engine
     }
 
@@ -235,14 +225,11 @@ impl ScriptingEngine for JsScriptEngine {
 
     fn update(&mut self,
               world: &mut World,
-              keyboard: &crate::input::KeyboardState,
-              mouse: &crate::input::MouseState,
               current_time: f64,
 
     ) {
 
         self.set_time(current_time);
-        let testing = 33i32;
         //set context data
 
         let reference = unsafe{
@@ -250,14 +237,14 @@ impl ScriptingEngine for JsScriptEngine {
         };
         self.context.insert_user_data::<&mut World>(reference);
 
-        insert(&self.context, keyboard);
-        insert(&self.context, mouse);
         insert(&self.context, &self.prototypes);
 
 
-        let guard = self.guard();
+        let guard = self.context.make_current().unwrap();
 
         let query = <(Read<JsScript>)>::query();
+
+        self.ui_events_handler.dispatch(&guard, world);
 
         for (_entity_id, script) in query.iter_entities_immutable(world) {
             match &script.update {
@@ -276,9 +263,76 @@ impl ScriptingEngine for JsScriptEngine {
         }
         debug_assert!(self.context.remove_user_data::<&mut World>().is_some());
 
-        debug_assert!(self.context.remove_user_data::<&crate::input::KeyboardState>().is_some());
-        debug_assert!(self.context.remove_user_data::<&crate::input::MouseState>().is_some());
         debug_assert!(self.context.remove_user_data::<&HM>().is_some());
+    }
+}
+
+struct EventHandler {
+    object: js::value::Object,
+    handler: js::value::Function,
+}
+
+impl PartialEq for EventHandler {
+    fn eq(&self, other: &Self ) -> bool {
+        self.object.as_raw() == other.object.as_raw() && self.handler.as_raw() == other.handler.as_raw()
+    }
+}
+
+impl Eq for EventHandler{}
+impl std::hash::Hash for EventHandler {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.object.as_raw().hash(state);
+        self.handler.as_raw().hash(state);
+    }
+}
+
+struct EventDispatcher<T: 'static + Copy + std::cmp::Eq + std::hash::Hash + Send + Sync> {
+    reader_id: shrev::ReaderId<T>,
+    handlers: HashMap<T, HashSet<EventHandler>>,
+}
+
+unsafe impl<T: 'static + Copy + std::cmp::Eq + std::hash::Hash + Send + Sync> Send for EventDispatcher<T> {}
+unsafe impl<T: 'static + Copy + std::cmp::Eq + std::hash::Hash + Send + Sync> Sync for EventDispatcher<T> {}
+
+impl<T: 'static + Copy + std::cmp::Eq + std::hash::Hash + Send + Sync> EventDispatcher<T> {
+    pub fn create(world: &mut World) -> Self {
+        let reader_id = world.resources.get_mut::<shrev::EventChannel<T>>().unwrap().register_reader();
+        Self {
+            reader_id,
+            handlers: HashMap::default(),
+        }
+    }
+    pub fn register(&mut self, event: T, handler: EventHandler) {
+        if !self.handlers.contains_key(&event) {
+            self.handlers.insert(event, HashSet::new());
+        }
+        self.handlers.get_mut(&event).unwrap().insert(handler);
+    }
+
+    pub fn deregister(&mut self, event: T, handler: EventHandler) {
+        match self.handlers.get_mut(&event) {
+            None => (),
+            Some(mut x) => {
+                x.remove(&handler);
+            }
+        }
+    }
+
+    fn dispatch(&mut self, guard: &js::ContextGuard, world: &mut World) {
+        let mut channel = world.resources.get_mut::<shrev::EventChannel<T>>().unwrap(); 
+        let events = channel.read(&mut self.reader_id);
+        for event in events {
+            match self.handlers.get_mut(event) {
+                None => (),
+                Some(x) =>{
+                    for hd in x.iter() {
+                        hd.handler.call_with_this(guard, &hd.object, &[]);
+
+                    }
+
+                }
+            }
+        }
     }
 }
 

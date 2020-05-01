@@ -7,14 +7,15 @@ use js::{
 };
 
 use super::api_helpers::*;
-use crate::input::KeyCode;
+use crate::input::{KeyCode, KeyboardState, MouseState};
 use crate::scripting::InternalTypes;
 use crate::math::Vec3;
 
 
 fn keyboard_is_key_pressed(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value>{
     let ctx = guard.context();
-    let keyboard = keyboard(&ctx);
+    let world = world(&ctx);
+    let keyboard = world.resources.get::<KeyboardState>().unwrap();
     debug_assert_eq!(1, args.arguments.len());
     let arg = args.arguments[0].to_string(guard);
 
@@ -24,7 +25,8 @@ fn keyboard_is_key_pressed(guard: &ContextGuard, args: CallbackInfo) -> Result<V
 
 fn keyboard_was_pressed_in_last_frame(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let ctx = guard.context();
-    let keyboard = keyboard(&ctx);
+    let world = world(&ctx);
+    let keyboard = world.resources.get::<KeyboardState>().unwrap();
     debug_assert_eq!(1, args.arguments.len());
     let arg = args.arguments[0].to_string(guard);
 
@@ -35,7 +37,8 @@ fn keyboard_was_pressed_in_last_frame(guard: &ContextGuard, args: CallbackInfo) 
 
 fn mouse_is_key_pressed(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let ctx = guard.context();
-    let mouse = mouse(&ctx);
+    let world = world(&ctx);
+    let mouse = world.resources.get::<MouseState>().unwrap();
     debug_assert_eq!(1, args.arguments.len());
     let arg = args.arguments[0].clone().into_number().unwrap();
     let arg_value = arg.value();
@@ -46,7 +49,8 @@ fn mouse_is_key_pressed(guard: &ContextGuard, args: CallbackInfo) -> Result<Valu
 
 fn mouse_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let ctx = guard.context();
-    let mouse = mouse(&ctx);
+    let world = world(&ctx);
+    let mouse = world.resources.get::<MouseState>().unwrap();
     let pos = mouse.get_mouse_position();
     let prototypes = prototypes(&ctx);
     

@@ -7,6 +7,6 @@ class nice {
     update() {
         const pos = this.go.globalPosition;
         const name = this.go.name;
-        console.log(name, " position: ", pos.x, " ", pos.y, " ", pos.z);
+        //console.log(name, " position: ", pos.x, " ", pos.y, " ", pos.z);
     }
 }

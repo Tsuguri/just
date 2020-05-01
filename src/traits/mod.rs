@@ -47,8 +47,6 @@ pub trait ScriptingEngine: Sized {
 
     fn update(&mut self,
               world: &mut World,
-              keyboard: &crate::input::KeyboardState,
-              mouse: &crate::input::MouseState,
               current_time: f64,
     );
 }

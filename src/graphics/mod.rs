@@ -39,7 +39,12 @@ pub struct CameraData {
 }
 
 #[derive(Clone)]
-pub struct ViewportData(pub f32);
+pub struct ViewportData{
+    pub camera_lens_height: f32,
+    pub height: f32,
+    pub width: f32,
+    pub ratio: f32,
+}
 
 pub struct Renderer<B: hal::Backend> {
     graph: Option<rendy::graph::Graph<B, World>>,
@@ -50,7 +55,16 @@ pub struct Renderer<B: hal::Backend> {
 impl<B: hal::Backend> traits::Renderer<Hardware<B>> for Renderer<B> {
     fn create(hardware: &mut Hardware<B>, world: &mut World, res: Arc<ResourceManager<B>>) -> Self {
         world.resources.insert(CameraData{position: Vec3::zeros(), rotation: Quat::identity()});
-        world.resources.insert(ViewportData(10.0f32));
+        let size = hardware.window
+            .get_inner_size()
+            .unwrap()
+            .to_physical(hardware.window.get_hidpi_factor());
+        world.resources.insert(ViewportData{
+            width: size.width as f32,
+            height: size.height as f32,
+            ratio: (size.width / size.height) as f32,
+            camera_lens_height: 10.0f32,
+        });
         let (graph, block) = fill_render_graph(hardware, world, res);
         Self {
             graph: Some(graph),

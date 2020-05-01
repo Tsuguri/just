@@ -44,10 +44,10 @@ pub struct RenderingConstants;
 
 impl RenderingConstants {
     pub fn get_projection_matrix(world: &World) -> Matrix {
-        let viewport_height = world.resources.get::<super::ViewportData>().unwrap().0;
-        let top = viewport_height / 2.0f32;
+        let viewport_data = world.resources.get::<super::ViewportData>().unwrap();
+        let top = viewport_data.camera_lens_height / 2.0f32;
         let bot = - top;
-        let right = 1920.0f32 / 1080.0f32 * top;
+        let right = viewport_data.ratio * top;
         let left = -right;
         let near = -50.0f32;
         let far = 300.0f32;
@@ -103,7 +103,6 @@ impl PushConstantsBlock {
 
         for (name, info) in &self.definitions {
             if name == "view_size" {
-                println!("setting view_size from super data");
                 for (offset, value) in memory::cast_slice::<f32, u32>(&view_size.data).iter().enumerate() {
                     buff[info.1+ offset] = *value;
                 }

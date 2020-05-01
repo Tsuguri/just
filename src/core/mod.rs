@@ -16,6 +16,7 @@ use crate::traits::{
     Renderer,
 };
 use crate::ui;
+use legion::prelude::*;
 
 
 use crate::input;
@@ -45,9 +46,6 @@ pub struct Engine<E: ScriptingEngine, HW: Hardware + 'static> {
     pub resources: Arc<HW::RM>,
     pub hardware: HW,
     renderer: HW::Renderer,
-    keyboard: input::KeyboardState,
-    mouse: input::MouseState,
-
 }
 
 type Hw =super::graphics::Hardware<rendy::vulkan::Backend>;
@@ -73,6 +71,7 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
 
         let mut world = World::default();
         world.resources.insert::<Arc<dyn ResourceProvider>>(resources.clone());
+        input::UserInput::initialize(&mut world);
         GameObject::initialize(&mut world);
         ui::UiSystem::initialize(&mut world, resources.clone());
 
@@ -84,8 +83,6 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
             resources,
             renderer,
             hardware,
-            keyboard: Default::default(),
-            mouse: Default::default(),
         };
         eng
     }
@@ -94,8 +91,6 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
 
         self.scripting_engine.update(
             &mut self.world,
-            &self.keyboard,
-            &self.mouse,
             time,
         );
     }
@@ -115,7 +110,9 @@ impl JsEngine {
 
         loop {
             self.hardware.factory.maintain(&mut self.hardware.families);
-            let inputs = UserInput::poll_events_loop(&mut self.hardware.event_loop, &mut self.keyboard, &mut self.mouse);
+
+            let inputs = UserInput::poll_events_loop(&mut self.hardware.event_loop, &mut self.world);
+
             if inputs.end_requested {
                 break;
             }

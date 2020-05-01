@@ -31,14 +31,6 @@ pub fn prototypes(ctx: &js::Context) -> &HM {
     *ctx.get_user_data::<&HM>().unwrap()
 }
 
-pub fn keyboard(ctx: &js::Context) -> &KeyboardState {
-    *ctx.get_user_data::<&KeyboardState>().unwrap()
-}
-
-pub fn mouse(ctx: &js::Context) -> &MouseState {
-    *ctx.get_user_data::<&MouseState>().unwrap()
-}
-
 macro_rules! mf {
     ($i: ident) => {Box::new(|a,b| $i(a,b))}
 }

@@ -41,7 +41,7 @@ pub fn deserialize_scene(path: &str, engine: &mut crate::core::JsEngine)-> Resul
 
     let camera_rot = glm::rotate_x(&glm::rotate_y(&glm::rotate_x(&glm::identity(), -scene.camera_rotation[0]), -scene.camera_rotation[1]), -scene.camera_rotation[2]);
     engine.world.resources.get_mut::<CameraData>().unwrap().rotation = glm::to_quat(&camera_rot);
-    engine.world.resources.get_mut::<ViewportData>().unwrap().0 = scene.viewport_height;
+    engine.world.resources.get_mut::<ViewportData>().unwrap().camera_lens_height = scene.viewport_height;
 
     println!("loading scene {}.", scene.name);
     for obj in scene.objects{
