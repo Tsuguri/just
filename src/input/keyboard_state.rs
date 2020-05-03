@@ -1,6 +1,6 @@
 use rendy::wsi::winit::VirtualKeyCode as KC;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum KeyCode
 {
     Key0 = 0,

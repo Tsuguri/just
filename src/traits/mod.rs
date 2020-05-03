@@ -51,6 +51,39 @@ pub trait ScriptingEngine: Sized {
     );
 }
 
+pub trait ParametersSource {
+    type ErrorType;
+
+    fn read_float(&mut self) -> Result<f32, Self::ErrorType>;
+}
+
+pub trait FunctionParameter: Sized {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType>;
+}
+
+impl FunctionParameter for f32 {
+    fn read<PS: ParametersSource>(source: &mut PS)-> Result<Self, PS::ErrorType> {
+        source.read_float()
+    }
+}
+
+pub trait ScriptApiRegistry {
+    type Namespace;
+    type Type;
+    type Name: From<String>;
+
+    //type ParamEncoder;
+    type ErrorType;
+
+    fn register_namespace(&mut self, name: Self::Name, parent: Option<&Self::Namespace>) -> Self::Namespace;
+
+    fn register_function<P, F>(&mut self, name: Self::Name, namespace: Option<&Self::Namespace>, fc: F)
+        where P: FunctionParameter,
+              F: 'static + Send + Sync + Fn(P);
+
+    fn register_native_type<T>(&mut self, name: Self::Name, namespace: Option<&Self::Namespace>) -> Self::Type;
+}
+
 pub trait Renderer<H: Hardware + ?Sized> {
     fn create(hardware: &mut H, world: &mut World, res: Arc<H::RM>) -> Self;
     fn run(&mut self, hardware: &mut H, res: &H::RM, world: &World);

@@ -25,6 +25,7 @@ use legion::prelude::*;
 #[derive(PartialEq, Eq, Hash)]
 pub enum InternalTypes {
     GameObject,
+    Vec2,
     Vec3,
     Quat,
     Matrix,
@@ -186,6 +187,44 @@ impl JsScriptEngine {
     }
 }
 
+impl DispatchableEvent for UiEvent {
+    type Hash = (Entity, std::mem::Discriminant<crate::ui::UiEventType>, usize);
+    fn hash(&self) -> Self::Hash {
+        let d = std::mem::discriminant(&self.event_type);
+        let add = match self.event_type {
+            _ => 0,
+        };
+        (self.entity, d, add)
+    }
+
+    fn invoke_params(&self, encoder: &ParamEncoder) -> js::value::Value {
+        js::value::null(encoder.guard)
+        
+    }
+}
+use crate::input::InputEvent;
+impl DispatchableEvent for InputEvent {
+    type Hash = (std::mem::Discriminant<InputEvent>, usize);
+    fn hash(&self) -> Self::Hash {
+        let d = std::mem::discriminant(self);
+        let add = match self {
+            InputEvent::KeyPressed(x) => x.to_usize(),
+            InputEvent::KeyReleased(x) => x.to_usize(),
+            InputEvent::MouseMoved(..) => 0,
+            InputEvent::MouseButtonPressed(x) => *x,
+            InputEvent::MouseButtonReleased(x) => *x,
+        };
+        (d, add)
+    }
+
+    fn invoke_params(&self, encoder: &ParamEncoder) -> js::value::Value {
+        match self {
+            InputEvent::MouseMoved(pos) => encoder.encode_v2(*pos),
+            _ => js::value::null(encoder.guard),
+        }
+    }
+}
+
 
 impl ScriptingEngine for JsScriptEngine {
     type Controller = JsScript;
@@ -267,6 +306,147 @@ impl ScriptingEngine for JsScriptEngine {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+pub enum JsRuntimeError {
+    NotEnoughParameters,
+    WrongTypeParameter,
+}
+
+
+struct JsParamSource<'a> {
+    guard: &'a ContextGuard<'a>,
+    params: js::value::function::CallbackInfo,
+    current: usize,
+}
+
+impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
+    type ErrorType = JsRuntimeError;
+
+    fn read_float(&mut self) -> Result<f32, Self::ErrorType> {
+        let value = self.params.arguments[self.current].clone().into_number().ok_or(JsRuntimeError::WrongTypeParameter)?.value_double() as f32;
+        self.current +=1;
+        Result::Ok(value)
+    }
+    /*
+    fn read_component<'b, T: 'b + Send + Sync>(&'b mut self, id: Entity) -> Result<&'b T, JsRuntimeError> {
+        let external = self.params.this.into_external().ok_or(JsRuntimeError::WrongTypeParameter)?;
+        let this = unsafe { external.value::<game_object_api::GameObjectData>() };
+        let ctx = self.guard.context();
+
+        let world = api_helpers::world(&ctx);
+        let component = world.get_component::<T>(this.id).ok_or(JsRuntimeError::WrongTypeParameter)?;
+        Result::Ok(&component)
+    }
+    */
+}
+
+impl<'a> JsParamSource<'a> {
+    pub fn create(guard: &'a ContextGuard<'a>, params: js::value::function::CallbackInfo) -> Self {
+        Self {
+            guard,
+            params,
+            current: 0
+        }
+    }
+
+}
+
+impl crate::traits::ScriptApiRegistry for JsScriptEngine {
+    type Namespace = js::value::Object;
+    type Type = js::value::Value;
+    type Name = String;
+
+    //type ParamEncoder = Para
+    type ErrorType = JsRuntimeError;
+
+    fn register_namespace(&mut self, name: Self::Name, parent: Option<&Self::Namespace>) -> Self::Namespace {
+        let guard = self.context.make_current().unwrap();
+        let global = guard.global();
+        let par = match parent {
+            Some(x) => x,
+            None => &global,
+        };
+        let ns = js::value::Object::new(&guard);
+        par.set(&guard, js::Property::new(&guard, &name), ns.clone());
+        ns
+    }
+
+    fn register_function<P, F>(&mut self, name: Self::Name, namespace: Option<&Self::Namespace>, fc: F)
+    where P: crate::traits::FunctionParameter,
+          F: 'static + Send + Sync + Fn(P) {
+        let guard = self.context.make_current().unwrap();
+        let fun = js::value::Function::new(&guard, Box::new(move |gd, params|{
+            let mut param_source = JsParamSource::create(gd, params);
+            let ret = fc(P::read(&mut param_source).unwrap()); // map to js exception?
+            drop(param_source);
+            //let ctx = gd.context();
+            //let hm = api_helpers::prototypes(&ctx);
+            //let mut encoder = ParamEncoder{guard: gd, prototypes: &hm};
+            Result::Ok(js::value::null(gd)) // map to js exception?
+        }));
+        let global = guard.global();
+
+        let parent = match namespace {
+            Some(x) => x,
+            None => &global,
+        };
+        parent.set(&guard, js::Property::new(&guard, &name), fun);
+        
+    }
+     fn register_native_type<T>(&mut self, name: Self::Name, namespace: Option<&Self::Namespace>) -> Self::Type {
+        let guard = self.context.make_current().unwrap();
+        js::value::null(&guard)
+     }
+}
+/*
+trait FunResult: Sized {
+    fn convert(self, converter: &ParamEncoder) -> Result<js::value::Value, JsRuntimeError>;
+}
+*/
+
+struct JsApi<'a> {
+    guard: &'a ContextGuard<'a>,
+}
+/*
+impl FunResult for f32 {
+    fn convert(self, converter: &ParamEncoder) -> Result<js::value::Value, JsRuntimeError> {
+        Result::Ok(converter.encode_f32(self))
+    }
+}
+*/
+/*
+impl<'a> JsApi<'a> {
+
+    pub fn register_function<P, R, F>(&mut self, fc: F)
+        where P: FunParam,
+              R: FunResult,
+              F: 'static + Sync + Send + Fn(P)->R
+    {
+        let fun = js::value::Function::new(&self.guard, Box::new(move |gd, params|{
+            let mut param_source = ParamSource::create(gd, params);
+            let ret = fc(P::read(&mut param_source).unwrap()); // map to js exception?
+            drop(param_source);
+            let ctx = gd.context();
+            let hm = api_helpers::prototypes(&ctx);
+            let mut encoder = ParamEncoder{guard: gd, prototypes: &hm};
+            Result::Ok(ret.convert(&encoder).unwrap()) // map to js exception?
+        }));
+    }
+}
+
+struct whataa {
+}
+
+impl whataa {
+    pub fn whatever(guard: &ContextGuard){
+        let mut api = JsApi{guard};
+
+        api.register_function(|(a, b): (f32, f32)| a + b);
+    }
+}
+*/
+
+
 struct EventHandler {
     object: js::value::Object,
     handler: js::value::Function,
@@ -286,15 +466,50 @@ impl std::hash::Hash for EventHandler {
     }
 }
 
-struct EventDispatcher<T: 'static + Copy + std::cmp::Eq + std::hash::Hash + Send + Sync> {
-    reader_id: shrev::ReaderId<T>,
-    handlers: HashMap<T, HashSet<EventHandler>>,
+use js::ContextGuard;
+
+struct ParamEncoder<'a> {
+    guard: &'a ContextGuard<'a>,
+    prototypes: &'a HM
+
 }
 
-unsafe impl<T: 'static + Copy + std::cmp::Eq + std::hash::Hash + Send + Sync> Send for EventDispatcher<T> {}
-unsafe impl<T: 'static + Copy + std::cmp::Eq + std::hash::Hash + Send + Sync> Sync for EventDispatcher<T> {}
+impl<'a> ParamEncoder<'a> {
+    pub fn encode_float(value: f32, guard: &ContextGuard) -> js::value::Value {
+        js::value::Number::from_double(guard, value as f64).into()
+    }
 
-impl<T: 'static + Copy + std::cmp::Eq + std::hash::Hash + Send + Sync> EventDispatcher<T> {
+    pub fn encode_vec2(value: crate::math::Vec2, guard: &ContextGuard, prototypes: &HM) -> js::value::Value {
+        let ob = js::value::External::new(guard, Box::new(value));
+        ob.set_prototype(guard, prototypes[&InternalTypes::Vec2].clone());
+        ob.into()
+    }
+
+    pub fn encode_f32(&self, value: f32) -> js::value::Value {
+        Self::encode_float(value, self.guard)
+    }
+
+    pub fn encode_v2(&self, value: crate::math::Vec2) -> js::value::Value {
+        Self::encode_vec2(value, self.guard, self.prototypes)
+    }
+
+}
+
+trait DispatchableEvent: Copy + Clone + Send + Sync {
+    type Hash: std::cmp::Eq + std::hash::Hash + Copy + Clone;
+    fn hash(&self) -> Self::Hash;
+    fn invoke_params(&self, encoder: &ParamEncoder) -> js::value::Value;
+}
+
+struct EventDispatcher<T: 'static + DispatchableEvent> {
+    reader_id: shrev::ReaderId<T>,
+    handlers: HashMap<T::Hash, HashSet<EventHandler>>,
+}
+
+unsafe impl<T: 'static + DispatchableEvent> Send for EventDispatcher<T> {}
+unsafe impl<T: 'static + DispatchableEvent> Sync for EventDispatcher<T> {}
+
+impl<T: 'static + DispatchableEvent> EventDispatcher<T> {
     pub fn create(world: &mut World) -> Self {
         let reader_id = world.resources.get_mut::<shrev::EventChannel<T>>().unwrap().register_reader();
         Self {
@@ -303,14 +518,16 @@ impl<T: 'static + Copy + std::cmp::Eq + std::hash::Hash + Send + Sync> EventDisp
         }
     }
     pub fn register(&mut self, event: T, handler: EventHandler) {
-        if !self.handlers.contains_key(&event) {
-            self.handlers.insert(event, HashSet::new());
+        let hash = event.hash();
+        if !self.handlers.contains_key(&hash) {
+            self.handlers.insert(hash, HashSet::new());
         }
-        self.handlers.get_mut(&event).unwrap().insert(handler);
+        self.handlers.get_mut(&hash).unwrap().insert(handler);
     }
 
     pub fn deregister(&mut self, event: T, handler: EventHandler) {
-        match self.handlers.get_mut(&event) {
+        let hash = event.hash();
+        match self.handlers.get_mut(&hash) {
             None => (),
             Some(mut x) => {
                 x.remove(&handler);
@@ -322,7 +539,8 @@ impl<T: 'static + Copy + std::cmp::Eq + std::hash::Hash + Send + Sync> EventDisp
         let mut channel = world.resources.get_mut::<shrev::EventChannel<T>>().unwrap(); 
         let events = channel.read(&mut self.reader_id);
         for event in events {
-            match self.handlers.get_mut(event) {
+            let hash = event.hash();
+            match self.handlers.get_mut(&hash) {
                 None => (),
                 Some(x) =>{
                     for hd in x.iter() {

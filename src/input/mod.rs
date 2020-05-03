@@ -15,6 +15,7 @@ pub struct UserInput {
     pub new_frame_size: Option<(f64, f64)>,
 }
 
+#[derive(Copy, Clone, PartialEq)]
 pub enum InputEvent {
     KeyPressed(KeyCode),
     KeyReleased(KeyCode),
