@@ -7,12 +7,13 @@ use std::collections::{HashMap, HashSet};
 use crate::ui::UiEvent;
 
 
+use super::console_api::ConsoleApi;
+
 #[macro_use]
 mod api_helpers;
 
 mod input_api;
 mod math_api;
-mod console_api;
 mod game_object_api;
 mod time_api;
 mod world_api;
@@ -133,7 +134,7 @@ impl JsScriptEngine {
     }
     fn create_api(&mut self) {
         self.create_math_api();
-        console_api::ConsoleApi::register(self);
+        ConsoleApi::register(self);
         //self.create_console_api();
         self.create_game_object_api();
         self.create_time_api();
