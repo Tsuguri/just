@@ -1,32 +1,16 @@
-use super::js::{
-    ContextGuard,
-    value::{
-        null,
-        Value,
-        function::CallbackInfo,
-        Function,
-        Object,
-    },
-    Property,
+use crate::traits::ScriptApiRegistry;
 
-};
+pub struct ConsoleApi;
 
-fn console_log(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
-    for arg in args.arguments {
-        print!("{}", arg.to_string(guard));
-    }
-    print!("\n");
-    Result::Ok(null(guard))
-}
+impl ConsoleApi {
+    pub fn register<SAR: ScriptApiRegistry>(registry: &mut SAR) {
+        let namespace = registry.register_namespace("console", None);
 
-impl super::JsScriptEngine {
-    pub fn create_console_api(&mut self) {
-        let guard = self.guard();
-        let global = guard.global();
-        let console = Object::new(&guard);
-        global.set(&guard, Property::new(&guard, "console"), console.clone());
-
-        let fun = Function::new(&guard, Box::new(|a,b| console_log(a,b)));
-        console.set(&guard, Property::new(&guard, "log"), fun);
+        registry.register_function("log", Some(&namespace), |args: Vec<String>| {
+            for arg in args {
+                print!("{}", arg);
+            }
+            print!("\n");
+        });
     }
 }

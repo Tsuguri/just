@@ -1,4 +1,4 @@
-use crate::traits::{Controller, ScriptingEngine, ResourceManager, ResourceProvider};
+use crate::traits::{Controller, ScriptingEngine, ResourceManager, ResourceProvider, ScriptApiRegistry};
 
 use chakracore as js;
 use std::mem::ManuallyDrop;
@@ -133,7 +133,8 @@ impl JsScriptEngine {
     }
     fn create_api(&mut self) {
         self.create_math_api();
-        self.create_console_api();
+        console_api::ConsoleApi::register(self);
+        //self.create_console_api();
         self.create_game_object_api();
         self.create_time_api();
         self.create_input_api();
@@ -243,6 +244,15 @@ impl ScriptingEngine for JsScriptEngine {
         };
         engine.configure(config);
 
+        let nm = engine.register_namespace("dawg", None);
+        engine.register_function("lolz", Some(&nm), |args: Vec<String>| {
+            for item in args {
+                print!("{}", item);
+
+            }
+            println!();
+        });
+
         engine
     }
 
@@ -310,6 +320,7 @@ impl ScriptingEngine for JsScriptEngine {
 pub enum JsRuntimeError {
     NotEnoughParameters,
     WrongTypeParameter,
+    ExpectedParameterNotPresent,
 }
 
 
@@ -327,6 +338,25 @@ impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
         self.current +=1;
         Result::Ok(value)
     }
+
+    fn read_all<T: crate::traits::FunctionParameter>(&mut self) -> Result<Vec<T>, Self::ErrorType> {
+        if self.current >= self.params.arguments.len() {
+            return Result::Ok(vec![]);
+        }
+        let mut args = Vec::with_capacity(self.params.arguments.len() - self.current);
+        while self.current < self.params.arguments.len() {
+            args.push(T::read(self)?);
+        }
+        Result::Ok(args)
+    }
+
+    fn read_formatted(&mut self) -> Result<String, Self::ErrorType> {
+        let value = self.params.arguments[self.current].to_string(self.guard);
+        self.current +=1;
+        Result::Ok(value)
+    }
+
+
     /*
     fn read_component<'b, T: 'b + Send + Sync>(&'b mut self, id: Entity) -> Result<&'b T, JsRuntimeError> {
         let external = self.params.this.into_external().ok_or(JsRuntimeError::WrongTypeParameter)?;
@@ -354,12 +384,11 @@ impl<'a> JsParamSource<'a> {
 impl crate::traits::ScriptApiRegistry for JsScriptEngine {
     type Namespace = js::value::Object;
     type Type = js::value::Value;
-    type Name = String;
 
     //type ParamEncoder = Para
     type ErrorType = JsRuntimeError;
 
-    fn register_namespace(&mut self, name: Self::Name, parent: Option<&Self::Namespace>) -> Self::Namespace {
+    fn register_namespace(&mut self, name: &str, parent: Option<&Self::Namespace>) -> Self::Namespace {
         let guard = self.context.make_current().unwrap();
         let global = guard.global();
         let par = match parent {
@@ -367,11 +396,11 @@ impl crate::traits::ScriptApiRegistry for JsScriptEngine {
             None => &global,
         };
         let ns = js::value::Object::new(&guard);
-        par.set(&guard, js::Property::new(&guard, &name), ns.clone());
+        par.set(&guard, js::Property::new(&guard, name), ns.clone());
         ns
     }
 
-    fn register_function<P, F>(&mut self, name: Self::Name, namespace: Option<&Self::Namespace>, fc: F)
+    fn register_function<P, F>(&mut self, name: &str, namespace: Option<&Self::Namespace>, fc: F)
     where P: crate::traits::FunctionParameter,
           F: 'static + Send + Sync + Fn(P) {
         let guard = self.context.make_current().unwrap();
@@ -390,10 +419,11 @@ impl crate::traits::ScriptApiRegistry for JsScriptEngine {
             Some(x) => x,
             None => &global,
         };
-        parent.set(&guard, js::Property::new(&guard, &name), fun);
+        println!("setting property: {}", name);
+        parent.set(&guard, js::Property::new(&guard, name), fun);
         
     }
-     fn register_native_type<T>(&mut self, name: Self::Name, namespace: Option<&Self::Namespace>) -> Self::Type {
+     fn register_native_type<T>(&mut self, name: &str, namespace: Option<&Self::Namespace>) -> Self::Type {
         let guard = self.context.make_current().unwrap();
         js::value::null(&guard)
      }

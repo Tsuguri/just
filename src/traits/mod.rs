@@ -55,6 +55,10 @@ pub trait ParametersSource {
     type ErrorType;
 
     fn read_float(&mut self) -> Result<f32, Self::ErrorType>;
+
+    fn read_formatted(&mut self) -> Result<String, Self::ErrorType>;
+
+    fn read_all<T: FunctionParameter>(&mut self) -> Result<Vec<T>, Self::ErrorType>;
 }
 
 pub trait FunctionParameter: Sized {
@@ -67,21 +71,38 @@ impl FunctionParameter for f32 {
     }
 }
 
+impl FunctionParameter for () {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        Result::Ok(())
+    }
+}
+
+impl<T: FunctionParameter> FunctionParameter for Vec<T> {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        source.read_all::<T>()
+    }
+}
+
+impl FunctionParameter for String {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<String, PS::ErrorType> {
+        source.read_formatted()
+    }
+}
+
 pub trait ScriptApiRegistry {
     type Namespace;
     type Type;
-    type Name: From<String>;
 
     //type ParamEncoder;
     type ErrorType;
 
-    fn register_namespace(&mut self, name: Self::Name, parent: Option<&Self::Namespace>) -> Self::Namespace;
+    fn register_namespace(&mut self, name: &str, parent: Option<&Self::Namespace>) -> Self::Namespace;
 
-    fn register_function<P, F>(&mut self, name: Self::Name, namespace: Option<&Self::Namespace>, fc: F)
+    fn register_function<P, F>(&mut self, name: &str, namespace: Option<&Self::Namespace>, fc: F)
         where P: FunctionParameter,
               F: 'static + Send + Sync + Fn(P);
 
-    fn register_native_type<T>(&mut self, name: Self::Name, namespace: Option<&Self::Namespace>) -> Self::Type;
+    fn register_native_type<T>(&mut self, name: &str, namespace: Option<&Self::Namespace>) -> Self::Type;
 }
 
 pub trait Renderer<H: Hardware + ?Sized> {
