@@ -1,4 +1,12 @@
-use crate::traits::{Controller, ScriptingEngine, ResourceManager, ResourceProvider, ScriptApiRegistry};
+use crate::traits::{
+    Controller,
+    ScriptingEngine,
+    ResourceManager,
+    ResourceProvider,
+    ScriptApiRegistry,
+    FunctionResult,
+    FunctionParameter,
+};
 
 use chakracore as js;
 use std::mem::ManuallyDrop;
@@ -135,9 +143,8 @@ impl JsScriptEngine {
     fn create_api(&mut self) {
         self.create_math_api();
         ConsoleApi::register(self);
-        //self.create_console_api();
         self.create_game_object_api();
-        self.create_time_api();
+        //self.create_time_api();
         self.create_input_api();
         self.create_world_api();
         self.create_resources_api();
@@ -227,6 +234,26 @@ impl DispatchableEvent for InputEvent {
     }
 }
 
+struct JsEnvironment;
+
+
+impl JsEnvironment {
+    pub fn set_up(context: &js::Context , world: &mut World, prototypes: &HM) -> Self {
+        let reference = unsafe{
+            std::mem::transmute::<&mut World, &'static mut World>(world)
+        };
+        context.insert_user_data::<&mut World>(reference);
+
+        insert(context, prototypes);
+        Self{}
+    }
+
+    pub fn drop(self, context: &js::Context) {
+        debug_assert!(context.remove_user_data::<&mut World>().is_some());
+
+        debug_assert!(context.remove_user_data::<&HM>().is_some());
+    }
+}
 
 impl ScriptingEngine for JsScriptEngine {
     type Controller = JsScript;
@@ -259,6 +286,8 @@ impl ScriptingEngine for JsScriptEngine {
 
     fn create_script(&mut self, id: Entity, typ: &str, world: &mut World) {
         let command = format!("new {}();", typ);
+        let env = JsEnvironment::set_up(&self.context, world, &self.prototypes);
+
         let guard = self.guard();
 
         let obj = js::script::eval(&guard, &command).unwrap();
@@ -271,26 +300,17 @@ impl ScriptingEngine for JsScriptEngine {
         let script = JsScript::new(obj, &guard);
         world.add_component(id, script);
 
+        env.drop(&self.context)
     }
 
     fn update(&mut self,
               world: &mut World,
-              current_time: f64,
 
     ) {
-
-        self.set_time(current_time);
-        //set context data
-
-        let reference = unsafe{
-            std::mem::transmute::<&mut World, &'static mut World>(world)
-        };
-        self.context.insert_user_data::<&mut World>(reference);
-
-        insert(&self.context, &self.prototypes);
-
-
         let guard = self.context.make_current().unwrap();
+
+        let env = JsEnvironment::set_up(&self.context, world, &self.prototypes);
+
 
         let query = <(Read<JsScript>)>::query();
 
@@ -299,10 +319,25 @@ impl ScriptingEngine for JsScriptEngine {
         for (_entity_id, script) in query.iter_entities_immutable(world) {
             match &script.update {
                 None => (),
-                Some(fun) => { fun.call_with_this(&guard, &script.js_object, &[]).unwrap(); }
+                Some(fun) => { 
+                    use failure::Fail;
+                    match fun.call_with_this(&guard, &script.js_object, &[]) {
+                        Ok(..) => (),
+                        Err(err) => {
+                            println!("error: {:?}", err);
+                            match err.backtrace() {
+                                None => (),
+                                Some(x) => {
+                                println!("{:?}", x);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
         }
+        env.drop(&self.context);
 
         drop(guard);
 
@@ -311,9 +346,7 @@ impl ScriptingEngine for JsScriptEngine {
         for data in to_create {
             self.create_script(data.object, &data.script_type, world);
         }
-        debug_assert!(self.context.remove_user_data::<&mut World>().is_some());
 
-        debug_assert!(self.context.remove_user_data::<&HM>().is_some());
     }
 }
 
@@ -324,10 +357,27 @@ pub enum JsRuntimeError {
     ExpectedParameterNotPresent,
 }
 
+struct JsResultEncoder<'a> {
+    guard: &'a ContextGuard<'a>,
+}
+
+impl<'a> crate::traits::ResultEncoder for JsResultEncoder<'a> {
+    type ResultType = js::value::Value;
+
+    fn empty(&mut self) -> Self::ResultType {
+        js::value::null(&self.guard)
+    }
+
+    fn encode_float(&mut self, value: f32) -> Self::ResultType {
+        js::value::Number::from_double(&self.guard, value as f64).into()
+    }
+}
+
 
 struct JsParamSource<'a> {
     guard: &'a ContextGuard<'a>,
     params: js::value::function::CallbackInfo,
+    world: &'a World,
     current: usize,
 }
 
@@ -340,7 +390,7 @@ impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
         Result::Ok(value)
     }
 
-    fn read_all<T: crate::traits::FunctionParameter>(&mut self) -> Result<Vec<T>, Self::ErrorType> {
+    fn read_all<T: FunctionParameter>(&mut self) -> Result<Vec<T>, Self::ErrorType> {
         if self.current >= self.params.arguments.len() {
             return Result::Ok(vec![]);
         }
@@ -355,6 +405,11 @@ impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
         let value = self.params.arguments[self.current].to_string(self.guard);
         self.current +=1;
         Result::Ok(value)
+    }
+
+    fn read_system_data<T: 'static + Send + Sync>(&mut self) -> Result<legion::resource::FetchMut<T>, Self::ErrorType> {
+        Result::Ok(self.world.resources.get_mut::<T>().unwrap())
+        
     }
 
 
@@ -372,11 +427,12 @@ impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
 }
 
 impl<'a> JsParamSource<'a> {
-    pub fn create(guard: &'a ContextGuard<'a>, params: js::value::function::CallbackInfo) -> Self {
+    pub fn create(guard: &'a ContextGuard<'a>, params: js::value::function::CallbackInfo, world: &'a World) -> Self {
         Self {
             guard,
             params,
-            current: 0
+            current: 0,
+            world
         }
     }
 
@@ -401,18 +457,20 @@ impl crate::traits::ScriptApiRegistry for JsScriptEngine {
         ns
     }
 
-    fn register_function<P, F>(&mut self, name: &str, namespace: Option<&Self::Namespace>, fc: F)
+
+    fn register_function<P, R, F>(&mut self, name: &str, namespace: Option<&Self::Namespace>, fc: F)
     where P: crate::traits::FunctionParameter,
-          F: 'static + Send + Sync + Fn(P) {
+          R: crate::traits::FunctionResult,
+          F: 'static + Send + Sync + Fn(P)-> R {
         let guard = self.context.make_current().unwrap();
         let fun = js::value::Function::new(&guard, Box::new(move |gd, params|{
-            let mut param_source = JsParamSource::create(gd, params);
+            let ctx = gd.context();
+            let world = api_helpers::world(&ctx);
+            let mut param_source = JsParamSource::create(gd, params, world);
             let ret = fc(P::read(&mut param_source).unwrap()); // map to js exception?
             drop(param_source);
-            //let ctx = gd.context();
-            //let hm = api_helpers::prototypes(&ctx);
-            //let mut encoder = ParamEncoder{guard: gd, prototypes: &hm};
-            Result::Ok(js::value::null(gd)) // map to js exception?
+            let mut enc = JsResultEncoder{guard: gd};
+            Result::Ok(ret.into_script_value(&mut enc))
         }));
         let global = guard.global();
 
@@ -420,7 +478,6 @@ impl crate::traits::ScriptApiRegistry for JsScriptEngine {
             Some(x) => x,
             None => &global,
         };
-        println!("setting property: {}", name);
         parent.set(&guard, js::Property::new(&guard, name), fun);
         
     }
@@ -428,56 +485,62 @@ impl crate::traits::ScriptApiRegistry for JsScriptEngine {
         let guard = self.context.make_current().unwrap();
         js::value::null(&guard)
      }
+
+     fn register_static_property<P1, P2, R, F1, F2>(
+         &mut self,
+         name: &str,
+         namespace: Option<&Self::Namespace>,
+         getter: Option<F1>,
+         setter: Option<F2>)
+     where P1: FunctionParameter,
+           P2: FunctionParameter,
+           R: FunctionResult,
+           F1: 'static + Send + Sync + Fn(P1)->R,
+           F2: 'static + Send + Sync + Fn(P2) {
+        let guard = self.context.make_current().unwrap();
+        let global = guard.global();
+
+        let property_object = js::value::Object::new(&guard);
+
+        match getter {
+            None => (),
+            Some(func) => {
+                let fun = js::value::Function::new(&guard, Box::new(move |gd, params|{
+                    let ctx = gd.context();
+                    let world = api_helpers::world(&ctx);
+                    let mut param_source = JsParamSource::create(gd, params, world);
+                    let ret = func(P1::read(&mut param_source).unwrap());
+                    let mut enc = JsResultEncoder{guard: gd};
+                    Result::Ok(ret.into_script_value(&mut enc))
+                }));
+                property_object.set(&guard, js::Property::new(&guard, "get"), fun);
+            }
+        }
+        match setter {
+            None => (),
+            Some(func) => {
+                let fun = js::value::Function::new(&guard, Box::new(move |gd, params|{
+                    let ctx = gd.context();
+                    let world = api_helpers::world(&ctx);
+                    let mut param_source = JsParamSource::create(gd, params, world);
+                    func(P2::read(&mut param_source).unwrap()); // map to js exception?
+                    Result::Ok(js::value::null(gd))
+                }));
+                property_object.set(&guard, js::Property::new(&guard, "set"), fun);
+            }
+        }
+        let par = match namespace {
+            Some(x) => x,
+            None => &global,
+        };
+
+        par.define_property(&guard, js::Property::new(&guard, name), property_object);
+     }
 }
-/*
-trait FunResult: Sized {
-    fn convert(self, converter: &ParamEncoder) -> Result<js::value::Value, JsRuntimeError>;
-}
-*/
 
 struct JsApi<'a> {
     guard: &'a ContextGuard<'a>,
 }
-/*
-impl FunResult for f32 {
-    fn convert(self, converter: &ParamEncoder) -> Result<js::value::Value, JsRuntimeError> {
-        Result::Ok(converter.encode_f32(self))
-    }
-}
-*/
-/*
-impl<'a> JsApi<'a> {
-
-    pub fn register_function<P, R, F>(&mut self, fc: F)
-        where P: FunParam,
-              R: FunResult,
-              F: 'static + Sync + Send + Fn(P)->R
-    {
-        let fun = js::value::Function::new(&self.guard, Box::new(move |gd, params|{
-            let mut param_source = ParamSource::create(gd, params);
-            let ret = fc(P::read(&mut param_source).unwrap()); // map to js exception?
-            drop(param_source);
-            let ctx = gd.context();
-            let hm = api_helpers::prototypes(&ctx);
-            let mut encoder = ParamEncoder{guard: gd, prototypes: &hm};
-            Result::Ok(ret.convert(&encoder).unwrap()) // map to js exception?
-        }));
-    }
-}
-
-struct whataa {
-}
-
-impl whataa {
-    pub fn whatever(guard: &ContextGuard){
-        let mut api = JsApi{guard};
-
-        api.register_function(|(a, b): (f32, f32)| a + b);
-    }
-}
-*/
-
-
 struct EventHandler {
     object: js::value::Object,
     handler: js::value::Function,

@@ -11,9 +11,11 @@ use crate::traits::{
     MeshId,
     TextureId,
     ScriptingEngine,
+    ScriptApiRegistry,
     ResourceManager,
     ResourceProvider,
     Renderer,
+    Data,
 };
 use crate::ui;
 use legion::prelude::*;
@@ -60,7 +62,7 @@ pub enum GameObjectError {
     IdNotExisting,
 }
 
-impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
+impl<E: ScriptingEngine + ScriptApiRegistry, HW: Hardware + 'static> Engine<E, HW>
     where <HW as Hardware>::RM: Send + Sync
 {
     //type HWA = i32;
@@ -74,9 +76,11 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
         input::UserInput::initialize(&mut world);
         GameObject::initialize(&mut world);
         ui::UiSystem::initialize(&mut world, resources.clone());
+        TimeSystem::initialize(&mut world);
 
         let renderer = HW::Renderer::create(&mut hardware, &mut world, resources.clone());
-        let scripting_engine = E::create(engine_config, &mut world);
+        let mut scripting_engine = E::create(engine_config, &mut world);
+        TimeSystem::register_api(&mut scripting_engine);
         let eng =Engine {
             world,
             scripting_engine,
@@ -87,11 +91,10 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> Engine<E, HW>
         eng
     }
 
-    fn update_scripts(&mut self, time: f64) {
+    fn update_scripts(&mut self) {
 
         self.scripting_engine.update(
             &mut self.world,
-            time,
         );
     }
 }
@@ -103,10 +106,50 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> std::ops::Drop for Engine<E, HW
     }
 }
 
+struct TimeData {
+    start: std::time::Instant,
+    elapsed: f32,
+    dt: f32,
+}
+
+struct TimeSystem;
+
+impl TimeSystem {
+    pub fn initialize(world: &mut World) {
+        let system = TimeData {
+            start: std::time::Instant::now(),
+            elapsed: 0f32,
+            dt: 0.016f32,
+        };
+        world.resources.insert(system);
+    }
+
+    pub fn update(world: &mut World) {
+        let mut sys = <(Write<TimeData>)>::fetch(&world.resources); 
+        let duration = sys.start.elapsed();
+
+        let elapsed = duration.as_secs() as f64
+            + duration.subsec_nanos() as f64 * 1e-9;
+        let dt = elapsed - sys.elapsed as f64;
+        sys.dt = dt as f32;
+        sys.elapsed = elapsed as f32;
+    }
+
+    pub fn register_api<SAR: crate::traits::ScriptApiRegistry>(sar: &mut SAR) {
+        let nm = sar.register_namespace("Time", None);
+
+        sar.register_static_property("elapsed", Some(&nm), Some(|d: Data<TimeData>| {
+            d.fetch.elapsed
+        }), Some(|()|{}));
+
+        //sar.register_function()
+
+    }
+}
+
 impl JsEngine {
     pub fn run(&mut self) {
         use crate::input::*;
-        let start = std::time::Instant::now();
 
         loop {
             self.hardware.factory.maintain(&mut self.hardware.families);
@@ -116,12 +159,10 @@ impl JsEngine {
             if inputs.end_requested {
                 break;
             }
-            let duration = start.elapsed();
 
-            let elapsed = duration.as_secs() as f64
-                + duration.subsec_nanos() as f64 * 1e-9;
+            TimeSystem::update(&mut self.world);
 
-            self.update_scripts(elapsed);
+            self.update_scripts();
             ui::UiSystem::update(&mut self.world);
             self.renderer.run(&mut self.hardware, &self.resources, &self.world);
 
