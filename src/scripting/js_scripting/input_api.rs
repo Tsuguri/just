@@ -11,6 +11,7 @@ use crate::input::{KeyCode, KeyboardState, MouseState};
 use crate::scripting::InternalTypes;
 use crate::math::Vec3;
 
+use crate::traits::*;
 
 fn keyboard_is_key_pressed(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value>{
     let ctx = guard.context();
@@ -72,4 +73,25 @@ impl super::JsScriptEngine {
 
     }
 
+}
+
+struct InputAPI;
+
+impl InputAPI {
+    pub fn register<SAR: ScriptApiRegistry>(registry: &mut SAR) {
+        let namespace = registry.register_namespace("Input2", None);
+
+        registry.register_function("isKeyboardsKeyPressed", Some(&namespace), |args: (Data<KeyboardState>, String)| {
+            args.0.is_button_down(KeyCode::from_string(&args.1))
+        });
+
+        registry.register_function("keyPressedInLastFrame", Some(&namespace), |args: (Data<KeyboardState>, String)| {
+            args.0.button_pressed_in_last_frame(KeyCode::from_string(&args.1))
+        });
+
+        registry.register_function("isMouseKeyPressed", Some(&namespace), |args: (Data<MouseState>, usize)| {
+            args.0.is_button_down(args.1)
+        });
+
+    }
 }

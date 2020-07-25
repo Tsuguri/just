@@ -55,6 +55,10 @@ pub trait ParametersSource {
 
     fn read_float(&mut self) -> Result<f32, Self::ErrorType>;
 
+    fn read_bool(&mut self) -> Result<bool, Self::ErrorType>;
+
+    fn read_i32(&mut self) -> Result<i32, Self::ErrorType>;
+
     fn read_formatted(&mut self) -> Result<String, Self::ErrorType>;
 
     fn read_all<T: FunctionParameter>(&mut self) -> Result<Vec<T>, Self::ErrorType>;
@@ -68,6 +72,10 @@ pub trait ResultEncoder {
     fn empty(&mut self) -> Self::ResultType;
 
     fn encode_float(&mut self, value: f32) -> Self::ResultType;
+
+    fn encode_bool(&mut self, value: bool) -> Self::ResultType;
+
+    fn encode_i32(&mut self, value: i32) -> Self::ResultType;
 }
 
 pub trait FunctionParameter: Sized {
@@ -91,6 +99,12 @@ impl<'a, T: 'static + Send + Sync> FunctionParameter for Data<'a, T> {
     }
 }
 
+impl<'a, T: 'static + Send + Sync> std::ops::Deref for Data<'a, T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.fetch
+    }
+}
 
 impl FunctionParameter for f32 {
     fn read<PS: ParametersSource>(source: &mut PS)-> Result<Self, PS::ErrorType> {
@@ -100,6 +114,40 @@ impl FunctionParameter for f32 {
 impl FunctionResult for f32 {
     fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
         enc.encode_float(self)
+    }
+}
+
+impl FunctionParameter for i32 {
+    fn read<PS: ParametersSource>(source: &mut PS)-> Result<Self, PS::ErrorType> {
+        source.read_i32()
+    }
+}
+impl FunctionResult for i32 {
+    fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
+        enc.encode_i32(self)
+    }
+}
+
+impl FunctionParameter for usize {
+    fn read<PS: ParametersSource>(source: &mut PS)-> Result<Self, PS::ErrorType> {
+        source.read_i32().map(|x| x as usize)
+    }
+}
+impl FunctionResult for usize {
+    fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
+        enc.encode_i32(self as i32)
+    }
+}
+
+
+impl FunctionParameter for bool {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        source.read_bool()
+    }
+}
+impl FunctionResult for bool {
+    fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
+        enc.encode_bool(self)
     }
 }
 
@@ -127,6 +175,18 @@ impl FunctionParameter for String {
     }
 }
 
+impl<A: FunctionParameter, B: FunctionParameter> FunctionParameter for (A, B) {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        let a = A::read(source)?;
+        let b = B::read(source)?;
+        Result::Ok((a,b))
+    }
+}
+
+pub enum TypeCreationError {
+    TypeAlreadyRegistered,
+}
+
 pub trait ScriptApiRegistry {
     type Namespace;
     type Type;
@@ -141,7 +201,7 @@ pub trait ScriptApiRegistry {
               R: FunctionResult,
               F: 'static + Send + Sync + Fn(P) -> R;
 
-    fn register_native_type<T>(&mut self, name: &str, namespace: Option<&Self::Namespace>) -> Self::Type;
+    fn register_native_type<T: 'static>(&mut self, name: &str, namespace: Option<&Self::Namespace>) -> Result<Self::Type, TypeCreationError>;
 
     fn register_static_property<P1, P2, R, F1, F2>(
         &mut self, 

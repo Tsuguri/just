@@ -23,12 +23,14 @@ mod api_helpers;
 mod input_api;
 mod math_api;
 mod game_object_api;
-mod time_api;
 mod world_api;
 mod resources_api;
 mod der;
+mod env;
+mod registry_impl;
 
 use legion::prelude::*;
+use env::JsEnvironment;
 
 
 #[derive(PartialEq, Eq, Hash)]
@@ -67,6 +69,7 @@ unsafe impl Sync for HM{}
 
 pub struct JsScriptEngine {
     _runtime: js::Runtime,
+    external_types_prototypes: HashMap<std::any::TypeId, js::value::Object>,
     context: ManuallyDrop<js::Context>,
     prototypes: HM,
     ui_events_handler: EventDispatcher<UiEvent>,
@@ -234,26 +237,6 @@ impl DispatchableEvent for InputEvent {
     }
 }
 
-struct JsEnvironment;
-
-
-impl JsEnvironment {
-    pub fn set_up(context: &js::Context , world: &mut World, prototypes: &HM) -> Self {
-        let reference = unsafe{
-            std::mem::transmute::<&mut World, &'static mut World>(world)
-        };
-        context.insert_user_data::<&mut World>(reference);
-
-        insert(context, prototypes);
-        Self{}
-    }
-
-    pub fn drop(self, context: &js::Context) {
-        debug_assert!(context.remove_user_data::<&mut World>().is_some());
-
-        debug_assert!(context.remove_user_data::<&HM>().is_some());
-    }
-}
 
 impl ScriptingEngine for JsScriptEngine {
     type Controller = JsScript;
@@ -269,6 +252,7 @@ impl ScriptingEngine for JsScriptEngine {
             context: ManuallyDrop::new(context),
             prototypes: Default::default(),
             ui_events_handler,
+            external_types_prototypes: Default::default(),
         };
         engine.configure(config);
 
@@ -355,187 +339,6 @@ pub enum JsRuntimeError {
     NotEnoughParameters,
     WrongTypeParameter,
     ExpectedParameterNotPresent,
-}
-
-struct JsResultEncoder<'a> {
-    guard: &'a ContextGuard<'a>,
-}
-
-impl<'a> crate::traits::ResultEncoder for JsResultEncoder<'a> {
-    type ResultType = js::value::Value;
-
-    fn empty(&mut self) -> Self::ResultType {
-        js::value::null(&self.guard)
-    }
-
-    fn encode_float(&mut self, value: f32) -> Self::ResultType {
-        js::value::Number::from_double(&self.guard, value as f64).into()
-    }
-}
-
-
-struct JsParamSource<'a> {
-    guard: &'a ContextGuard<'a>,
-    params: js::value::function::CallbackInfo,
-    world: &'a World,
-    current: usize,
-}
-
-impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
-    type ErrorType = JsRuntimeError;
-
-    fn read_float(&mut self) -> Result<f32, Self::ErrorType> {
-        let value = self.params.arguments[self.current].clone().into_number().ok_or(JsRuntimeError::WrongTypeParameter)?.value_double() as f32;
-        self.current +=1;
-        Result::Ok(value)
-    }
-
-    fn read_all<T: FunctionParameter>(&mut self) -> Result<Vec<T>, Self::ErrorType> {
-        if self.current >= self.params.arguments.len() {
-            return Result::Ok(vec![]);
-        }
-        let mut args = Vec::with_capacity(self.params.arguments.len() - self.current);
-        while self.current < self.params.arguments.len() {
-            args.push(T::read(self)?);
-        }
-        Result::Ok(args)
-    }
-
-    fn read_formatted(&mut self) -> Result<String, Self::ErrorType> {
-        let value = self.params.arguments[self.current].to_string(self.guard);
-        self.current +=1;
-        Result::Ok(value)
-    }
-
-    fn read_system_data<T: 'static + Send + Sync>(&mut self) -> Result<legion::resource::FetchMut<T>, Self::ErrorType> {
-        Result::Ok(self.world.resources.get_mut::<T>().unwrap())
-        
-    }
-
-
-    /*
-    fn read_component<'b, T: 'b + Send + Sync>(&'b mut self, id: Entity) -> Result<&'b T, JsRuntimeError> {
-        let external = self.params.this.into_external().ok_or(JsRuntimeError::WrongTypeParameter)?;
-        let this = unsafe { external.value::<game_object_api::GameObjectData>() };
-        let ctx = self.guard.context();
-
-        let world = api_helpers::world(&ctx);
-        let component = world.get_component::<T>(this.id).ok_or(JsRuntimeError::WrongTypeParameter)?;
-        Result::Ok(&component)
-    }
-    */
-}
-
-impl<'a> JsParamSource<'a> {
-    pub fn create(guard: &'a ContextGuard<'a>, params: js::value::function::CallbackInfo, world: &'a World) -> Self {
-        Self {
-            guard,
-            params,
-            current: 0,
-            world
-        }
-    }
-
-}
-
-impl crate::traits::ScriptApiRegistry for JsScriptEngine {
-    type Namespace = js::value::Object;
-    type Type = js::value::Value;
-
-    //type ParamEncoder = Para
-    type ErrorType = JsRuntimeError;
-
-    fn register_namespace(&mut self, name: &str, parent: Option<&Self::Namespace>) -> Self::Namespace {
-        let guard = self.context.make_current().unwrap();
-        let global = guard.global();
-        let par = match parent {
-            Some(x) => x,
-            None => &global,
-        };
-        let ns = js::value::Object::new(&guard);
-        par.set(&guard, js::Property::new(&guard, name), ns.clone());
-        ns
-    }
-
-
-    fn register_function<P, R, F>(&mut self, name: &str, namespace: Option<&Self::Namespace>, fc: F)
-    where P: crate::traits::FunctionParameter,
-          R: crate::traits::FunctionResult,
-          F: 'static + Send + Sync + Fn(P)-> R {
-        let guard = self.context.make_current().unwrap();
-        let fun = js::value::Function::new(&guard, Box::new(move |gd, params|{
-            let ctx = gd.context();
-            let world = api_helpers::world(&ctx);
-            let mut param_source = JsParamSource::create(gd, params, world);
-            let ret = fc(P::read(&mut param_source).unwrap()); // map to js exception?
-            drop(param_source);
-            let mut enc = JsResultEncoder{guard: gd};
-            Result::Ok(ret.into_script_value(&mut enc))
-        }));
-        let global = guard.global();
-
-        let parent = match namespace {
-            Some(x) => x,
-            None => &global,
-        };
-        parent.set(&guard, js::Property::new(&guard, name), fun);
-        
-    }
-     fn register_native_type<T>(&mut self, name: &str, namespace: Option<&Self::Namespace>) -> Self::Type {
-        let guard = self.context.make_current().unwrap();
-        js::value::null(&guard)
-     }
-
-     fn register_static_property<P1, P2, R, F1, F2>(
-         &mut self,
-         name: &str,
-         namespace: Option<&Self::Namespace>,
-         getter: Option<F1>,
-         setter: Option<F2>)
-     where P1: FunctionParameter,
-           P2: FunctionParameter,
-           R: FunctionResult,
-           F1: 'static + Send + Sync + Fn(P1)->R,
-           F2: 'static + Send + Sync + Fn(P2) {
-        let guard = self.context.make_current().unwrap();
-        let global = guard.global();
-
-        let property_object = js::value::Object::new(&guard);
-
-        match getter {
-            None => (),
-            Some(func) => {
-                let fun = js::value::Function::new(&guard, Box::new(move |gd, params|{
-                    let ctx = gd.context();
-                    let world = api_helpers::world(&ctx);
-                    let mut param_source = JsParamSource::create(gd, params, world);
-                    let ret = func(P1::read(&mut param_source).unwrap());
-                    let mut enc = JsResultEncoder{guard: gd};
-                    Result::Ok(ret.into_script_value(&mut enc))
-                }));
-                property_object.set(&guard, js::Property::new(&guard, "get"), fun);
-            }
-        }
-        match setter {
-            None => (),
-            Some(func) => {
-                let fun = js::value::Function::new(&guard, Box::new(move |gd, params|{
-                    let ctx = gd.context();
-                    let world = api_helpers::world(&ctx);
-                    let mut param_source = JsParamSource::create(gd, params, world);
-                    func(P2::read(&mut param_source).unwrap()); // map to js exception?
-                    Result::Ok(js::value::null(gd))
-                }));
-                property_object.set(&guard, js::Property::new(&guard, "set"), fun);
-            }
-        }
-        let par = match namespace {
-            Some(x) => x,
-            None => &global,
-        };
-
-        par.define_property(&guard, js::Property::new(&guard, name), property_object);
-     }
 }
 
 struct JsApi<'a> {
@@ -648,19 +451,6 @@ impl<T: 'static + DispatchableEvent> EventDispatcher<T> {
     }
 }
 
-fn insert<T: Send + Sync + 'static>(context: &js::Context, val: &T){
-    let reference = unsafe{
-        std::mem::transmute::<&T, &'static T>(val)
-    };
-    context.insert_user_data::<&T>(reference);
-}
-
-fn insert_mut<T: Send + Sync + 'static>(context: &js::Context, val: &mut T){
-        let reference = unsafe{
-            std::mem::transmute::<&mut T, &'static mut T>(val)
-        };
-        context.insert_user_data::<&mut T>(reference);
-    }
 
 impl Controller for JsScript {
     fn prepare(&mut self) {}
@@ -677,67 +467,4 @@ impl Controller for JsScript {
 
     fn set_controller_property(&mut self, _name: &str, _value: &Self) {}
     fn set_gameobject_property(&mut self, _name: &str, _value: Entity) {}
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::math::*;
-
-    #[test]
-    fn simple() {
-        let _engine = JsScriptEngine::without_scripts();
-    }
-
-    #[test]
-    fn vector_api_no_args() {
-        let engine = JsScriptEngine::without_scripts();
-        let ret = engine.run_with(|x| {
-            js::script::eval(x, "
-            new Math.Vector()
-            ").unwrap()
-        });
-        assert!(ret.is_external());
-        unsafe {
-            let obj = ret.into_external().unwrap();
-            let p = obj.value::<Vec3>();
-            assert!(p.data[0] == 0.0f32);
-            assert!(p.data[1] == 0.0f32);
-            assert!(p.data[2] == 0.0f32);
-        }
-    }
-
-    #[test]
-    fn vector_3args() {
-        let engine = JsScriptEngine::without_scripts();
-        let ret = engine.run_with(|x| {
-            js::script::eval(x, "new Math.Vector(12, 3.0, 4.5)")
-        });
-        assert!(ret.is_ok());
-        let ret = ret.unwrap();
-        assert!(ret.is_external());
-        unsafe {
-            let obj = ret.into_external().unwrap();
-            let p = obj.value::<Vec3>();
-            assert!(p.data[0] == 12.0f32);
-            assert!(p.data[1] == 3.0f32);
-            assert!(p.data[2] == 4.5f32);
-        }
-    }
-
-    #[test]
-    fn vector_bad_args() {
-        let engine = JsScriptEngine::without_scripts();
-        let ret = engine.run_with(|x| {
-            let r1 = js::script::eval(x, "new Math.Vector(1.0)");
-            let r2 = js::script::eval(x, "new Math.Vector(1.0, 2.0)");
-            let r3 = js::script::eval(x, "new Math.Vector(\"wow\", \"wow\", \"wut\")");
-            let r4 = js::script::eval(x, "new Math.Vector(1.0, 2.0, 3.0, 4.0)");
-            (r1, r2, r3, r4)
-        });
-        assert!(!ret.0.is_ok());
-        assert!(!ret.1.is_ok());
-        assert!(!ret.2.is_ok());
-        assert!(!ret.3.is_ok());
-    }
 }
