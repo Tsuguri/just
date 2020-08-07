@@ -72,10 +72,9 @@ impl super::JsScriptEngine {
         add_function(&guard, &module, "mousePosition", Box::new(|a,b| mouse_position(a,b)));
 
     }
-
 }
 
-struct InputAPI;
+pub struct InputAPI;
 
 impl InputAPI {
     pub fn register<SAR: ScriptApiRegistry>(registry: &mut SAR) {

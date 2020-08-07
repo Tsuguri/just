@@ -23,6 +23,7 @@ use legion::prelude::*;
 
 use crate::input;
 use crate::math::*;
+use crate::scripting;
 use crate::scripting::JsScriptEngine;
 #[cfg(test)]
 use crate::scripting::test_scripting::MockScriptEngine;

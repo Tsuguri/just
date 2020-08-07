@@ -29,6 +29,8 @@ mod der;
 mod env;
 mod registry_impl;
 
+use math_api::MathAPI;
+use input_api::InputAPI;
 use legion::prelude::*;
 use env::JsEnvironment;
 
@@ -43,6 +45,7 @@ pub enum InternalTypes {
 }
 
 pub struct HM(HashMap<InternalTypes, js::value::Object>);
+pub struct EHM(HashMap<std::any::TypeId, js::value::Object>);
 
 impl Default for HM {
     fn default() -> Self{
@@ -67,9 +70,39 @@ impl std::ops::DerefMut for HM {
 unsafe impl Send for HM{}
 unsafe impl Sync for HM{}
 
+impl Default for EHM {
+    fn default() -> Self{
+        Self(HashMap::new())
+    }
+}
+
+impl std::ops::Deref for EHM {
+    type Target = HashMap<std::any::TypeId, js::value::Object>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for EHM {
+
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+unsafe impl Send for EHM{}
+unsafe impl Sync for EHM{}
+
+impl EHM {
+    pub fn get_prototype<T: 'static>(&self) -> &js::value::Object {
+        &self.0[&std::any::TypeId::of::<T>()]
+
+    }
+}
+
 pub struct JsScriptEngine {
     _runtime: js::Runtime,
-    external_types_prototypes: HashMap<std::any::TypeId, js::value::Object>,
+    external_types_prototypes: EHM,
     context: ManuallyDrop<js::Context>,
     prototypes: HM,
     ui_events_handler: EventDispatcher<UiEvent>,
@@ -106,6 +139,7 @@ impl std::ops::Drop for JsScriptEngine {
     fn drop(&mut self) {
         unsafe {
             self.prototypes.clear();
+            self.external_types_prototypes.clear();
             ManuallyDrop::drop(&mut self.context);
         }
     }
@@ -145,9 +179,10 @@ impl JsScriptEngine {
     }
     fn create_api(&mut self) {
         self.create_math_api();
+        MathAPI::register(self);
         ConsoleApi::register(self);
+        InputAPI::register(self);
         self.create_game_object_api();
-        //self.create_time_api();
         self.create_input_api();
         self.create_world_api();
         self.create_resources_api();
@@ -270,7 +305,7 @@ impl ScriptingEngine for JsScriptEngine {
 
     fn create_script(&mut self, id: Entity, typ: &str, world: &mut World) {
         let command = format!("new {}();", typ);
-        let env = JsEnvironment::set_up(&self.context, world, &self.prototypes);
+        let env = JsEnvironment::set_up(&self.context, world, &self.prototypes, &self.external_types_prototypes);
 
         let guard = self.guard();
 
@@ -293,7 +328,7 @@ impl ScriptingEngine for JsScriptEngine {
     ) {
         let guard = self.context.make_current().unwrap();
 
-        let env = JsEnvironment::set_up(&self.context, world, &self.prototypes);
+        let env = JsEnvironment::set_up(&self.context, world, &self.prototypes, &self.external_types_prototypes);
 
 
         let query = <(Read<JsScript>)>::query();
@@ -339,6 +374,7 @@ pub enum JsRuntimeError {
     NotEnoughParameters,
     WrongTypeParameter,
     ExpectedParameterNotPresent,
+    TypeNotRegistered,
 }
 
 struct JsApi<'a> {

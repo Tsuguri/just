@@ -51,7 +51,7 @@ fn get_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value
     let ctx = guard.context();
     let external = args.this.into_external().unwrap();
 
-    let prototypes = prototypes(&ctx);
+    let prototypes = external_prototypes(&ctx);
 
 
     let world = world(&ctx);
@@ -60,7 +60,8 @@ fn get_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value
     let pos = TransformHierarchy::get_local_position(world, this.id);
 
     let obj = js::value::External::new(guard, Box::new(pos));
-    obj.set_prototype(guard, prototypes[&InternalTypes::Vec3].clone()).unwrap();
+
+    obj.set_prototype(guard, prototypes.get_prototype::<Vec3>().clone()).unwrap();
 
     Result::Ok(obj.into())
 }
@@ -69,7 +70,7 @@ fn get_global_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value
     let ctx = guard.context();
     let external = args.this.into_external().unwrap();
 
-    let prototypes = prototypes(&ctx);
+    let prototypes = external_prototypes(&ctx);
 
     let world = world(&ctx);
     let this = unsafe { external.value::<GameObjectData>() };
@@ -77,7 +78,7 @@ fn get_global_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value
     let pos = TransformHierarchy::get_global_position(world, this.id);
 
     let obj = js::value::External::new(guard, Box::new(pos));
-    obj.set_prototype(guard, prototypes[&InternalTypes::Vec3].clone()).unwrap();
+    obj.set_prototype(guard, prototypes.get_prototype::<Vec3>().clone()).unwrap();
 
     Result::Ok(obj.into())
 
@@ -87,7 +88,7 @@ fn get_scale(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let ctx = guard.context();
     let external = args.this.into_external().unwrap();
 
-    let prototypes = prototypes(&ctx);
+    let prototypes = external_prototypes(&ctx);
 
 
     let world = world(&ctx);
@@ -96,7 +97,7 @@ fn get_scale(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let pos = TransformHierarchy::get_local_scale(world, this.id);
 
     let obj = js::value::External::new(guard, Box::new(pos));
-    obj.set_prototype(guard, prototypes[&InternalTypes::Vec3].clone()).unwrap();
+    obj.set_prototype(guard, prototypes.get_prototype::<Vec3>().clone()).unwrap();
 
     Result::Ok(obj.into())
 

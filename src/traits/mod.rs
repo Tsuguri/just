@@ -64,6 +64,8 @@ pub trait ParametersSource {
     fn read_all<T: FunctionParameter>(&mut self) -> Result<Vec<T>, Self::ErrorType>;
 
     fn read_system_data<T: 'static + Send + Sync + Sized>(&mut self) -> Result<legion::resource::FetchMut<T>, Self::ErrorType>;
+    
+    fn read_native_this<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType>;
 }
 
 pub trait ResultEncoder {
@@ -76,18 +78,35 @@ pub trait ResultEncoder {
     fn encode_bool(&mut self, value: bool) -> Self::ResultType;
 
     fn encode_i32(&mut self, value: i32) -> Self::ResultType;
+
+    fn encode_external_type<T>(&mut self, value: T) -> Self::ResultType;
 }
 
-pub trait FunctionParameter: Sized {
+pub trait FunctionParameter: Sized{
     fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType>;
 }
 
-pub trait FunctionResult: Sized {
-    fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType;
+pub trait FunctionResult: Sized{
+    fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
+        enc.encode_external_type(self)
+    }
 }
 
 pub struct Data<'a, T: 'static + Send + Sync> {
     pub fetch: legion::resource::FetchMut<'a, T>,
+}
+
+pub struct This<T: 'static + Send + Sync> {
+    pub val : &'static mut T,
+}
+
+impl<T: 'static + Send + Sync>  FunctionParameter for This<T> {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        let this = unsafe{
+            std::mem::transmute::<&mut T, &'static mut T>(source.read_native_this()?)
+        };
+        Result::Ok(Self{val: this})
+    }
 }
 
 impl<'a, T: 'static + Send + Sync> FunctionParameter for Data<'a, T> {
@@ -163,6 +182,7 @@ impl FunctionResult for () {
     }
 }
 
+
 impl<T: FunctionParameter> FunctionParameter for Vec<T> {
     fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
         source.read_all::<T>()
@@ -183,13 +203,25 @@ impl<A: FunctionParameter, B: FunctionParameter> FunctionParameter for (A, B) {
     }
 }
 
+impl<A: FunctionParameter, B: FunctionParameter, C: FunctionParameter> FunctionParameter for (A, B, C) {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        let a = A::read(source)?;
+        let b = B::read(source)?;
+        let c = C::read(source)?;
+        Result::Ok((a, b, c))
+    }
+}
+
+#[derive(Debug)]
 pub enum TypeCreationError {
     TypeAlreadyRegistered,
+    TypeNotRegistered,
 }
 
 pub trait ScriptApiRegistry {
     type Namespace;
     type Type;
+    type NativeType;
 
     //type ParamEncoder;
     type ErrorType;
@@ -201,7 +233,28 @@ pub trait ScriptApiRegistry {
               R: FunctionResult,
               F: 'static + Send + Sync + Fn(P) -> R;
 
-    fn register_native_type<T: 'static>(&mut self, name: &str, namespace: Option<&Self::Namespace>) -> Result<Self::Type, TypeCreationError>;
+    fn register_native_type<T, P, F>(&mut self, name: &str, namespace: Option<&Self::Namespace>, constructor: F) -> Result<Self::NativeType, TypeCreationError>
+        where T: 'static,
+              P: FunctionParameter,
+              F: 'static + Send + Sync + Fn(P) -> T;
+
+    fn register_native_type_method<T, P, R, F>(&mut self, name: &str, method: F) -> Result<(), TypeCreationError>
+        where T: 'static,
+              P: FunctionParameter,
+              R: FunctionResult,
+              F: 'static + Send + Sync + Fn(P) -> R;
+
+    fn register_native_type_property<T, P1, P2, R, F1, F2>(
+        &mut self,
+        name: &str,
+        getter: Option<F1>,
+        setter: Option<F2>)
+        where T: 'static,
+              P1: FunctionParameter,
+              P2: FunctionParameter,
+              R: FunctionResult,
+              F1: 'static + Send + Sync + Fn(P1) -> R,
+              F2: 'static + Send + Sync + Fn(P2);
 
     fn register_static_property<P1, P2, R, F1, F2>(
         &mut self, 
