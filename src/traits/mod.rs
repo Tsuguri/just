@@ -2,8 +2,13 @@ use std::sync::Arc;
 
 use serde::Deserialize;
 
-use crate::math::*;
 use legion::prelude::{Entity, World};
+
+mod function_params;
+mod function_result;
+
+pub use function_params::*;
+pub use function_result::*;
 
 pub type MeshId = usize;
 pub type TextureId = usize;
@@ -19,7 +24,6 @@ pub trait ResourceManager<HW: Hardware + ?Sized>: ResourceProvider {
     fn load_resources(&mut self, config: &Self::Config, hardware: &mut HW);
     fn create(config: &Self::Config, hardware: &mut HW) -> Self;
 }
-
 
 pub trait Controller {
     fn prepare(&mut self);
@@ -50,168 +54,6 @@ pub trait ScriptingEngine: Sized {
     );
 }
 
-pub trait ParametersSource {
-    type ErrorType;
-
-    fn read_float(&mut self) -> Result<f32, Self::ErrorType>;
-
-    fn read_bool(&mut self) -> Result<bool, Self::ErrorType>;
-
-    fn read_i32(&mut self) -> Result<i32, Self::ErrorType>;
-
-    fn read_formatted(&mut self) -> Result<String, Self::ErrorType>;
-
-    fn read_all<T: FunctionParameter>(&mut self) -> Result<Vec<T>, Self::ErrorType>;
-
-    fn read_system_data<T: 'static + Send + Sync + Sized>(&mut self) -> Result<legion::resource::FetchMut<T>, Self::ErrorType>;
-    
-    fn read_native_this<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType>;
-}
-
-pub trait ResultEncoder {
-    type ResultType;
-    
-    fn empty(&mut self) -> Self::ResultType;
-
-    fn encode_float(&mut self, value: f32) -> Self::ResultType;
-
-    fn encode_bool(&mut self, value: bool) -> Self::ResultType;
-
-    fn encode_i32(&mut self, value: i32) -> Self::ResultType;
-
-    fn encode_external_type<T>(&mut self, value: T) -> Self::ResultType;
-}
-
-pub trait FunctionParameter: Sized{
-    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType>;
-}
-
-pub trait FunctionResult: Sized{
-    fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
-        enc.encode_external_type(self)
-    }
-}
-
-pub struct Data<'a, T: 'static + Send + Sync> {
-    pub fetch: legion::resource::FetchMut<'a, T>,
-}
-
-pub struct This<T: 'static + Send + Sync> {
-    pub val : &'static mut T,
-}
-
-impl<T: 'static + Send + Sync>  FunctionParameter for This<T> {
-    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
-        let this = unsafe{
-            std::mem::transmute::<&mut T, &'static mut T>(source.read_native_this()?)
-        };
-        Result::Ok(Self{val: this})
-    }
-}
-
-impl<'a, T: 'static + Send + Sync> FunctionParameter for Data<'a, T> {
-    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
-        let feetch = unsafe{
-            std::mem::transmute::<legion::resource::FetchMut<T>, legion::resource::FetchMut<'a, T>>(source.read_system_data::<T>()?)
-        };
-        Result::Ok(Self{fetch: feetch})
-    }
-}
-
-impl<'a, T: 'static + Send + Sync> std::ops::Deref for Data<'a, T> {
-    type Target = T;
-    fn deref(&self) -> &Self::Target {
-        &self.fetch
-    }
-}
-
-impl FunctionParameter for f32 {
-    fn read<PS: ParametersSource>(source: &mut PS)-> Result<Self, PS::ErrorType> {
-        source.read_float()
-    }
-}
-impl FunctionResult for f32 {
-    fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
-        enc.encode_float(self)
-    }
-}
-
-impl FunctionParameter for i32 {
-    fn read<PS: ParametersSource>(source: &mut PS)-> Result<Self, PS::ErrorType> {
-        source.read_i32()
-    }
-}
-impl FunctionResult for i32 {
-    fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
-        enc.encode_i32(self)
-    }
-}
-
-impl FunctionParameter for usize {
-    fn read<PS: ParametersSource>(source: &mut PS)-> Result<Self, PS::ErrorType> {
-        source.read_i32().map(|x| x as usize)
-    }
-}
-impl FunctionResult for usize {
-    fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
-        enc.encode_i32(self as i32)
-    }
-}
-
-
-impl FunctionParameter for bool {
-    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
-        source.read_bool()
-    }
-}
-impl FunctionResult for bool {
-    fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
-        enc.encode_bool(self)
-    }
-}
-
-impl FunctionParameter for () {
-    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
-        Result::Ok(())
-    }
-}
-
-impl FunctionResult for () {
-    fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
-        enc.empty()
-    }
-}
-
-
-impl<T: FunctionParameter> FunctionParameter for Vec<T> {
-    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
-        source.read_all::<T>()
-    }
-}
-
-impl FunctionParameter for String {
-    fn read<PS: ParametersSource>(source: &mut PS) -> Result<String, PS::ErrorType> {
-        source.read_formatted()
-    }
-}
-
-impl<A: FunctionParameter, B: FunctionParameter> FunctionParameter for (A, B) {
-    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
-        let a = A::read(source)?;
-        let b = B::read(source)?;
-        Result::Ok((a,b))
-    }
-}
-
-impl<A: FunctionParameter, B: FunctionParameter, C: FunctionParameter> FunctionParameter for (A, B, C) {
-    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
-        let a = A::read(source)?;
-        let b = B::read(source)?;
-        let c = C::read(source)?;
-        Result::Ok((a, b, c))
-    }
-}
-
 #[derive(Debug)]
 pub enum TypeCreationError {
     TypeAlreadyRegistered,
@@ -223,7 +65,6 @@ pub trait ScriptApiRegistry {
     type Type;
     type NativeType;
 
-    //type ParamEncoder;
     type ErrorType;
 
     fn register_namespace(&mut self, name: &str, parent: Option<&Self::Namespace>) -> Self::Namespace;
@@ -267,6 +108,8 @@ pub trait ScriptApiRegistry {
               R: FunctionResult,
               F1: 'static + Send + Sync + Fn(P1)->R,
               F2: 'static + Send + Sync + Fn(P2);
+
+    fn register_component<T: 'static>(&mut self, name: &str);
 }
 
 pub trait Renderer<H: Hardware + ?Sized> {

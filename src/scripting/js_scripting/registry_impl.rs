@@ -76,7 +76,7 @@ impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
 
     fn read_i32(&mut self) -> Result<i32, Self::ErrorType> {
         let value = self.params.arguments[self.current].clone().into_number().ok_or(JsRuntimeError::WrongTypeParameter)?.value() as i32;
-        self.current +=1;
+        self.current+=1;
         Result::Ok(value)
     }
 
@@ -93,7 +93,7 @@ impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
 
     fn read_formatted(&mut self) -> Result<String, Self::ErrorType> {
         let value = self.params.arguments[self.current].to_string(self.guard);
-        self.current +=1;
+        self.current+=1;
         Result::Ok(value)
     }
 
@@ -105,6 +105,13 @@ impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
         let native = self.params.this.clone().into_external().ok_or(JsRuntimeError::WrongTypeParameter)?;
         
         Result::Ok(unsafe{std::mem::transmute::<&mut T, &'static mut T>(native.value::<T>())})
+    }
+
+    fn read_native<T: 'static + Send + Sync + Sized>(&mut self) -> Result<T, Self::ErrorType> {
+        let native = self.params.arguments[self.current].clone().into_external().ok_or(JsRuntimeError::WrongTypeParameter)?;
+        self.current+=1;
+        Result::Ok(unsafe{*native.value::<T>()})
+        
     }
 
 
@@ -332,5 +339,9 @@ impl ScriptApiRegistry for JsScriptEngine {
         };
 
         par.define_property(&guard, Property::new(&guard, name), property_object);
+    }
+
+    fn register_component<T: 'static>(&mut self, name: &str) {
+        
     }
 }

@@ -1,6 +1,6 @@
 
 mod js_scripting;
-pub mod console_api;
+mod apis;
 pub use js_scripting::*;
 
 #[cfg(test)]

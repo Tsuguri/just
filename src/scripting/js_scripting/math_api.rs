@@ -35,8 +35,18 @@ fn create_quat_prototype(guard: &ContextGuard) -> js::value::Object {
 
 pub struct MathAPI;
 
-impl FunctionResult for Vec3{}
-impl FunctionResult for Vec2{}
+impl FunctionResult for Vec3 {}
+impl FunctionParameter for Vec3 {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        source.read_native()
+    }
+}
+impl FunctionResult for Vec2 {}
+impl FunctionParameter for Vec2 {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        source.read_native()
+    }
+}
 
 impl MathAPI {
     pub fn register<SAR: ScriptApiRegistry>(registry: &mut SAR) {
@@ -63,6 +73,7 @@ impl MathAPI {
         }).unwrap();
 
         registry.register_native_type_method::<Vec3, _, _, _>("Clone", |args: This<Vec3>| {*args.val}).unwrap();
+        registry.register_native_type_method::<Vec3, _, _, _>("Len", |args: (This<Vec3>, Vec3)| {nalgebra_glm::distance(&*args.0, &args.1) as f32}).unwrap();
 
         registry.register_native_type_property::<Vec3,_, _, _, _, _>("x", Some(|args: This<Vec3>|{args.val[0]}), Some(|args: (This<Vec3>, f32)|{args.0.val[0] = args.1}));
         registry.register_native_type_property::<Vec3,_, _, _, _, _>("y", Some(|args: This<Vec3>|{args.val[1]}), Some(|args: (This<Vec3>, f32)|{args.0.val[1] = args.1}));

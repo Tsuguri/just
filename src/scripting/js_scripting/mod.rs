@@ -15,7 +15,7 @@ use std::collections::{HashMap, HashSet};
 use crate::ui::UiEvent;
 
 
-use super::console_api::ConsoleApi;
+use super::apis::ConsoleApi;
 
 #[macro_use]
 mod api_helpers;
