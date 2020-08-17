@@ -1,30 +1,31 @@
 use serde::{Serialize, Deserialize};
+use schemars::{schema_for, JsonSchema};
 use ron::de::from_str;
 use crate::glm;
 use crate::math::*;
 use crate::core::{TransformHierarchy, GameObject};
 use crate::graphics::{CameraData, ViewportData};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, JsonSchema)]
 pub struct Renderable {
     mesh: String,
     texture: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, JsonSchema)]
 pub struct Object {
     name: String,
-    position: Option<Vec3>,
+    position: Option<[f32; 3]>,
     renderable: Option<Renderable>,
     script: Option<String>,
     children: Option<Vec<Object>>,
-    scale: Option<Vec3>,
+    scale: Option<[f32; 3]>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, JsonSchema)]
 pub struct Scene {
     name: String,
-    camera_rotation: Vec3,
+    camera_rotation: [f32; 3],
     viewport_height: f32,
     objects: Vec<Object>,
 }
@@ -61,9 +62,9 @@ fn spawn_object(object: Object, parent: Option<legion::prelude::Entity>, engine:
     engine.set_parent(obj, parent).unwrap();
 
     object.position.map(|x| {
-        TransformHierarchy::set_local_position(&mut engine.world, obj, x);
+        TransformHierarchy::set_local_position(&mut engine.world, obj, Vec3::new(x[0], x[1], x[2]));
     });
-    object.scale.map(|x| TransformHierarchy::set_local_scale(&mut engine.world, obj, x));
+    object.scale.map(|x| TransformHierarchy::set_local_scale(&mut engine.world, obj, Vec3::new(x[0], x[1], x[2])));
     object.renderable.map(|x| engine.add_renderable(obj, &x.mesh, Some(&x.texture)));
     object.script.map(|x| engine.add_script(obj, &x));
 
@@ -74,3 +75,4 @@ fn spawn_object(object: Object, parent: Option<legion::prelude::Entity>, engine:
         }
     }
 }
+

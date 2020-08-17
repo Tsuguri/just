@@ -15,13 +15,11 @@ use std::collections::{HashMap, HashSet};
 use crate::ui::UiEvent;
 
 
-use super::apis::ConsoleApi;
+use super::apis::*;
 
 #[macro_use]
 mod api_helpers;
 
-mod input_api;
-mod math_api;
 mod game_object_api;
 mod world_api;
 mod resources_api;
@@ -29,8 +27,6 @@ mod der;
 mod env;
 mod registry_impl;
 
-use math_api::MathAPI;
-use input_api::InputAPI;
 use legion::prelude::*;
 use env::JsEnvironment;
 
@@ -152,7 +148,6 @@ pub struct JsEngineConfig {
 
 use std::path::Path;
 
-
 struct ScriptFactory {}
 
 impl ScriptFactory {
@@ -177,13 +172,16 @@ impl JsScriptEngine {
     pub fn guard(&self) -> js::ContextGuard {
         self.context.make_current().unwrap()
     }
+
+    fn create_basic_go_api(&mut self) {
+
+    }
+
     fn create_api(&mut self) {
-        self.create_math_api();
-        MathAPI::register(self);
+        MathApi::register(self);
         ConsoleApi::register(self);
-        InputAPI::register(self);
+        InputApi::register(self);
         self.create_game_object_api();
-        self.create_input_api();
         self.create_world_api();
         self.create_resources_api();
     }
@@ -191,10 +189,7 @@ impl JsScriptEngine {
     fn configure(&mut self, config: &JsEngineConfig) {
         self.create_api();
         let guard = self.guard();
-
-        //let guard = self.context.make_current().map_err(|err| "couldn't make context current").unwrap();
         let go = guard.global();
-
 
         Self::load_at_path(&guard, &go, Path::new(&config.source_root)).unwrap();
     }
@@ -203,6 +198,7 @@ impl JsScriptEngine {
         let p = self.guard();
         callback(&p)
     }
+
     fn load_at_path(guard: &js::ContextGuard, parent: &js::value::Object, directory: &std::path::Path) -> Result<(), &'static str> {
         println!("loading scripts from: {:?}", directory);
 
@@ -290,16 +286,6 @@ impl ScriptingEngine for JsScriptEngine {
             external_types_prototypes: Default::default(),
         };
         engine.configure(config);
-
-        let nm = engine.register_namespace("dawg", None);
-        engine.register_function("lolz", Some(&nm), |args: Vec<String>| {
-            for item in args {
-                print!("{}", item);
-
-            }
-            println!();
-        });
-
         engine
     }
 
@@ -329,7 +315,6 @@ impl ScriptingEngine for JsScriptEngine {
         let guard = self.context.make_current().unwrap();
 
         let env = JsEnvironment::set_up(&self.context, world, &self.prototypes, &self.external_types_prototypes);
-
 
         let query = <(Read<JsScript>)>::query();
 

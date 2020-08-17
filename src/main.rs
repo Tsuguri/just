@@ -1,18 +1,6 @@
 #![allow(dead_code)]
 
-mod math;
-mod traits;
-mod scripting;
-mod core;
-mod graphics;
-mod input;
-mod scene_serialization;
-mod ui;
-
-use scripting::JsEngineConfig;
-
-
-use nalgebra_glm as glm;
+use just::*;
 
 fn main() {
     let engine_config = JsEngineConfig { source_root: "dev_app/scripts".to_string() };
@@ -22,7 +10,7 @@ fn main() {
 
     let mut engine = core::JsEngine::new(&engine_config, &1i32, &"dev_app/res".to_string());
 
-    scene_serialization::deserialize_scene("dev_app/scene.ron", &mut engine);
+    scene_serialization::deserialize_scene("dev_app/scene.ron", &mut engine).unwrap();
 
     engine.run();
 }

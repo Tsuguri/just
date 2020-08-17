@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Scene",
+  "type": "object",
+  "required": [
+    "camera_rotation",
+    "name",
+    "objects",
+    "viewport_height"
+  ],
+  "properties": {
+    "camera_rotation": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "float"
+      },
+      "maxItems": 3,
+      "minItems": 3
+    },
+    "name": {
+      "type": "string"
+    },
+    "objects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Object"
+      }
+    },
+    "viewport_height": {
+      "type": "number",
+      "format": "float"
+    }
+  },
+  "definitions": {
+    "Object": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "children": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/Object"
+          }
+        },
+        "name": {
+          "type": "string"
+        },
+        "position": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "number",
+            "format": "float"
+          },
+          "maxItems": 3,
+          "minItems": 3
+        },
+        "renderable": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Renderable"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scale": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "number",
+            "format": "float"
+          },
+          "maxItems": 3,
+          "minItems": 3
+        },
+        "script": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Renderable": {
+      "type": "object",
+      "required": [
+        "mesh",
+        "texture"
+      ],
+      "properties": {
+        "mesh": {
+          "type": "string"
+        },
+        "texture": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 use legion::prelude::*;
 
 pub trait ParametersSource {
-    type ErrorType;
+    type ErrorType : 'static + Send + Sync;
 
     fn read_float(&mut self) -> Result<f32, Self::ErrorType>;
 
@@ -17,7 +17,7 @@ pub trait ParametersSource {
     
     fn read_native_this<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType>;
 
-    fn read_native<T: 'static + Send + Sync + Sized>(&mut self) -> Result<T, Self::ErrorType>;
+    fn read_native<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType>;
 }
 
 pub trait FunctionParameter: Sized{

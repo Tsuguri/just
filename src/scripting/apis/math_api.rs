@@ -1,56 +1,29 @@
 use crate::math::*;
-use super::js;
-use js::ContextGuard;
-use js::value::Value;
-
-use super::api_helpers::*;
 
 use crate::scripting::InternalTypes;
-use chakracore::value::function::CallbackInfo;
 
 use crate::traits::*;
 
-fn vec3_len(guard: &ContextGuard, info:CallbackInfo) ->Result<Value, Value> {
-    let mut info = info;
-    debug_assert!(info.arguments.len() == 2);
-    let external2 = info.arguments.pop().unwrap().into_external().unwrap();
-    let external1 = info.arguments.pop().unwrap().into_external().unwrap();
-    let vec1 = unsafe {external1.value::<Vec3>()};
-    let vec2 = unsafe {external2.value::<Vec3>()};
-
-    let ctx = guard.context();
-    let prototypes = prototypes(&ctx);
-    let len = nalgebra_glm::distance(&vec1, &vec2);
-
-
-    Result::Ok(make_double!(guard, len as f64).into())
-
-}
-
-fn create_quat_prototype(guard: &ContextGuard) -> js::value::Object {
-    let obj = js::value::Object::new(guard);
-
-    obj
-}
-
-pub struct MathAPI;
+pub struct MathApi;
 
 impl FunctionResult for Vec3 {}
 impl FunctionParameter for Vec3 {
     fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
-        source.read_native()
+        let nat = source.read_native()?;
+        Result::Ok(*nat)
     }
 }
 impl FunctionResult for Vec2 {}
 impl FunctionParameter for Vec2 {
     fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
-        source.read_native()
+        let nat = source.read_native()?;
+        Result::Ok(*nat)
     }
 }
 
-impl MathAPI {
+impl MathApi {
     pub fn register<SAR: ScriptApiRegistry>(registry: &mut SAR) {
-        let namespace = registry.register_namespace("Math2", None);
+        let namespace = registry.register_namespace("Math", None);
 
         registry.register_function("Sin", Some(&namespace), |args: f32| {
             args.sin()
@@ -84,27 +57,3 @@ impl MathAPI {
     }
 }
 
-impl super::JsScriptEngine {
-    pub fn create_math_api(&mut self) {
-        let math = self.create_api_module("Math");
-        let guard = self.guard();
-        let quat_prototype = Self::create_quat_api(&guard, &math);
-
-        drop(guard);
-        self.prototypes.0.insert(InternalTypes::Quat, quat_prototype);
-    }
-
-    fn create_quat_api(guard: &ContextGuard, parent: &js::value::Object) -> js::value::Object {
-        let quat_prototype = create_quat_prototype(guard);
-        let quat2 = quat_prototype.clone();
-
-        let factory_function = js::value::Function::new(guard, Box::new(move |g, args|{
-            let obj = js::value::External::new(g, Box::<Quat>::new(Quat::identity()));
-            obj.set_prototype(g, quat_prototype.clone()).unwrap();
-            Result::Ok(obj.into())
-        }));
-        parent.set(guard, js::Property::new(guard, "Quat"), factory_function);
-        quat2
-    }
-
-}

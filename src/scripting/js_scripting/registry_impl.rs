@@ -48,7 +48,7 @@ impl<'a> crate::traits::ResultEncoder for JsResultEncoder<'a> {
     }
 
     fn encode_external_type<T>(&mut self, value: T) -> Self::ResultType {
-        self.empty()
+        External::new(&self.guard, Box::new(value)).into()
     }
 }
 
@@ -103,17 +103,14 @@ impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
 
     fn read_native_this<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType> {
         let native = self.params.this.clone().into_external().ok_or(JsRuntimeError::WrongTypeParameter)?;
-        
         Result::Ok(unsafe{std::mem::transmute::<&mut T, &'static mut T>(native.value::<T>())})
     }
 
-    fn read_native<T: 'static + Send + Sync + Sized>(&mut self) -> Result<T, Self::ErrorType> {
+    fn read_native<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType> {
         let native = self.params.arguments[self.current].clone().into_external().ok_or(JsRuntimeError::WrongTypeParameter)?;
         self.current+=1;
-        Result::Ok(unsafe{*native.value::<T>()})
-        
+        Result::Ok(unsafe{std::mem::transmute::<&mut T, &'static mut T>(native.value::<T>())})
     }
-
 
     /*
     fn read_component<'b, T: 'b + Send + Sync>(&'b mut self, id: Entity) -> Result<&'b T, JsRuntimeError> {
@@ -137,7 +134,6 @@ impl<'a> JsParamSource<'a> {
             world
         }
     }
-
 }
 
 impl ScriptApiRegistry for JsScriptEngine {
