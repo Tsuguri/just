@@ -1,13 +1,11 @@
-use legion::prelude::*;
-use std::sync::Arc;
-use std::collections::HashSet;
-use crate::traits::{ResourceProvider, TextureId};
+use crate::input::{InputEvent, MouseState};
 use crate::math::*;
-use crate::input::{MouseState, InputEvent};
-use stretch::style::*;
+use crate::traits::{ResourceProvider, TextureId};
+use legion::prelude::*;
+use std::collections::HashSet;
+use std::sync::Arc;
 use stretch::node::*;
-
-
+use stretch::style::*;
 
 pub struct UiSystem {
     resources: Arc<dyn ResourceProvider>,
@@ -18,8 +16,8 @@ pub struct UiSystem {
     reader_id: shrev::ReaderId<InputEvent>,
 }
 
-unsafe impl Send for UiSystem{}
-unsafe impl Sync for UiSystem{}
+unsafe impl Send for UiSystem {}
+unsafe impl Sync for UiSystem {}
 
 impl UiSystem {
     pub fn create_node(&mut self, style: Style) -> Result<UiTransform, stretch::Error> {
@@ -28,7 +26,7 @@ impl UiSystem {
         Ok(UiTransform {
             style,
             node,
-            parent: Some(self.root_entity)
+            parent: Some(self.root_entity),
         })
     }
 }
@@ -59,15 +57,19 @@ pub struct UiEvent {
     pub event_type: UiEventType,
 }
 
-pub type UiEventChannel = shrev::EventChannel::<UiEvent>;
+pub type UiEventChannel = shrev::EventChannel<UiEvent>;
 
-
-type InputEventChannel = shrev::EventChannel::<InputEvent>;
+type InputEventChannel = shrev::EventChannel<InputEvent>;
 
 struct UiHierarchy {}
 
 impl UiHierarchy {
-    pub fn set_parent(world: &mut World, id: Entity, new_parent: Option<Entity>, _position: Option<u32>) -> Result<(),()> {
+    pub fn set_parent(
+        world: &mut World,
+        id: Entity,
+        new_parent: Option<Entity>,
+        _position: Option<u32>,
+    ) -> Result<(), ()> {
         if !world.is_alive(id) {
             return Result::Err(());
         }
@@ -97,8 +99,6 @@ impl UiHierarchy {
     }
 }
 
-
-
 impl UiSystem {
     pub fn initialize(world: &mut World, resources: Arc<dyn ResourceProvider>) {
         use stretch::geometry::Size;
@@ -106,17 +106,22 @@ impl UiSystem {
 
         let mut layout = Stretch::new();
 
-        let root = layout.new_node(stretch::style::Style{
-            size: Size{width: Dimension::Percent(1.0f32), height: Dimension::Percent(1.0f32)},
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            ..Default::default()
-        }, vec![]).unwrap();
+        let root = layout
+            .new_node(
+                stretch::style::Style {
+                    size: Size {
+                        width: Dimension::Percent(1.0f32),
+                        height: Dimension::Percent(1.0f32),
+                    },
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    ..Default::default()
+                },
+                vec![],
+            )
+            .unwrap();
 
-        let ent_id = world.insert(
-            (),
-            vec![()],
-        ).to_vec();
+        let ent_id = world.insert((), vec![()]).to_vec();
         let root_entity = ent_id[0];
         let tex_id = resources.get_texture("tex1").unwrap();
         let mut input_channel = world.resources.get_mut::<InputEventChannel>().unwrap();
@@ -129,27 +134,63 @@ impl UiSystem {
             root,
             root_entity,
             mouse_over: HashSet::new(),
-            reader_id
+            reader_id,
         };
 
-
-        let entities = world.insert((), vec![
-            (system.create_node(Style{size: Size{width: Dimension::Percent(1.0f32), height: Dimension::Points(200.0f32)}, ..Default::default()}).unwrap(),),
-            (system.create_node(Style{size: Size{width: Dimension::Percent(1.0f32), height: Dimension::Percent(1.0f32)}, ..Default::default()}).unwrap(),),
-            (system.create_node(Style{size: Size{width: Dimension::Percent(1.0f32), height: Dimension::Points(200.0f32)}, ..Default::default()}).unwrap(),),
-            (system.create_node(Style{size: Size{width: Dimension::Percent(1.0f32), height: Dimension::Points(200.0f32)}, ..Default::default()}).unwrap(),),
-        ]).to_vec();
+        let entities = world
+            .insert(
+                (),
+                vec![
+                    (system
+                        .create_node(Style {
+                            size: Size {
+                                width: Dimension::Percent(1.0f32),
+                                height: Dimension::Points(200.0f32),
+                            },
+                            ..Default::default()
+                        })
+                        .unwrap(),),
+                    (system
+                        .create_node(Style {
+                            size: Size {
+                                width: Dimension::Percent(1.0f32),
+                                height: Dimension::Percent(1.0f32),
+                            },
+                            ..Default::default()
+                        })
+                        .unwrap(),),
+                    (system
+                        .create_node(Style {
+                            size: Size {
+                                width: Dimension::Percent(1.0f32),
+                                height: Dimension::Points(200.0f32),
+                            },
+                            ..Default::default()
+                        })
+                        .unwrap(),),
+                    (system
+                        .create_node(Style {
+                            size: Size {
+                                width: Dimension::Percent(1.0f32),
+                                height: Dimension::Points(200.0f32),
+                            },
+                            ..Default::default()
+                        })
+                        .unwrap(),),
+                ],
+            )
+            .to_vec();
 
         world.add_component::<UiRenderable>(entities[0], UiRenderable::Rect(tex_id));
         world.add_component::<UiRenderable>(entities[2], UiRenderable::Rect(tex_id));
-        world.add_component::<UiClickable>(entities[0], UiClickable{callback: 0});
-        world.add_component::<UiClickable>(entities[2], UiClickable{callback: 0});
+        world.add_component::<UiClickable>(entities[0], UiClickable { callback: 0 });
+        world.add_component::<UiClickable>(entities[2], UiClickable { callback: 0 });
 
         world.resources.insert(system);
         world.resources.insert(UiEventChannel::with_capacity(64))
     }
 
-    fn check_mouse_press(position: [f32;2], ui: &UiSystem) {
+    fn check_mouse_press(position: [f32; 2], ui: &UiSystem) {
         let pos = Vec2::new(position[0], 1080.0f32 - position[1]);
         println!("Checking ui input at: {:?}", pos);
         /*for (id, button) in ui.buttons.iter().enumerate() {
@@ -165,20 +206,27 @@ impl UiSystem {
     pub fn update(world: &mut World) {
         // if ever focus is implemented - update here.
 
-        let (
-            mouse,
-            mut ui,
-            viewport_data,
-            mut ui_events,
-            mut input_events) = <(Read<MouseState>, Write<UiSystem>, Read<crate::graphics::ViewportData>, Write<UiEventChannel>, Write<InputEventChannel>)>::fetch(&world.resources);
+        let (mouse, mut ui, viewport_data, mut ui_events, mut input_events) =
+            <(
+                Read<MouseState>,
+                Write<UiSystem>,
+                Read<crate::graphics::ViewportData>,
+                Write<UiEventChannel>,
+                Write<InputEventChannel>,
+            )>::fetch(&world.resources);
         let clickable_query = <(Read<UiTransform>, Read<UiClickable>)>::query();
 
         let root = ui.root;
 
-        ui.layout.compute_layout(root, stretch::geometry::Size{
-            width: stretch::number::Number::Defined(viewport_data.width),
-            height: stretch::number::Number::Defined(viewport_data.height),
-        }).unwrap();
+        ui.layout
+            .compute_layout(
+                root,
+                stretch::geometry::Size {
+                    width: stretch::number::Number::Defined(viewport_data.width),
+                    height: stretch::number::Number::Defined(viewport_data.height),
+                },
+            )
+            .unwrap();
 
         let pos = mouse.get_mouse_position();
         let pos = Vec2::new(pos[0], pos[1]);
@@ -209,7 +257,9 @@ impl UiSystem {
         }
 
         if mouse_pressed {
-            for (entity_id, (ui_transform, _clickable)) in clickable_query.iter_entities_immutable(&world) {
+            for (entity_id, (ui_transform, _clickable)) in
+                clickable_query.iter_entities_immutable(&world)
+            {
                 let entity_layout = ui.layout.layout(ui_transform.node).unwrap();
                 let size = entity_layout.size;
                 let location = entity_layout.location;
@@ -219,12 +269,14 @@ impl UiSystem {
                 let min = location;
                 let max = location + size;
                 //println!("Button positions: min: {:?}, max: {:?}", min, max);
-                if pos.x > min.x && pos.y > min.y  && pos.x < max.x && pos.y < max.y {
-                    ui_events.single_write(UiEvent{entity: entity_id, event_type: UiEventType::Clicked});
+                if pos.x > min.x && pos.y > min.y && pos.x < max.x && pos.y < max.y {
+                    ui_events.single_write(UiEvent {
+                        entity: entity_id,
+                        event_type: UiEventType::Clicked,
+                    });
 
                     println!("button pressed: {}", entity_id);
                 }
-
             }
         }
     }

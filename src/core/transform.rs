@@ -1,5 +1,5 @@
-use std::cell::RefCell;
 use crate::math::*;
+use std::cell::RefCell;
 
 pub trait Ident {
     fn empty() -> Self;
@@ -27,7 +27,7 @@ pub type MatrixState = ItemState<Matrix>;
 
 impl<T: Ident> ItemState<T> {
     fn new() -> Self {
-        Self{
+        Self {
             changed: true,
             item: T::empty(),
         }
@@ -56,14 +56,13 @@ impl Transform {
             global_matrix: RefCell::new(MatrixState::new()),
         }
     }
-
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nalgebra_glm::vec3;
     use crate::core::MockEngine;
+    use nalgebra_glm::vec3;
 
     #[test]
     fn position() {
@@ -112,8 +111,10 @@ mod tests {
         let obj2 = scene.create_game_object();
 
         scene.set_parent(obj, Some(obj2)).unwrap();
-        let rot1 = nalgebra_glm::quat_angle_axis(nalgebra_glm::half_pi(), &Vec3::new(0.0, 0.0, 1.0));
-        let rot2 = nalgebra_glm::quat_angle_axis(nalgebra_glm::half_pi(), &Vec3::new(0.0, 0.0, -1.0));
+        let rot1 =
+            nalgebra_glm::quat_angle_axis(nalgebra_glm::half_pi(), &Vec3::new(0.0, 0.0, 1.0));
+        let rot2 =
+            nalgebra_glm::quat_angle_axis(nalgebra_glm::half_pi(), &Vec3::new(0.0, 0.0, -1.0));
 
         scene.world.set_local_rotation(obj, rot1);
         scene.world.set_local_rotation(obj2, rot2);
@@ -122,9 +123,8 @@ mod tests {
         assert!(similar(&result_rot, &Quat::identity()));
     }
 
-
     fn similar(quat1: &Quat, quat2: &Quat) -> bool {
-        nalgebra_glm::quat_equal_eps(quat1, quat2, 0.0001f32) == nalgebra_glm::TVec4::new(true, true, true, true)
+        nalgebra_glm::quat_equal_eps(quat1, quat2, 0.0001f32)
+            == nalgebra_glm::TVec4::new(true, true, true, true)
     }
 }
-

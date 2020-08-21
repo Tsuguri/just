@@ -1,8 +1,8 @@
 use super::Engine;
 use super::GameObjectError;
+use super::TransformHierarchy;
 use crate::traits::*;
 use legion::prelude::Entity;
-use super::TransformHierarchy;
 
 impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
     pub fn set_parent(&mut self, obj: Entity, new_parent: Option<Entity>) -> Result<(), ()> {
@@ -26,7 +26,6 @@ mod tests {
         scene.set_parent(obj1, Option::None).unwrap();
         assert_eq!(scene.world.object_data[obj1].parent, Option::None);
         assert!(!scene.world.object_data[obj2].children.contains(&obj1));
-
     }
 
     #[test]
@@ -47,5 +46,4 @@ mod tests {
         assert!(!scene.exists(obj2));
         assert!(!scene.exists(obj3));
     }
-
 }

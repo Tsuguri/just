@@ -1,16 +1,12 @@
 use super::js;
 
-use js::{
-    ContextGuard,
-    value::function::CallbackInfo,
-    value::Value,
-};
+use js::{value::function::CallbackInfo, value::Value, ContextGuard};
 
 use super::api_helpers::*;
 use super::game_object_api::GameObjectData;
-use crate::scripting::InternalTypes;
-use crate::math::Vec3;
 use crate::core::GameObject;
+use crate::math::Vec3;
+use crate::scripting::InternalTypes;
 
 fn gameobject_find_by_name(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     debug_assert_eq!(args.arguments.len(), 1);
@@ -26,9 +22,7 @@ fn gameobject_find_by_name(guard: &ContextGuard, args: CallbackInfo) -> Result<V
 
     let proto = prototypes[&InternalTypes::GameObject].clone();
     for (id, val) in objs.iter().enumerate() {
-
-
-        let obj = js::value::External::new(guard, Box::new(GameObjectData{id: *val}));
+        let obj = js::value::External::new(guard, Box::new(GameObjectData { id: *val }));
         obj.set_prototype(guard, proto.clone());
 
         result.set_index(guard, id as u32, obj);
@@ -37,7 +31,7 @@ fn gameobject_find_by_name(guard: &ContextGuard, args: CallbackInfo) -> Result<V
     Result::Ok(result.into())
 }
 
-fn gameobject_create(guard: &ContextGuard, args: CallbackInfo)-> Result<Value, Value> {
+fn gameobject_create(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let ctx = guard.context();
     let world = world(&ctx);
 
@@ -45,7 +39,7 @@ fn gameobject_create(guard: &ContextGuard, args: CallbackInfo)-> Result<Value, V
     let obj = GameObject::create_empty(world);
 
     let proto = prototypes[&InternalTypes::GameObject].clone();
-    let res = js::value::External::new(guard, Box::new(GameObjectData{id: obj}));
+    let res = js::value::External::new(guard, Box::new(GameObjectData { id: obj }));
     res.set_prototype(guard, proto);
 
     Result::Ok(res.into())
@@ -59,7 +53,11 @@ fn set_camera_pos(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Val
     let np = args.arguments[0].clone().into_external().unwrap();
     let new_pos = unsafe { np.value::<Vec3>() };
 
-    world.resources.get_mut::<crate::graphics::CameraData>().unwrap().position = *new_pos;
+    world
+        .resources
+        .get_mut::<crate::graphics::CameraData>()
+        .unwrap()
+        .position = *new_pos;
 
     Result::Ok(js::value::null(guard))
 }
@@ -84,6 +82,5 @@ impl super::JsScriptEngine {
         add_function(&guard, &module, "createGameObject", mf!(gameobject_create));
         add_function(&guard, &module, "setCameraPosition", mf!(set_camera_pos));
         // add_function(&guard, &module, "setCameraRotation", mf!(set_camera_rot));
-
     }
 }

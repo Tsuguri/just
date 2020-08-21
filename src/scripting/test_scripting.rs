@@ -2,8 +2,11 @@ pub struct MockScript;
 
 pub struct MockScriptEngine;
 
-use crate::traits::{Controller, ScriptingEngine, GameObjectId, Hardware, ResourceManager, Data, World, ResourceProvider};
 use crate::core::MockEngine;
+use crate::traits::{
+    Controller, Data, GameObjectId, Hardware, ResourceManager, ResourceProvider, ScriptingEngine,
+    World,
+};
 
 impl MockEngine {
     pub fn mock() -> Self {
@@ -31,14 +34,16 @@ impl ScriptingEngine for MockScriptEngine {
     fn create_script(&mut self, _id: GameObjectId, _typ: &str) -> Self::Controller {
         MockScript {}
     }
-    fn update(&mut self,
-              _world: &mut World,
-              _scripts: &mut Data<Self::Controller>,
-              _resources: &ResourceProvider,
-              _keyboard: &crate::input::KeyboardState,
-              _mouse: &crate::input::MouseState,
-              _current_time: f64,
-    ) {}
+    fn update(
+        &mut self,
+        _world: &mut World,
+        _scripts: &mut Data<Self::Controller>,
+        _resources: &ResourceProvider,
+        _keyboard: &crate::input::KeyboardState,
+        _mouse: &crate::input::MouseState,
+        _current_time: f64,
+    ) {
+    }
 }
 
 impl Controller for MockScript {
@@ -47,7 +52,9 @@ impl Controller for MockScript {
     fn init(&mut self) {}
     fn destroy(&mut self) {}
 
-    fn get_type_name(&self) -> String { String::new() }
+    fn get_type_name(&self) -> String {
+        String::new()
+    }
 
     fn set_bool_property(&mut self, _name: &str, _value: bool) {}
     fn set_int_property(&mut self, _name: &str, _value: i64) {}

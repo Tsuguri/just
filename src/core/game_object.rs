@@ -26,7 +26,6 @@ impl GameObject {
     }
     pub fn initialize(world: &mut World) {
         world.resources.insert(ObjectsToDelete::new());
-
     }
 }
 
@@ -39,13 +38,20 @@ impl GameObject {
     }
 
     pub fn find_by_name(world: &World, name: &str) -> Vec<Entity> {
-        Read::<GameObject>::query().iter_entities_immutable(world).filter(|(x, y)| {
-            y.name == name
-        }).map(|(x,_y)| x).collect()
+        Read::<GameObject>::query()
+            .iter_entities_immutable(world)
+            .filter(|(x, y)| y.name == name)
+            .map(|(x, _y)| x)
+            .collect()
     }
 
     pub fn delete(world: &mut World, id: Entity) {
-        world.resources.get_mut::<ObjectsToDelete>().unwrap().0.push(id);
+        world
+            .resources
+            .get_mut::<ObjectsToDelete>()
+            .unwrap()
+            .0
+            .push(id);
     }
 
     pub fn remove_marked(world: &mut World) {
@@ -68,7 +74,7 @@ impl GameObject {
         }
         Self::remove_single(world, id);
     }
-    
+
     fn remove_single(world: &mut World, id: Entity) {
         super::TransformHierarchy::set_parent(world, id, None).unwrap();
         world.delete(id);
@@ -77,12 +83,9 @@ impl GameObject {
     pub fn create_empty(world: &mut World) -> Entity {
         let go = GameObject::new();
 
-        let ent_id = world.insert(
-            (),
-            vec![
-                (super::transform::Transform::new(),go,),
-            ],
-        ).to_vec();
+        let ent_id = world
+            .insert((), vec![(super::transform::Transform::new(), go)])
+            .to_vec();
         ent_id[0]
     }
 }

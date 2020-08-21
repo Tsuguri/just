@@ -1,183 +1,39 @@
-use crate::math::*;
 use super::js;
+use crate::math::*;
 use js::{
+    value::{function::CallbackInfo, Value},
     ContextGuard,
-    value::{
-        Value,
-        function::CallbackInfo,
-    },
 };
 
 use super::api_helpers::*;
 use super::{ScriptCreationData, ScriptCreationQueue};
-use crate::scripting::InternalTypes;
-use crate::scripting::js_scripting::JsScript;
+use crate::core::{GameObject, Mesh, TransformHierarchy};
 use crate::scripting::js_scripting::resources_api::MeshData;
+use crate::scripting::js_scripting::JsScript;
+use crate::scripting::InternalTypes;
+use crate::traits::*;
 use legion::prelude::Entity;
-use crate::core::{TransformHierarchy, GameObject, Mesh};
 
+#[derive(Debug, Copy, Clone)]
 pub struct GameObjectData {
     pub id: Entity,
 }
 
-fn get_name(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
-
-    let external = args.this.into_external().unwrap();
-    let ctx = guard.context();
-    let world = world(&ctx);
-    let this = unsafe { external.value::<GameObjectData>() };
-
-    let name = GameObject::get_name(world, this.id);
-
-    let val = js::value::String::new(guard, &name);
-
-    Result::Ok(val.into())
+#[derive(Debug, Copy, Clone)]
+pub struct ComponentData<T> {
+    pub id: Entity,
+    _phantom: std::marker::PhantomData<T>,
 }
 
-fn set_name(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
-    debug_assert_eq!(args.arguments.len(), 1);
-    let external = args.this.into_external().unwrap();
-    let ctx = guard.context();
-    let world = world(&ctx);
-    let this = unsafe { external.value::<GameObjectData>() };
-
-    let new_name = args.arguments[0].to_string(guard);
-    GameObject::set_name(world, this.id, new_name);
-
-    Result::Ok(js::value::null(guard))
-}
-
-fn get_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
-    let ctx = guard.context();
-    let external = args.this.into_external().unwrap();
-
-    let prototypes = external_prototypes(&ctx);
-
-
-    let world = world(&ctx);
-    let this = unsafe { external.value::<GameObjectData>() };
-
-    let pos = TransformHierarchy::get_local_position(world, this.id);
-
-    let obj = js::value::External::new(guard, Box::new(pos));
-
-    obj.set_prototype(guard, prototypes.get_prototype::<Vec3>().clone()).unwrap();
-
-    Result::Ok(obj.into())
-}
-
-fn get_global_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
-    let ctx = guard.context();
-    let external = args.this.into_external().unwrap();
-
-    let prototypes = external_prototypes(&ctx);
-
-    let world = world(&ctx);
-    let this = unsafe { external.value::<GameObjectData>() };
-
-    let pos = TransformHierarchy::get_global_position(world, this.id);
-
-    let obj = js::value::External::new(guard, Box::new(pos));
-    obj.set_prototype(guard, prototypes.get_prototype::<Vec3>().clone()).unwrap();
-
-    Result::Ok(obj.into())
-
-}
-
-fn get_scale(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
-    let ctx = guard.context();
-    let external = args.this.into_external().unwrap();
-
-    let prototypes = external_prototypes(&ctx);
-
-
-    let world = world(&ctx);
-    let this = unsafe { external.value::<GameObjectData>() };
-
-    let pos = TransformHierarchy::get_local_scale(world, this.id);
-
-    let obj = js::value::External::new(guard, Box::new(pos));
-    obj.set_prototype(guard, prototypes.get_prototype::<Vec3>().clone()).unwrap();
-
-    Result::Ok(obj.into())
-
-}
-
-fn get_parent(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
-    let ctx = guard.context();
-    let external = args.this.into_external().unwrap();
-
-    let prototypes = prototypes(&ctx);
-
-
-    let world = world(&ctx);
-    let this = unsafe { external.value::<GameObjectData>() };
-
-    let parent = TransformHierarchy::get_parent(world, this.id);
-    match parent {
-        Some(x) => {
-            let obj = js::value::External::new(guard, Box::new(GameObjectData { id: x }));
-            obj.set_prototype(guard, prototypes[&InternalTypes::GameObject].clone()).unwrap();
-
-            Result::Ok(obj.into())
-        }
-        None => Result::Ok(js::value::null(guard)),
+impl FunctionResult for GameObjectData {}
+impl FunctionParameter for GameObjectData {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        let nat = source.read_native()?;
+        Result::Ok(*nat)
     }
 }
 
-fn set_parent(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
-    debug_assert_eq!(args.arguments.len(), 1);
-    let ctx = guard.context();
-    let external = args.this.into_external().unwrap();
-
-    let world = world(&ctx);
-    let this = unsafe { external.value::<GameObjectData>() };
-
-    let new_parent = if args.arguments[0].is_null() {
-        None
-    } else {
-        let arg = args.arguments[0].clone().into_external().unwrap();
-        let par = unsafe{ arg.value::<GameObjectData>()};
-
-        Some(par.id)
-    };
-
-    TransformHierarchy::set_parent(world, this.id, new_parent).unwrap();
-    Result::Ok(js::value::null(guard))
-}
-
-fn set_position(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
-    debug_assert!(args.arguments.len() == 1);
-    let np = args.arguments[0].clone().into_external().unwrap();
-    let new_pos = unsafe { np.value::<Vec3>() };
-
-    let te = args.this.into_external().unwrap();
-    let this = unsafe { te.value::<GameObjectData>() };
-    let ctx = guard.context();
-    let world = world(&ctx);
-
-    TransformHierarchy::set_local_position(world, this.id, *new_pos);
-
-    Result::Ok(js::value::null(guard))
-}
-
-fn set_scale(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
-    debug_assert!(args.arguments.len() == 1);
-    let np = args.arguments[0].clone().into_external().unwrap();
-    let new_scale = unsafe { np.value::<Vec3>() };
-
-    let te = args.this.into_external().unwrap();
-    let this = unsafe { te.value::<GameObjectData>() };
-    let ctx = guard.context();
-    let world = world(&ctx);
-
-    TransformHierarchy::set_local_scale(world, this.id, *new_scale);
-
-    Result::Ok(js::value::null(guard))
-}
-
-fn set_renderable(guard: &ContextGuard, args: CallbackInfo)-> Result<Value, Value>{
-
+fn set_renderable(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     let ctx = guard.context();
     let world = world(&ctx);
 
@@ -185,7 +41,7 @@ fn set_renderable(guard: &ContextGuard, args: CallbackInfo)-> Result<Value, Valu
     let this = unsafe { te.value::<GameObjectData>() };
 
     let m = args.arguments[0].clone().into_external().unwrap();
-    let mesh = unsafe{m.value::<MeshData>()};
+    let mesh = unsafe { m.value::<MeshData>() };
 
     Mesh::add_renderable_to_go(world, this.id, mesh.id);
 
@@ -201,7 +57,10 @@ fn set_script(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> 
     let this = unsafe { te.value::<GameObjectData>() };
     let m = args.arguments[0].clone().into_string().unwrap();
 
-    creation_data.push(ScriptCreationData{object: this.id, script_type: m.value()});
+    creation_data.push(ScriptCreationData {
+        object: this.id,
+        script_type: m.value(),
+    });
     Result::Ok(js::value::null(guard))
 }
 
@@ -213,63 +72,92 @@ fn get_script(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> 
     let script = world.get_component::<JsScript>(this.id);
     match script {
         None => Result::Err(js::value::null(guard)),
-        Some(x) => {
-            Result::Ok(x.js_object.clone().into())
-        }
+        Some(x) => Result::Ok(x.js_object.clone().into()),
     }
 }
 
-fn destroy(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
-    let ctx = guard.context();
-    let world = world(&ctx);
+pub struct GameObjectApi {}
 
-    let te = args.this.into_external().unwrap();
-    let this = unsafe { te.value::<GameObjectData>() };
+impl GameObjectApi {
+    pub fn register<SAR: ScriptApiRegistry>(registry: &mut SAR) {
+        let go_type = registry
+            .register_native_type("GameObject", None, |arg: GameObjectData| arg)
+            .unwrap();
 
-    GameObject::delete(world, this.id);
+        registry.register_native_type_property(
+            &go_type,
+            "name",
+            Some(|args: (This<GameObjectData>, World)| -> String {
+                GameObject::get_name(&args.1, args.0.id)
+            }),
+            Some(|mut args: (This<GameObjectData>, World, String)| {
+                GameObject::set_name(&mut args.1, args.0.id, args.2);
+            }),
+        );
 
-    Result::Ok(js::value::null(guard))
+        registry.register_native_type_property(
+            &go_type,
+            "position",
+            Some(|args: (This<GameObjectData>, World)| {
+                TransformHierarchy::get_local_position(&args.1, args.0.id)
+            }),
+            Some(|mut args: (This<GameObjectData>, World, Vec3)| {
+                TransformHierarchy::set_local_position(&mut args.1, args.0.id, args.2);
+            }),
+        );
 
+        registry.register_native_type_property(
+            &go_type,
+            "globalPosition",
+            Some(|args: (This<GameObjectData>, World)| {
+                TransformHierarchy::get_global_position(&args.1, args.0.id)
+            }),
+            Some(|()| {}),
+        );
+
+        registry.register_native_type_property(
+            &go_type,
+            "scale",
+            Some(|args: (This<GameObjectData>, World)| {
+                TransformHierarchy::get_local_scale(&args.1, args.0.id)
+            }),
+            Some(|mut args: (This<GameObjectData>, World, Vec3)| {
+                TransformHierarchy::set_local_scale(&mut args.1, args.0.id, args.2);
+            }),
+        );
+
+        registry.register_native_type_property(
+            &go_type,
+            "parent",
+            Some(|args: (This<GameObjectData>, World)| {
+                TransformHierarchy::get_parent(&args.1, args.0.id).map(|x| GameObjectData { id: x })
+            }),
+            Some(
+                |mut args: (This<GameObjectData>, World, Option<GameObjectData>)| {
+                    TransformHierarchy::set_parent(&mut args.1, args.0.id, args.2.map(|x| x.id));
+                },
+            ),
+        );
+
+        registry
+            .register_native_type_method(
+                &go_type,
+                "destroy",
+                |mut args: (This<GameObjectData>, World)| {
+                    GameObject::delete(&mut args.1, args.0.id);
+                },
+            )
+            .unwrap();
+    }
 }
-
-fn test_go_function(guard: &ContextGuard, _args: CallbackInfo) -> Result<Value, Value> {
-    Result::Ok(js::value::null(guard))
-}
-
 
 impl super::JsScriptEngine {
-    pub fn create_external_prototype(guard: &ContextGuard) -> js::value::Object {
-        let obj = js::value::Object::new(guard);
-
-        add_function(guard, &obj, "test", mf!(test_go_function));
-
-        full_prop!(guard, obj, "name", get_name, set_name);
-        full_prop!(guard, obj, "position", get_position, set_position);
-        full_prop!(guard, obj, "scale", get_scale, set_scale);
-        full_prop!(guard, obj, "parent", get_parent, set_parent);
-
-        let prop = js::value::Object::new(guard);
-        getter!(guard, prop, get_global_position);
-        obj.define_property(guard, js::Property::new(guard, "globalPosition"), prop);
-
-        add_function(guard, &obj, "destroy", mf!(destroy));
-        add_function(guard, &obj, "setRenderable", mf!(set_renderable));
-        add_function(guard, &obj, "setScript", mf!(set_script));
-        add_function(guard, &obj, "getScript", mf!(get_script));
-
-        obj
-    }
-
-    pub fn create_script_external(&self, guard: &ContextGuard, id: Entity) -> js::value::Value {
+    pub fn create_go_external(&self, guard: &ContextGuard, id: Entity) -> js::value::Value {
         let obj = js::value::External::new(guard, Box::new(GameObjectData { id }));
-        obj.set_prototype(guard, (self.prototypes[&InternalTypes::GameObject]).clone()).unwrap();
-        obj.into()
-    }
-    pub fn create_game_object_api(&mut self) {
-        let guard = self.guard();
-        let ext_prototype = Self::create_external_prototype(&guard);
-        drop(guard);
+        let type_id = std::any::TypeId::of::<GameObjectData>();
+        obj.set_prototype(guard, (self.external_types_prototypes[&type_id]).clone())
+            .unwrap();
 
-        self.prototypes.insert(InternalTypes::GameObject, ext_prototype);
+        obj.into()
     }
 }

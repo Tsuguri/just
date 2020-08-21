@@ -9,10 +9,16 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn add_renderable_to_go(world: &mut legion::prelude::World, id: Entity, mesh: MeshId){
-        world.add_component(id, Mesh{mesh_id: mesh, texture_id: None});
+    pub fn add_renderable_to_go(world: &mut legion::prelude::World, id: Entity, mesh: MeshId) {
+        world.add_component(
+            id,
+            Mesh {
+                mesh_id: mesh,
+                texture_id: None,
+            },
+        );
     }
-    pub fn add_tex_renderable(world: &mut legion::prelude::World, id: Entity, mesh: Mesh){
+    pub fn add_tex_renderable(world: &mut legion::prelude::World, id: Entity, mesh: Mesh) {
         world.add_component(id, mesh);
     }
 }

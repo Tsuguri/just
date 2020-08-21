@@ -1,11 +1,11 @@
 use super::js;
-use crate::traits::{ResourceProvider};
-use crate::scripting::{HM, EHM};
+use crate::scripting::{EHM, HM};
+use crate::traits::ResourceProvider;
 
-use crate::input::{KeyboardState, MouseState};
 use super::ScriptCreationData;
-use js::ContextGuard;
+use crate::input::{KeyboardState, MouseState};
 use js::value::function::FunctionCallback;
+use js::ContextGuard;
 use legion::prelude::World;
 
 impl super::JsScriptEngine {
@@ -18,7 +18,12 @@ impl super::JsScriptEngine {
     }
 }
 
-pub fn add_function(guard: &ContextGuard, obj: &js::value::Object, name: &str, fun: Box<FunctionCallback>) {
+pub fn add_function(
+    guard: &ContextGuard,
+    obj: &js::value::Object,
+    name: &str,
+    fun: Box<FunctionCallback>,
+) {
     let fun = js::value::Function::new(guard, fun);
     obj.set(&guard, js::Property::new(&guard, name), fun);
 }
@@ -35,32 +40,31 @@ pub fn external_prototypes(ctx: &js::Context) -> &EHM {
     *ctx.get_user_data::<&EHM>().unwrap()
 }
 
-
 macro_rules! mf {
-    ($i: ident) => {Box::new(|a,b| $i(a,b))}
+    ($i: ident) => {
+        Box::new(|a, b| $i(a, b))
+    };
 }
 
 macro_rules! double {
-        ($g:ident, $x:expr) => {
-            match $x.clone().into_number() {
-                None => return Result::Err(js::value::null($g)),
-                Some(x) => x.value_double(),
-            }
+    ($g:ident, $x:expr) => {
+        match $x.clone().into_number() {
+            None => return Result::Err(js::value::null($g)),
+            Some(x) => x.value_double(),
         }
-    }
-
-
-
-macro_rules! make_double {
-    ($g:ident, $x:expr) => { js::value::Number::from_double($g, $x)};
+    };
 }
 
+macro_rules! make_double {
+    ($g:ident, $x:expr) => {
+        js::value::Number::from_double($g, $x)
+    };
+}
 
 macro_rules! setter {
     ($g: ident, $p:ident, $f:ident) => {
         let fun = js::value::Function::new($g, mf!($f));
         $p.set($g, js::Property::new($g, "set"), fun);
-
     };
 }
 

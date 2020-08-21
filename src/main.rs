@@ -3,7 +3,9 @@
 use just::*;
 
 fn main() {
-    let engine_config = JsEngineConfig { source_root: "dev_app/scripts".to_string() };
+    let engine_config = JsEngineConfig {
+        source_root: "dev_app/scripts".to_string(),
+    };
     let _window_config = 1i32;
     let _renderer_config = 2i32;
     let _resources = 3i32;

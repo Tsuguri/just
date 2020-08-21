@@ -1,6 +1,6 @@
 pub trait ResultEncoder {
     type ResultType;
-    
+
     fn empty(&mut self) -> Self::ResultType;
 
     fn encode_float(&mut self, value: f32) -> Self::ResultType;
@@ -10,9 +10,11 @@ pub trait ResultEncoder {
     fn encode_i32(&mut self, value: i32) -> Self::ResultType;
 
     fn encode_external_type<T>(&mut self, value: T) -> Self::ResultType;
+
+    fn encode_string(&mut self, value: &str) -> Self::ResultType;
 }
 
-pub trait FunctionResult: Sized{
+pub trait FunctionResult: Sized {
     fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
         enc.encode_external_type(self)
     }
@@ -39,6 +41,21 @@ impl FunctionResult for usize {
 impl FunctionResult for bool {
     fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
         enc.encode_bool(self)
+    }
+}
+
+impl FunctionResult for String {
+    fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
+        enc.encode_string(&self)
+    }
+}
+
+impl<T: FunctionResult> FunctionResult for Option<T> {
+    fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
+        match self {
+            Some(x) => x.into_script_value(enc),
+            None => enc.empty(),
+        }
     }
 }
 

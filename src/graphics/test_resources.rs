@@ -7,7 +7,6 @@ pub struct MockHardware {}
 
 pub struct MockRenderer {}
 
-
 impl Hardware for MockHardware {
     type RM = MockResourceManager;
     type Renderer = MockRenderer;
@@ -19,10 +18,20 @@ impl Hardware for MockHardware {
 }
 
 impl Renderer<MockHardware> for MockRenderer {
-    fn create(_hardware: &mut MockHardware, _world: &RenderingData, _res: Arc<MockResourceManager>) -> Self {
+    fn create(
+        _hardware: &mut MockHardware,
+        _world: &RenderingData,
+        _res: Arc<MockResourceManager>,
+    ) -> Self {
         Self {}
     }
-    fn run(&mut self, _hardware: &mut MockHardware, _res: &MockResourceManager, _world: &RenderingData) {}
+    fn run(
+        &mut self,
+        _hardware: &mut MockHardware,
+        _res: &MockResourceManager,
+        _world: &RenderingData,
+    ) {
+    }
     fn dispose(&mut self, _hardware: &mut MockHardware, _world: &RenderingData) {}
 }
 
@@ -37,7 +46,6 @@ impl ResourceProvider for MockResourceManager {
 
 impl ResourceManager<MockHardware> for MockResourceManager {
     type Config = i32;
-
 
     fn load_resources(&mut self, _config: &Self::Config, _hardware: &mut MockHardware) {}
 

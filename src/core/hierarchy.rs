@@ -1,7 +1,7 @@
-use legion::prelude::{World, Entity};
-use super::transform::Transform;
 use super::game_object::GameObject;
+use super::transform::Transform;
 use crate::math::*;
+use legion::prelude::{Entity, World};
 
 pub struct TransformHierarchy;
 
@@ -9,7 +9,7 @@ impl TransformHierarchy {
     pub fn get_global_position(world: &World, id: Entity) -> Vec3 {
         let mat = Self::get_parent_matrix(world, id);
         let transform = world.get_component::<Transform>(id).unwrap();
-        pos(&(mat*pos_vec(&transform.position)))
+        pos(&(mat * pos_vec(&transform.position)))
     }
 
     pub fn get_global_rotation(world: &World, id: Entity) -> Quat {
@@ -20,10 +20,10 @@ impl TransformHierarchy {
             Some(parent_id) => Self::get_global_rotation(world, parent_id),
         };
 
-        return parent_rotation*rotation;
+        return parent_rotation * rotation;
     }
 
-    pub fn get_global_matrix(world: &World,id: Entity) -> Matrix{
+    pub fn get_global_matrix(world: &World, id: Entity) -> Matrix {
         let transform = world.get_component::<Transform>(id).unwrap();
         let mut global_mat = transform.global_matrix.borrow_mut();
 
@@ -35,30 +35,26 @@ impl TransformHierarchy {
             global_mat.changed = false;
         }
 
-
         return global_mat.item;
-
     }
 
-    fn get_parent_matrix(world: &World, id: Entity) -> Matrix{
+    fn get_parent_matrix(world: &World, id: Entity) -> Matrix {
         let parent = world.get_component::<GameObject>(id).unwrap().parent;
         match parent {
             None => Matrix::identity(),
-            Some(parent_id) => {
-                Self::get_global_matrix(world, parent_id)
-            }
+            Some(parent_id) => Self::get_global_matrix(world, parent_id),
         }
-
     }
 
-    fn get_local_matrix(world: &World, id: Entity) -> Matrix{
+    fn get_local_matrix(world: &World, id: Entity) -> Matrix {
         let transform = world.get_component::<Transform>(id).unwrap();
         let mut local_matrix = transform.local_matrix.borrow_mut();
 
         if local_matrix.changed {
-            local_matrix.item = crate::glm::translation(&transform.position) * crate::glm::quat_to_mat4(&transform.rotation) * crate::glm::scaling(&transform.scale);
+            local_matrix.item = crate::glm::translation(&transform.position)
+                * crate::glm::quat_to_mat4(&transform.rotation)
+                * crate::glm::scaling(&transform.scale);
             local_matrix.changed = false;
-
         }
 
         return local_matrix.item;
@@ -68,9 +64,8 @@ impl TransformHierarchy {
         let transform = world.get_component::<Transform>(id).unwrap();
         transform.local_matrix.borrow_mut().changed = true;
         drop(transform);
-        
-        Self::void_global_matrix(world, id);
 
+        Self::void_global_matrix(world, id);
     }
 
     fn void_global_matrix(world: &World, id: Entity) {
@@ -81,10 +76,14 @@ impl TransformHierarchy {
         }
         global_matrix.changed = true;
 
-        for child in world.get_component::<GameObject>(id).unwrap().children.iter() {
+        for child in world
+            .get_component::<GameObject>(id)
+            .unwrap()
+            .children
+            .iter()
+        {
             Self::void_global_matrix(world, *child);
         }
-
     }
 
     pub fn set_local_position(world: &mut World, id: Entity, new_position: Vec3) {
@@ -100,7 +99,7 @@ impl TransformHierarchy {
         drop(transform);
         Self::void_local_matrix(world, id);
     }
-    
+
     pub fn set_local_scale(world: &mut World, id: Entity, new_scale: Vec3) {
         let mut transform = world.get_component_mut::<Transform>(id).unwrap();
         transform.scale = new_scale;
@@ -117,7 +116,7 @@ impl TransformHierarchy {
         let transform = world.get_component::<Transform>(id).unwrap();
         return transform.rotation;
     }
-    
+
     pub fn get_local_scale(world: &World, id: Entity) -> Vec3 {
         let transform = world.get_component::<Transform>(id).unwrap();
         return transform.scale;
@@ -127,7 +126,7 @@ impl TransformHierarchy {
         world.get_component::<GameObject>(id).unwrap().parent
     }
 
-    pub fn set_parent(world: &mut World, id: Entity, new_parent: Option<Entity>)-> Result<(),()> {
+    pub fn set_parent(world: &mut World, id: Entity, new_parent: Option<Entity>) -> Result<(), ()> {
         if !world.is_alive(id) {
             return Result::Err(());
         }
@@ -136,7 +135,11 @@ impl TransformHierarchy {
                 if !world.is_alive(x) {
                     return Result::Err(());
                 }
-                world.get_component_mut::<GameObject>(x).unwrap().children.push(id);
+                world
+                    .get_component_mut::<GameObject>(x)
+                    .unwrap()
+                    .children
+                    .push(id);
             }
             None => (),
         }

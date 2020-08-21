@@ -9,7 +9,6 @@ pub type Matrix3 = glm::TMat3<Fl>;
 pub type Matrix = glm::TMat4<Fl>;
 pub type Quat = glm::Qua<Fl>;
 
-
 pub fn pos_vec(pos: &Vec3) -> Vec4 {
     Vec4::new(pos.data[0], pos.data[1], pos.data[2], 1.0f32)
 }

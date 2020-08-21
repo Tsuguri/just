@@ -1,24 +1,23 @@
 use chakracore as js;
 use legion::prelude::*;
 
-use super::{
-    HM,
-    EHM,
-};
+use super::{EHM, HM};
 
 pub struct JsEnvironment;
 
-
 impl JsEnvironment {
-    pub fn set_up(context: &js::Context , world: &mut World, prototypes: &HM, external_prototypes: &EHM) -> Self {
-        let reference = unsafe{
-            std::mem::transmute::<&mut World, &'static mut World>(world)
-        };
+    pub fn set_up(
+        context: &js::Context,
+        world: &mut World,
+        prototypes: &HM,
+        external_prototypes: &EHM,
+    ) -> Self {
+        let reference = unsafe { std::mem::transmute::<&mut World, &'static mut World>(world) };
         context.insert_user_data::<&mut World>(reference);
 
         insert(context, prototypes);
         insert(context, external_prototypes);
-        Self{}
+        Self {}
     }
 
     pub fn drop(self, context: &js::Context) {
@@ -30,16 +29,12 @@ impl JsEnvironment {
     }
 }
 
-fn insert<T: Send + Sync + 'static>(context: &js::Context, val: &T){
-    let reference = unsafe{
-        std::mem::transmute::<&T, &'static T>(val)
-    };
+fn insert<T: Send + Sync + 'static>(context: &js::Context, val: &T) {
+    let reference = unsafe { std::mem::transmute::<&T, &'static T>(val) };
     context.insert_user_data::<&T>(reference);
 }
 
-fn insert_mut<T: Send + Sync + 'static>(context: &js::Context, val: &mut T){
-        let reference = unsafe{
-            std::mem::transmute::<&mut T, &'static mut T>(val)
-        };
-        context.insert_user_data::<&mut T>(reference);
-    }
+fn insert_mut<T: Send + Sync + 'static>(context: &js::Context, val: &mut T) {
+    let reference = unsafe { std::mem::transmute::<&mut T, &'static mut T>(val) };
+    context.insert_user_data::<&mut T>(reference);
+}

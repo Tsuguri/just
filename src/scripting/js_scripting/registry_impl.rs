@@ -1,27 +1,15 @@
-use crate::traits::{
-    ScriptApiRegistry,
-    FunctionParameter,
-    FunctionResult,
-    TypeCreationError,
-};
-use super::js::{
-    Property,
-    ContextGuard,
-    value::{
-        Value,
-        Object,
-        Number,
-        null,
-        Function,
-        Boolean,
-        External,
-        function::CallbackInfo,
-    },
-};
 use super::api_helpers;
-use legion::prelude::*;
-use super::{JsScriptEngine, JsRuntimeError};
+use super::js::{
+    value::{
+        function::CallbackInfo, null, Boolean, External, Function, Number, Object,
+        String as JsString, Value,
+    },
+    ContextGuard, Property,
+};
 use super::EHM;
+use super::{JsRuntimeError, JsScriptEngine};
+use crate::traits::{FunctionParameter, FunctionResult, ScriptApiRegistry, TypeCreationError};
+use legion::prelude::*;
 
 struct JsResultEncoder<'a> {
     guard: &'a ContextGuard<'a>,
@@ -50,12 +38,16 @@ impl<'a> crate::traits::ResultEncoder for JsResultEncoder<'a> {
     fn encode_external_type<T>(&mut self, value: T) -> Self::ResultType {
         External::new(&self.guard, Box::new(value)).into()
     }
+
+    fn encode_string(&mut self, value: &str) -> Self::ResultType {
+        JsString::new(&self.guard, &value).into()
+    }
 }
 
 struct JsParamSource<'a> {
     guard: &'a ContextGuard<'a>,
     params: CallbackInfo,
-    world: &'a World,
+    world: &'a mut World,
     current: usize,
 }
 
@@ -63,20 +55,32 @@ impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
     type ErrorType = JsRuntimeError;
 
     fn read_float(&mut self) -> Result<f32, Self::ErrorType> {
-        let value = self.params.arguments[self.current].clone().into_number().ok_or(JsRuntimeError::WrongTypeParameter)?.value_double() as f32;
-        self.current +=1;
+        let value = self.params.arguments[self.current]
+            .clone()
+            .into_number()
+            .ok_or(JsRuntimeError::WrongTypeParameter)?
+            .value_double() as f32;
+        self.current += 1;
         Result::Ok(value)
     }
 
     fn read_bool(&mut self) -> Result<bool, Self::ErrorType> {
-        let val = self.params.arguments[self.current].clone().into_boolean().ok_or(JsRuntimeError::WrongTypeParameter)?.value();
-        self.current +=1;
+        let val = self.params.arguments[self.current]
+            .clone()
+            .into_boolean()
+            .ok_or(JsRuntimeError::WrongTypeParameter)?
+            .value();
+        self.current += 1;
         Result::Ok(val)
     }
 
     fn read_i32(&mut self) -> Result<i32, Self::ErrorType> {
-        let value = self.params.arguments[self.current].clone().into_number().ok_or(JsRuntimeError::WrongTypeParameter)?.value() as i32;
-        self.current+=1;
+        let value = self.params.arguments[self.current]
+            .clone()
+            .into_number()
+            .ok_or(JsRuntimeError::WrongTypeParameter)?
+            .value() as i32;
+        self.current += 1;
         Result::Ok(value)
     }
 
@@ -93,23 +97,43 @@ impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
 
     fn read_formatted(&mut self) -> Result<String, Self::ErrorType> {
         let value = self.params.arguments[self.current].to_string(self.guard);
-        self.current+=1;
+        self.current += 1;
         Result::Ok(value)
     }
 
-    fn read_system_data<T: 'static + Send + Sync>(&mut self) -> Result<legion::resource::FetchMut<T>, Self::ErrorType> {
+    fn read_system_data<T: 'static + Send + Sync>(
+        &mut self,
+    ) -> Result<legion::resource::FetchMut<T>, Self::ErrorType> {
         Result::Ok(self.world.resources.get_mut::<T>().unwrap())
     }
 
-    fn read_native_this<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType> {
-        let native = self.params.this.clone().into_external().ok_or(JsRuntimeError::WrongTypeParameter)?;
-        Result::Ok(unsafe{std::mem::transmute::<&mut T, &'static mut T>(native.value::<T>())})
+    fn read_world(&mut self) -> Result<&mut World, Self::ErrorType> {
+        Result::Ok(&mut self.world)
+    }
+
+    fn read_native_this<T: 'static + Send + Sync + Sized>(
+        &mut self,
+    ) -> Result<&mut T, Self::ErrorType> {
+        let native = self
+            .params
+            .this
+            .clone()
+            .into_external()
+            .ok_or(JsRuntimeError::WrongTypeParameter)?;
+        Result::Ok(unsafe { std::mem::transmute::<&mut T, &'static mut T>(native.value::<T>()) })
     }
 
     fn read_native<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType> {
-        let native = self.params.arguments[self.current].clone().into_external().ok_or(JsRuntimeError::WrongTypeParameter)?;
-        self.current+=1;
-        Result::Ok(unsafe{std::mem::transmute::<&mut T, &'static mut T>(native.value::<T>())})
+        let native = self.params.arguments[self.current]
+            .clone()
+            .into_external()
+            .ok_or(JsRuntimeError::WrongTypeParameter)?;
+        self.current += 1;
+        Result::Ok(unsafe { std::mem::transmute::<&mut T, &'static mut T>(native.value::<T>()) })
+    }
+
+    fn is_null(&self) -> bool {
+        self.params.arguments.len() <= self.current || self.params.arguments[self.current].is_null()
     }
 
     /*
@@ -126,12 +150,12 @@ impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
 }
 
 impl<'a> JsParamSource<'a> {
-    pub fn create(guard: &'a ContextGuard<'a>, params: CallbackInfo, world: &'a World) -> Self {
+    pub fn create(guard: &'a ContextGuard<'a>, params: CallbackInfo, world: &'a mut World) -> Self {
         Self {
             guard,
             params,
             current: 0,
-            world
+            world,
         }
     }
 }
@@ -139,12 +163,16 @@ impl<'a> JsParamSource<'a> {
 impl ScriptApiRegistry for JsScriptEngine {
     type Namespace = Object;
     type Type = Value;
-    type NativeType = Value;
+    type NativeType = Object;
 
     //type ParamEncoder = Para
     type ErrorType = JsRuntimeError;
 
-    fn register_namespace(&mut self, name: &str, parent: Option<&Self::Namespace>) -> Self::Namespace {
+    fn register_namespace(
+        &mut self,
+        name: &str,
+        parent: Option<&Self::Namespace>,
+    ) -> Self::Namespace {
         let guard = self.context.make_current().unwrap();
         let global = guard.global();
         let par = match parent {
@@ -157,20 +185,28 @@ impl ScriptApiRegistry for JsScriptEngine {
     }
 
     fn register_function<P, R, F>(&mut self, name: &str, namespace: Option<&Self::Namespace>, fc: F)
-    where P: crate::traits::FunctionParameter,
-          R: crate::traits::FunctionResult,
-          F: 'static + Send + Sync + Fn(P)-> R {
+    where
+        P: crate::traits::FunctionParameter,
+        R: crate::traits::FunctionResult,
+        F: 'static + Send + Sync + Fn(P) -> R,
+    {
         let guard = self.context.make_current().unwrap();
-        let fun = Function::new(&guard, Box::new(move |gd, params|{
-            let ctx = gd.context();
-            let world = api_helpers::world(&ctx);
-            let prototypes = api_helpers::external_prototypes(&ctx);
-            let mut param_source = JsParamSource::create(gd, params, world);
-            let ret = fc(P::read(&mut param_source).unwrap()); // map to js exception?
-            drop(param_source);
-            let mut enc = JsResultEncoder{guard: gd, external_prototypes: prototypes};
-            Result::Ok(ret.into_script_value(&mut enc))
-        }));
+        let fun = Function::new(
+            &guard,
+            Box::new(move |gd, params| {
+                let ctx = gd.context();
+                let world = api_helpers::world(&ctx);
+                let prototypes = api_helpers::external_prototypes(&ctx);
+                let mut param_source = JsParamSource::create(gd, params, world);
+                let ret = fc(P::read(&mut param_source).unwrap()); // map to js exception?
+                drop(param_source);
+                let mut enc = JsResultEncoder {
+                    guard: gd,
+                    external_prototypes: prototypes,
+                };
+                Result::Ok(ret.into_script_value(&mut enc))
+            }),
+        );
         let global = guard.global();
 
         let parent = match namespace {
@@ -178,13 +214,19 @@ impl ScriptApiRegistry for JsScriptEngine {
             None => &global,
         };
         parent.set(&guard, Property::new(&guard, name), fun);
-        
     }
 
-    fn register_native_type<T, P, F>(&mut self, name: &str, namespace: Option<&Self::Namespace>, constructor: F) -> Result<Self::NativeType, TypeCreationError>
-        where T: 'static,
-              P: FunctionParameter,
-              F: 'static + Send + Sync + Fn(P) -> T {
+    fn register_native_type<T, P, F>(
+        &mut self,
+        name: &str,
+        namespace: Option<&Self::Namespace>,
+        constructor: F,
+    ) -> Result<Self::NativeType, TypeCreationError>
+    where
+        T: 'static,
+        P: FunctionParameter,
+        F: 'static + Send + Sync + Fn(P) -> T,
+    {
         let guard = self.context.make_current().unwrap();
         let global = guard.global();
         let type_id = std::any::TypeId::of::<T>();
@@ -193,109 +235,180 @@ impl ScriptApiRegistry for JsScriptEngine {
         }
         let prototype = Object::new(&guard);
         let ret = prototype.clone();
-        self.external_types_prototypes.insert(type_id, prototype.clone());
-        let factory_function = Function::new(&guard, Box::new(move |g, args|{
-            let ctx = g.context();
-            let world = api_helpers::world(&ctx);
-            let mut param_source = JsParamSource::create(g, args, world);
-            let obj = External::new(g, Box::new(constructor(P::read(&mut param_source).unwrap())));
-            obj.set_prototype(g, prototype.clone()).unwrap();
+        self.external_types_prototypes
+            .insert(type_id, prototype.clone());
+        let factory_function = Function::new(
+            &guard,
+            Box::new(move |g, args| {
+                let ctx = g.context();
+                let world = api_helpers::world(&ctx);
+                let mut param_source = JsParamSource::create(g, args, world);
+                let obj = External::new(
+                    g,
+                    Box::new(constructor(P::read(&mut param_source).unwrap())),
+                );
+                obj.set_prototype(g, prototype.clone()).unwrap();
 
-            Result::Ok(obj.into())
-
-        }));
+                Result::Ok(obj.into())
+            }),
+        );
         let par = match namespace {
             Some(x) => x,
             None => &global,
         };
         par.set(&guard, Property::new(&guard, name), factory_function);
 
+        Result::Ok(ret.into())
+    }
+    fn register_component<T, P, F>(
+        &mut self,
+        name: &str,
+        namespace: Option<&Self::Namespace>,
+        constructor: F,
+    ) -> Result<Self::NativeType, TypeCreationError>
+    where
+        T: 'static,
+        P: FunctionParameter,
+        F: 'static + Send + Sync + Fn(P) -> T,
+    {
+        let guard = self.context.make_current().unwrap();
+        let global = guard.global();
+        let type_id = std::any::TypeId::of::<T>();
+        if self.external_types_prototypes.contains_key(&type_id) {
+            return Err(TypeCreationError::TypeAlreadyRegistered);
+        }
+        let prototype = Object::new(&guard);
+        let ret = prototype.clone();
+        self.external_types_prototypes
+            .insert(type_id, prototype.clone());
+        let factory_function = Function::new(
+            &guard,
+            Box::new(move |g, args| {
+                let ctx = g.context();
+                let world = api_helpers::world(&ctx);
+                let mut param_source = JsParamSource::create(g, args, world);
+                let obj = External::new(
+                    g,
+                    Box::new(constructor(P::read(&mut param_source).unwrap())),
+                );
+                obj.set_prototype(g, prototype.clone()).unwrap();
+
+                Result::Ok(obj.into())
+            }),
+        );
+        let par = match namespace {
+            Some(x) => x,
+            None => &global,
+        };
+        par.set(&guard, Property::new(&guard, name), factory_function);
 
         Result::Ok(ret.into())
-     }
-    fn register_native_type_method<T, P, R, F>(&mut self, name: &str, method: F) -> Result<(), TypeCreationError>
-        where T: 'static,
-              P: FunctionParameter,
-              R: FunctionResult,
-              F: 'static + Send + Sync + Fn(P) -> R {
-        let guard = self.context.make_current().unwrap();
-        let type_id = std::any::TypeId::of::<T>();
-        let prototype = self.external_types_prototypes.get(&type_id).ok_or(TypeCreationError::TypeNotRegistered)?;
+    }
 
-        let fun = Function::new(&guard, Box::new(move |gd, params|{
-            let ctx = gd.context();
-            let world = api_helpers::world(&ctx);
-            let prototypes = api_helpers::external_prototypes(&ctx);
-            let mut param_source = JsParamSource::create(gd, params, world);
-            let ret = method(P::read(&mut param_source).unwrap()); // map to js exception?
-            drop(param_source);
-            let mut enc = JsResultEncoder{guard: gd, external_prototypes: prototypes};
-            Result::Ok(ret.into_script_value(&mut enc))
-        }));
-        prototype.set(&guard, Property::new(&guard, name), fun);
+    fn register_native_type_method<P, R, F>(
+        &mut self,
+        type_id: &Self::NativeType,
+        name: &str,
+        method: F,
+    ) -> Result<(), TypeCreationError>
+    where
+        P: FunctionParameter,
+        R: FunctionResult,
+        F: 'static + Send + Sync + Fn(P) -> R,
+    {
+        let guard = self.context.make_current().unwrap();
+
+        let fun = Function::new(
+            &guard,
+            Box::new(move |gd, params| {
+                let ctx = gd.context();
+                let world = api_helpers::world(&ctx);
+                let prototypes = api_helpers::external_prototypes(&ctx);
+                let mut param_source = JsParamSource::create(gd, params, world);
+                let ret = method(P::read(&mut param_source).unwrap()); // map to js exception?
+                drop(param_source);
+                let mut enc = JsResultEncoder {
+                    guard: gd,
+                    external_prototypes: prototypes,
+                };
+                Result::Ok(ret.into_script_value(&mut enc))
+            }),
+        );
+        type_id.set(&guard, Property::new(&guard, name), fun);
 
         Result::Ok(())
     }
 
-    fn register_native_type_property<T, P1, P2, R, F1, F2>(
-            &mut self,
-            name: &str,
-            getter: Option<F1>,
-            setter: Option<F2>)
-    where T: 'static,
-                  P1: FunctionParameter,
-                  P2: FunctionParameter,
-                  R: FunctionResult,
-                  F1: 'static + Send + Sync + Fn(P1) -> R,
-                  F2: 'static + Send + Sync + Fn(P2) {
+    fn register_native_type_property<P1, P2, R, F1, F2>(
+        &mut self,
+        type_id: &Object,
+        name: &str,
+        getter: Option<F1>,
+        setter: Option<F2>,
+    ) where
+        P1: FunctionParameter,
+        P2: FunctionParameter,
+        R: FunctionResult,
+        F1: 'static + Send + Sync + Fn(P1) -> R,
+        F2: 'static + Send + Sync + Fn(P2),
+    {
         let guard = self.context.make_current().unwrap();
-        let type_id = std::any::TypeId::of::<T>();
-        let prototype = self.external_types_prototypes.get(&type_id).ok_or(TypeCreationError::TypeNotRegistered).unwrap();
 
         let property_object = Object::new(&guard);
 
         match getter {
             None => (),
             Some(func) => {
-                let fun = Function::new(&guard, Box::new(move |gd, params|{
-                    let ctx = gd.context();
-                    let world = api_helpers::world(&ctx);
-                let prototypes = api_helpers::external_prototypes(&ctx);
-                    let mut param_source = JsParamSource::create(gd, params, world);
-                    let ret = func(P1::read(&mut param_source).unwrap());
-                    let mut enc = JsResultEncoder{guard: gd, external_prototypes: prototypes};
-                    Result::Ok(ret.into_script_value(&mut enc))
-                }));
+                let fun = Function::new(
+                    &guard,
+                    Box::new(move |gd, params| {
+                        let ctx = gd.context();
+                        let world = api_helpers::world(&ctx);
+                        let prototypes = api_helpers::external_prototypes(&ctx);
+                        let mut param_source = JsParamSource::create(gd, params, world);
+                        let ret = func(P1::read(&mut param_source).unwrap());
+                        let mut enc = JsResultEncoder {
+                            guard: gd,
+                            external_prototypes: prototypes,
+                        };
+                        Result::Ok(ret.into_script_value(&mut enc))
+                    }),
+                );
                 property_object.set(&guard, Property::new(&guard, "get"), fun);
             }
         }
         match setter {
             None => (),
             Some(func) => {
-                let fun = Function::new(&guard, Box::new(move |gd, params|{
-                    let ctx = gd.context();
-                    let world = api_helpers::world(&ctx);
-                    let mut param_source = JsParamSource::create(gd, params, world);
-                    func(P2::read(&mut param_source).unwrap()); // map to js exception?
-                    Result::Ok(null(gd))
-                }));
+                let fun = Function::new(
+                    &guard,
+                    Box::new(move |gd, params| {
+                        let ctx = gd.context();
+                        let world = api_helpers::world(&ctx);
+                        let mut param_source = JsParamSource::create(gd, params, world);
+                        func(P2::read(&mut param_source).unwrap()); // map to js exception?
+                        Result::Ok(null(gd))
+                    }),
+                );
                 property_object.set(&guard, Property::new(&guard, "set"), fun);
             }
         }
-        prototype.define_property(&guard, Property::new(&guard, name), property_object);
+        type_id.define_property(&guard, Property::new(&guard, name), property_object);
     }
 
-     fn register_static_property<P1, P2, R, F1, F2>(
-         &mut self,
-         name: &str,
-         namespace: Option<&Self::Namespace>,
-         getter: Option<F1>,
-         setter: Option<F2>)
-     where P1: FunctionParameter,
-           P2: FunctionParameter,
-           R: FunctionResult,
-           F1: 'static + Send + Sync + Fn(P1)->R,
-           F2: 'static + Send + Sync + Fn(P2) {
+    fn register_static_property<P1, P2, R, F1, F2>(
+        &mut self,
+        name: &str,
+        namespace: Option<&Self::Namespace>,
+        getter: Option<F1>,
+        setter: Option<F2>,
+    ) where
+        P1: FunctionParameter,
+        P2: FunctionParameter,
+        R: FunctionResult,
+        F1: 'static + Send + Sync + Fn(P1) -> R,
+        F2: 'static + Send + Sync + Fn(P2),
+    {
         let guard = self.context.make_current().unwrap();
         let global = guard.global();
 
@@ -304,28 +417,37 @@ impl ScriptApiRegistry for JsScriptEngine {
         match getter {
             None => (),
             Some(func) => {
-                let fun = Function::new(&guard, Box::new(move |gd, params|{
-                    let ctx = gd.context();
-                    let world = api_helpers::world(&ctx);
-                    let prototypes = api_helpers::external_prototypes(&ctx);
-                    let mut param_source = JsParamSource::create(gd, params, world);
-                    let ret = func(P1::read(&mut param_source).unwrap());
-                    let mut enc = JsResultEncoder{guard: gd, external_prototypes: prototypes};
-                    Result::Ok(ret.into_script_value(&mut enc))
-                }));
+                let fun = Function::new(
+                    &guard,
+                    Box::new(move |gd, params| {
+                        let ctx = gd.context();
+                        let world = api_helpers::world(&ctx);
+                        let prototypes = api_helpers::external_prototypes(&ctx);
+                        let mut param_source = JsParamSource::create(gd, params, world);
+                        let ret = func(P1::read(&mut param_source).unwrap());
+                        let mut enc = JsResultEncoder {
+                            guard: gd,
+                            external_prototypes: prototypes,
+                        };
+                        Result::Ok(ret.into_script_value(&mut enc))
+                    }),
+                );
                 property_object.set(&guard, Property::new(&guard, "get"), fun);
             }
         }
         match setter {
             None => (),
             Some(func) => {
-                let fun = Function::new(&guard, Box::new(move |gd, params|{
-                    let ctx = gd.context();
-                    let world = api_helpers::world(&ctx);
-                    let mut param_source = JsParamSource::create(gd, params, world);
-                    func(P2::read(&mut param_source).unwrap()); // map to js exception?
-                    Result::Ok(null(gd))
-                }));
+                let fun = Function::new(
+                    &guard,
+                    Box::new(move |gd, params| {
+                        let ctx = gd.context();
+                        let world = api_helpers::world(&ctx);
+                        let mut param_source = JsParamSource::create(gd, params, world);
+                        func(P2::read(&mut param_source).unwrap()); // map to js exception?
+                        Result::Ok(null(gd))
+                    }),
+                );
                 property_object.set(&guard, Property::new(&guard, "set"), fun);
             }
         }
@@ -335,9 +457,5 @@ impl ScriptApiRegistry for JsScriptEngine {
         };
 
         par.define_property(&guard, Property::new(&guard, name), property_object);
-    }
-
-    fn register_component<T: 'static>(&mut self, name: &str) {
-        
     }
 }

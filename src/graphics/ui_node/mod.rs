@@ -1,9 +1,13 @@
 use super::node_prelude::*;
-use rendy::hal::{self, pass::Subpass, pso::{CreationError, GraphicsPipelineDesc}};
-use rendy::graph::render::{RenderGroup, RenderGroupDesc, PrepareResult};
+use crate::ui::*;
 use failure;
 use legion::prelude::*;
-use crate::ui::*;
+use rendy::graph::render::{PrepareResult, RenderGroup, RenderGroupDesc};
+use rendy::hal::{
+    self,
+    pass::Subpass,
+    pso::{CreationError, GraphicsPipelineDesc},
+};
 
 lazy_static::lazy_static! {
     static ref VERTEX: SpirvShader = SourceShaderInfo::new(
@@ -37,8 +41,7 @@ pub struct UiNode<B: hal::Backend> {
     descriptor_set: Escape<DescriptorSet<B>>,
 }
 
-struct UiRenderingData {
-}
+struct UiRenderingData {}
 
 use crate::math::*;
 
@@ -63,18 +66,16 @@ impl<B: hal::Backend> std::fmt::Debug for UiNode<B> {
 }
 
 impl<B> SimpleGraphicsPipelineDesc<B, World> for UiNodeDesc<B>
-    where
-        B: hal::Backend,
+where
+    B: hal::Backend,
 {
     type Pipeline = UiNode<B>;
 
     fn colors(&self) -> Vec<hal::pso::ColorBlendDesc> {
-        vec![
-            hal::pso::ColorBlendDesc {
-                mask: hal::pso::ColorMask::ALL,
-                blend: None,
-            },
-        ]
+        vec![hal::pso::ColorBlendDesc {
+            mask: hal::pso::ColorMask::ALL,
+            blend: None,
+        }]
     }
 
     fn input_assembler(&self) -> hal::pso::InputAssemblerDesc {
@@ -90,28 +91,29 @@ impl<B> SimpleGraphicsPipelineDesc<B, World> for UiNodeDesc<B>
         //vec4 color_bias;
         let push_constants = vec![
             // vec2, 4 bytes each component
-            (rendy::hal::pso::ShaderStageFlags::VERTEX, 0..((2 + 2 + 2 + 4 + 4 + 4) * 4))
+            (
+                rendy::hal::pso::ShaderStageFlags::VERTEX,
+                0..((2 + 2 + 2 + 4 + 4 + 4) * 4),
+            ),
         ];
-        let sets = vec![
-            SetLayout {
-                bindings: vec![
-                    hal::pso::DescriptorSetLayoutBinding {
-                        binding: 0,
-                        ty: hal::pso::DescriptorType::SampledImage,
-                        count: 1,
-                        stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
-                        immutable_samplers: false,
-                    },
-                    hal::pso::DescriptorSetLayoutBinding {
-                        binding: 1,
-                        ty: hal::pso::DescriptorType::Sampler,
-                        count: 1,
-                        stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
-                        immutable_samplers: false,
-                    },
-                ],
-            }
-        ];
+        let sets = vec![SetLayout {
+            bindings: vec![
+                hal::pso::DescriptorSetLayoutBinding {
+                    binding: 0,
+                    ty: hal::pso::DescriptorType::SampledImage,
+                    count: 1,
+                    stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
+                    immutable_samplers: false,
+                },
+                hal::pso::DescriptorSetLayoutBinding {
+                    binding: 1,
+                    ty: hal::pso::DescriptorType::Sampler,
+                    count: 1,
+                    stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
+                    immutable_samplers: false,
+                },
+            ],
+        }];
         Layout {
             sets,
             push_constants,
@@ -157,32 +159,40 @@ impl<B> SimpleGraphicsPipelineDesc<B, World> for UiNodeDesc<B>
                     set: descriptor_set.raw(),
                     binding: 1,
                     array_offset: 0,
-                    descriptors: vec![hal::pso::Descriptor::Sampler(texture.texture.sampler().raw())],
+                    descriptors: vec![hal::pso::Descriptor::Sampler(
+                        texture.texture.sampler().raw(),
+                    )],
                 },
             ]);
         }
 
-
-        Ok(UiNode { res: self.res, descriptor_set})
+        Ok(UiNode {
+            res: self.res,
+            descriptor_set,
+        })
     }
 }
 
-unsafe fn push_ui_consts<B: hal::Backend>(encoder: &mut RenderPassEncoder<'_,B>, consts: &UiArgs, layout: &B::PipelineLayout) {
+unsafe fn push_ui_consts<B: hal::Backend>(
+    encoder: &mut RenderPassEncoder<'_, B>,
+    consts: &UiArgs,
+    layout: &B::PipelineLayout,
+) {
     //vec2 inverse_window_size;
     //vec2 coords;
     //vec2 dimensions;
     //vec4 tex_coord_bounds;
     //vec4 color;
     //vec4 color_bias;
-    let tc_bounds_offset: u32 = 0 *4;
-    let color_offset: u32 = 4 *4;
-    let bias_offset: u32 = 8 *4;
+    let tc_bounds_offset: u32 = 0 * 4;
+    let color_offset: u32 = 4 * 4;
+    let bias_offset: u32 = 8 * 4;
 
     let inverse_window_size_offset: u32 = 12 * 4;
-    let coords_offset: u32 = 14 *4;
-    let dimensions_offset: u32 = 16 *4;
+    let coords_offset: u32 = 14 * 4;
+    let dimensions_offset: u32 = 16 * 4;
 
-    let inverse_window_size = Vec2::new(1.0f32 / 2560.0f32, 1.0f32/1080.0f32);
+    let inverse_window_size = Vec2::new(1.0f32 / 2560.0f32, 1.0f32 / 1080.0f32);
 
     encoder.push_constants(
         layout,
@@ -223,8 +233,8 @@ unsafe fn push_ui_consts<B: hal::Backend>(encoder: &mut RenderPassEncoder<'_,B>,
 }
 
 impl<B> SimpleGraphicsPipeline<B, World> for UiNode<B>
-    where
-        B: hal::Backend,
+where
+    B: hal::Backend,
 {
     type Desc = UiNodeDesc<B>;
 
@@ -239,7 +249,13 @@ impl<B> SimpleGraphicsPipeline<B, World> for UiNode<B>
         PrepareResult::DrawRecord
     }
 
-    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &World) {
+    fn draw(
+        &mut self,
+        layout: &B::PipelineLayout,
+        mut encoder: RenderPassEncoder<'_, B>,
+        _index: usize,
+        data: &World,
+    ) {
         unsafe {
             let ui_system = data.resources.get::<UiSystem>();
             let ui_system = match ui_system {
@@ -249,7 +265,9 @@ impl<B> SimpleGraphicsPipeline<B, World> for UiNode<B>
 
             let q = <(Read<UiTransform>, Read<UiRenderable>)>::query();
 
-            for (index, (id, (transform, renderable))) in q.iter_entities_immutable(&data).enumerate() {
+            for (index, (id, (transform, renderable))) in
+                q.iter_entities_immutable(&data).enumerate()
+            {
                 let lt = ui_system.layout.layout(transform.node).unwrap();
                 let pos = Vec2::new(lt.location.x, lt.location.y);
                 let size = Vec2::new(lt.size.width, lt.size.height);
@@ -276,15 +294,12 @@ impl<B> SimpleGraphicsPipeline<B, World> for UiNode<B>
                         encoder.draw(0..4, 0..2);
                     }
                 }
-
             }
         }
     }
 
     fn dispose(self, _factory: &mut Factory<B>, _aux: &World) {}
 }
-
-
 
 /*
 impl<B> RenderGroupDesc<B, World> for UiNodeDesc<B>    where B: hal::Backend {

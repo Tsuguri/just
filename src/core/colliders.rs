@@ -1,5 +1,1 @@
-
-
-struct Collider {
-
-}
+struct Collider {}

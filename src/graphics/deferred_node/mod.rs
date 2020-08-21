@@ -1,10 +1,9 @@
 use super::node_prelude::*;
 
-use super::octo_node::{Value, RenderingConstants};
-use legion::prelude::*;
+use super::octo_node::{RenderingConstants, Value};
 use crate::core::Mesh;
 use crate::core::TransformHierarchy;
-
+use legion::prelude::*;
 
 lazy_static::lazy_static! {
     static ref VERTEX: SpirvShader = SourceShaderInfo::new(
@@ -68,8 +67,8 @@ impl<B: hal::Backend> std::fmt::Debug for DeferredNode<B> {
 }
 
 impl<B> SimpleGraphicsPipelineDesc<B, World> for DeferredNodeDesc<B>
-    where
-        B: hal::Backend,
+where
+    B: hal::Backend,
 {
     type Pipeline = DeferredNode<B>;
 
@@ -89,7 +88,9 @@ impl<B> SimpleGraphicsPipelineDesc<B, World> for DeferredNodeDesc<B>
             },
         ]
     }
-    fn vertices(&self) -> Vec<(
+    fn vertices(
+        &self,
+    ) -> Vec<(
         Vec<hal::pso::Element<hal::format::Format>>,
         hal::pso::ElemStride,
         hal::pso::VertexInputRate,
@@ -97,29 +98,25 @@ impl<B> SimpleGraphicsPipelineDesc<B, World> for DeferredNodeDesc<B>
         vec![PosNormTex::vertex().gfx_vertex_input_desc(hal::pso::VertexInputRate::Vertex)]
     }
     fn layout(&self) -> Layout {
-        let push_constants = vec![
-            (rendy::hal::pso::ShaderStageFlags::VERTEX, 0..(56 * 4))
-        ];
-        let sets = vec![
-            SetLayout {
-                bindings: vec![
-                    hal::pso::DescriptorSetLayoutBinding {
-                        binding: 0,
-                        ty: hal::pso::DescriptorType::SampledImage,
-                        count: 1,
-                        stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
-                        immutable_samplers: false,
-                    },
-                    hal::pso::DescriptorSetLayoutBinding {
-                        binding: 1,
-                        ty: hal::pso::DescriptorType::Sampler,
-                        count: 1,
-                        stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
-                        immutable_samplers: false,
-                    },
-                ],
-            }
-        ];
+        let push_constants = vec![(rendy::hal::pso::ShaderStageFlags::VERTEX, 0..(56 * 4))];
+        let sets = vec![SetLayout {
+            bindings: vec![
+                hal::pso::DescriptorSetLayoutBinding {
+                    binding: 0,
+                    ty: hal::pso::DescriptorType::SampledImage,
+                    count: 1,
+                    stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
+                    immutable_samplers: false,
+                },
+                hal::pso::DescriptorSetLayoutBinding {
+                    binding: 1,
+                    ty: hal::pso::DescriptorType::Sampler,
+                    count: 1,
+                    stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
+                    immutable_samplers: false,
+                },
+            ],
+        }];
         Layout {
             sets,
             push_constants,
@@ -165,20 +162,24 @@ impl<B> SimpleGraphicsPipelineDesc<B, World> for DeferredNodeDesc<B>
                     set: descriptor_set.raw(),
                     binding: 1,
                     array_offset: 0,
-                    descriptors: vec![hal::pso::Descriptor::Sampler(texture.texture.sampler().raw())],
+                    descriptors: vec![hal::pso::Descriptor::Sampler(
+                        texture.texture.sampler().raw(),
+                    )],
                 },
             ]);
         }
 
-
-        Ok(DeferredNode { res: self.res, descriptor_set, renderables_buffer: None })
+        Ok(DeferredNode {
+            res: self.res,
+            descriptor_set,
+            renderables_buffer: None,
+        })
     }
 }
 
-
 impl<B> SimpleGraphicsPipeline<B, World> for DeferredNode<B>
-    where
-        B: hal::Backend,
+where
+    B: hal::Backend,
 {
     type Desc = DeferredNodeDesc<B>;
 
@@ -193,7 +194,13 @@ impl<B> SimpleGraphicsPipeline<B, World> for DeferredNode<B>
         PrepareResult::DrawRecord
     }
 
-    fn draw(&mut self, layout: &B::PipelineLayout, mut encoder: RenderPassEncoder<'_, B>, _index: usize, data: &World) {
+    fn draw(
+        &mut self,
+        layout: &B::PipelineLayout,
+        mut encoder: RenderPassEncoder<'_, B>,
+        _index: usize,
+        data: &World,
+    ) {
         unsafe {
             //println!("deferred rendering");
             let vertex = [PosNormTex::vertex()];
@@ -202,13 +209,12 @@ impl<B> SimpleGraphicsPipeline<B, World> for DeferredNode<B>
             // 16 fields, 4 bytes each, 2 matrices before.
             let model_offset: u32 = 16 * 4 * 2;
 
-
             {
                 let view_offset: u32 = 0;
                 let projection_offset: u32 = 16 * 4;
 
-                let view = match RenderingConstants::get_rendering_constant(data, "view_mat"){
-                    Value::Matrix4(mat)=> mat,
+                let view = match RenderingConstants::get_rendering_constant(data, "view_mat") {
+                    Value::Matrix4(mat) => mat,
                     _ => panic!("Internal renderer error E02"),
                 };
 
@@ -219,10 +225,11 @@ impl<B> SimpleGraphicsPipeline<B, World> for DeferredNode<B>
                     hal::memory::cast_slice::<f32, u32>(&view.data),
                 );
 
-                let projection = match RenderingConstants::get_rendering_constant(data, "projection_mat"){
-                    Value::Matrix4(mat)=> mat,
-                    _ => panic!("internal renderer error E01"),
-                };
+                let projection =
+                    match RenderingConstants::get_rendering_constant(data, "projection_mat") {
+                        Value::Matrix4(mat) => mat,
+                        _ => panic!("internal renderer error E01"),
+                    };
                 encoder.push_constants(
                     layout,
                     hal::pso::ShaderStageFlags::VERTEX,
@@ -235,7 +242,6 @@ impl<B> SimpleGraphicsPipeline<B, World> for DeferredNode<B>
 
             let buf = {
                 let query = <(Read<Mesh>)>::query();
-
 
                 let mut buf = match buf {
                     Some(mut vec) => {
@@ -273,7 +279,7 @@ impl<B> SimpleGraphicsPipeline<B, World> for DeferredNode<B>
                             std::iter::once(self.descriptor_set.raw()),
                             std::iter::empty::<u32>(),
                         );
-                    },
+                    }
                     Some(x) => {
                         let tex = self.res.get_real_texture(x);
                         encoder.bind_graphics_descriptor_sets(
@@ -285,10 +291,8 @@ impl<B> SimpleGraphicsPipeline<B, World> for DeferredNode<B>
                     }
                 };
                 mesh.bind_and_draw(0, &vertex, 0..1, &mut encoder).unwrap();
-
             }
             self.renderables_buffer = Some(buf);
-
         }
     }
 

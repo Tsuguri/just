@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use serde::{Serialize, Deserialize};
 use schemars::{schema_for, JsonSchema};
+use serde::{Deserialize, Serialize};
 
 use just::scene_serialization::*;
 
@@ -13,10 +13,14 @@ fn generate_schemas() {
 
     let scene_schema = schema_for!(Scene);
     let mut file = File::create("schemas/scene.schema").unwrap();
-    file.write_all(serde_json::to_string_pretty(&scene_schema).unwrap().as_bytes()).unwrap();
+    file.write_all(
+        serde_json::to_string_pretty(&scene_schema)
+            .unwrap()
+            .as_bytes(),
+    )
+    .unwrap();
 }
 
 fn main() {
     generate_schemas();
 }
-

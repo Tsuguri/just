@@ -1,15 +1,15 @@
 use rendy::{
-    mesh::{Mesh, MeshBuilder, Normal, Position, TexCoord, PosNormTex},
     hal,
     hal::device::Device,
-    texture::image as image,
+    mesh::{Mesh, MeshBuilder, Normal, PosNormTex, Position, TexCoord},
     resource::Escape,
+    texture::image,
 };
 use wavefront_obj::obj;
 
 //use super::Backend;
-use std::collections::HashMap;
 use crate::traits;
+use std::collections::HashMap;
 
 pub struct TextureRes<B: hal::Backend> {
     pub texture: rendy::texture::Texture<B>,
@@ -46,11 +46,15 @@ impl<B: hal::Backend> traits::ResourceProvider for ResourceManager<B> {
 impl<B: hal::Backend> traits::ResourceManager<super::Hardware<B>> for ResourceManager<B> {
     type Config = String;
 
-
     fn load_resources(&mut self, config: &Self::Config, hardware: &mut super::Hardware<B>) {
         let path = std::path::Path::new(config);
-        println!("Loading resources from: {}", std::fs::canonicalize(path).unwrap().display());
-        let paths = std::fs::read_dir(path).map_err(|_| "counldn't read directory").unwrap();
+        println!(
+            "Loading resources from: {}",
+            std::fs::canonicalize(path).unwrap().display()
+        );
+        let paths = std::fs::read_dir(path)
+            .map_err(|_| "counldn't read directory")
+            .unwrap();
         for path in paths {
             println!("reading thing: {:?}", path);
             let path = path.unwrap().path();
@@ -85,10 +89,10 @@ impl<B: hal::Backend> ResourceManager<B> {
         let string = std::str::from_utf8(bytes)?;
         let set = obj::parse(string).map_err(|e| {
             failure::format_err!(
-            "Error during parsing obj-file at line '{}': {}",
-            e.line_number,
-            e.message
-        )
+                "Error during parsing obj-file at line '{}': {}",
+                e.line_number,
+                e.message
+            )
         })?;
         Self::load_from_data(set)
     }
@@ -153,12 +157,18 @@ impl<B: hal::Backend> ResourceManager<B> {
                 debug_assert!(&normals.len() == &positions.len());
                 debug_assert!(&tex_coords.len() == &positions.len());
 
-                let verts: Vec<_> = positions.into_iter().zip(normals).zip(tex_coords).map(|x| {
-                    PosNormTex { position: (x.0).0, normal: (x.0).1, tex_coord: x.1 }
-                }).collect();
+                let verts: Vec<_> = positions
+                    .into_iter()
+                    .zip(normals)
+                    .zip(tex_coords)
+                    .map(|x| PosNormTex {
+                        position: (x.0).0,
+                        normal: (x.0).1,
+                        tex_coord: x.1,
+                    })
+                    .collect();
 
                 // builder.set_indices(indices.iter().map(|i| i.0 as u16).collect::<Vec<u16>>());
-
 
                 builder.add_vertices(verts);
                 //builder.add_vertices(normals);
@@ -189,7 +199,6 @@ impl<B: hal::Backend> ResourceManager<B> {
         let qid = hardware.families.family(hardware.used_family).queue(0).id();
         let model = model_builder.0.build(qid, &hardware.factory).unwrap();
 
-
         let id = self.meshes.len();
         let name = filename.file_stem().unwrap().to_str().unwrap();
         let indices = model.len();
@@ -204,14 +213,14 @@ impl<B: hal::Backend> ResourceManager<B> {
         use std::io::BufReader;
         let image_reader = BufReader::new(File::open(filename).unwrap());
 
-
         let texture_builder = image::load_from_image(
             image_reader,
             image::ImageTextureConfig {
                 generate_mips: true,
                 ..Default::default()
             },
-        ).unwrap();
+        )
+        .unwrap();
 
         let texture = texture_builder
             .build(
@@ -228,32 +237,33 @@ impl<B: hal::Backend> ResourceManager<B> {
         let id = self.textures.len();
         let name = filename.file_stem().unwrap().to_str().unwrap();
 
-        
-            // set_layout! {
-            //     factory,
-            //     [1] UniformBuffer hal::pso::ShaderStageFlags::FRAGMENT,
-            //     [T::len()] CombinedImageSampler hal::pso::ShaderStageFlags::FRAGMENT
-            // },
+        // set_layout! {
+        //     factory,
+        //     [1] UniformBuffer hal::pso::ShaderStageFlags::FRAGMENT,
+        //     [T::len()] CombinedImageSampler hal::pso::ShaderStageFlags::FRAGMENT
+        // },
         let factory = &mut hardware.factory;
-        let layout = factory.create_descriptor_set_layout(
-            vec![
-                    hal::pso::DescriptorSetLayoutBinding {
-                        binding: 0,
-                        ty: hal::pso::DescriptorType::SampledImage,
-                        count: 1,
-                        stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
-                        immutable_samplers: false,
-                    },
-                    hal::pso::DescriptorSetLayoutBinding {
-                        binding: 1,
-                        ty: hal::pso::DescriptorType::Sampler,
-                        count: 1,
-                        stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
-                        immutable_samplers: false,
-                    },
-            ],
-        ).unwrap();
-        let descriptor_set = factory.create_descriptor_set(Escape::share(layout)).unwrap();
+        let layout = factory
+            .create_descriptor_set_layout(vec![
+                hal::pso::DescriptorSetLayoutBinding {
+                    binding: 0,
+                    ty: hal::pso::DescriptorType::SampledImage,
+                    count: 1,
+                    stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
+                    immutable_samplers: false,
+                },
+                hal::pso::DescriptorSetLayoutBinding {
+                    binding: 1,
+                    ty: hal::pso::DescriptorType::Sampler,
+                    count: 1,
+                    stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
+                    immutable_samplers: false,
+                },
+            ])
+            .unwrap();
+        let descriptor_set = factory
+            .create_descriptor_set(Escape::share(layout))
+            .unwrap();
 
         unsafe {
             factory.device().write_descriptor_sets(vec![
@@ -273,10 +283,12 @@ impl<B: hal::Backend> ResourceManager<B> {
                     descriptors: vec![hal::pso::Descriptor::Sampler(texture.sampler().raw())],
                 },
             ]);
-
         }
 
-        self.textures.push(TextureRes{ texture: texture, desc: Escape::unescape(descriptor_set)});
+        self.textures.push(TextureRes {
+            texture: texture,
+            desc: Escape::unescape(descriptor_set),
+        });
         self.texture_names.insert(name.to_owned(), id);
     }
 }

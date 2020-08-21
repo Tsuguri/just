@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use serde::Deserialize;
 
-use legion::prelude::{Entity, World};
+use legion::prelude::Entity;
+
+use legion::prelude::World as LWorld;
 
 mod function_params;
 mod function_result;
@@ -45,13 +47,11 @@ pub trait ScriptingEngine: Sized {
     type Controller: Controller + 'static;
     type Config: Deserialize<'static>;
 
-    fn create(config: &Self::Config, world: &mut World) -> Self;
+    fn create(config: &Self::Config, world: &mut LWorld) -> Self;
 
-    fn create_script(&mut self, gameobject_id: Entity, typ: &str, world: &mut World);
+    fn create_script(&mut self, gameobject_id: Entity, typ: &str, world: &mut LWorld);
 
-    fn update(&mut self,
-              world: &mut World,
-    );
+    fn update(&mut self, world: &mut LWorld);
 }
 
 #[derive(Debug)]
@@ -67,55 +67,86 @@ pub trait ScriptApiRegistry {
 
     type ErrorType;
 
-    fn register_namespace(&mut self, name: &str, parent: Option<&Self::Namespace>) -> Self::Namespace;
-
-    fn register_function<P, R, F>(&mut self, name: &str, namespace: Option<&Self::Namespace>, fc: F)
-        where P: FunctionParameter,
-              R: FunctionResult,
-              F: 'static + Send + Sync + Fn(P) -> R;
-
-    fn register_native_type<T, P, F>(&mut self, name: &str, namespace: Option<&Self::Namespace>, constructor: F) -> Result<Self::NativeType, TypeCreationError>
-        where T: 'static,
-              P: FunctionParameter,
-              F: 'static + Send + Sync + Fn(P) -> T;
-
-    fn register_native_type_method<T, P, R, F>(&mut self, name: &str, method: F) -> Result<(), TypeCreationError>
-        where T: 'static,
-              P: FunctionParameter,
-              R: FunctionResult,
-              F: 'static + Send + Sync + Fn(P) -> R;
-
-    fn register_native_type_property<T, P1, P2, R, F1, F2>(
+    fn register_namespace(
         &mut self,
         name: &str,
+        parent: Option<&Self::Namespace>,
+    ) -> Self::Namespace;
+
+    fn register_function<P, R, F>(
+        &mut self,
+        name: &str,
+        namespace: Option<&Self::Namespace>,
+        fc: F,
+    ) where
+        P: FunctionParameter,
+        R: FunctionResult,
+        F: 'static + Send + Sync + Fn(P) -> R;
+
+    fn register_native_type<T, P, F>(
+        &mut self,
+        name: &str,
+        namespace: Option<&Self::Namespace>,
+        constructor: F,
+    ) -> Result<Self::NativeType, TypeCreationError>
+    where
+        T: 'static,
+        P: FunctionParameter,
+        F: 'static + Send + Sync + Fn(P) -> T;
+
+    fn register_component<T, P, F>(
+        &mut self,
+        name: &str,
+        namespace: Option<&Self::Namespace>,
+        constructor: F,
+    ) -> Result<Self::NativeType, TypeCreationError>
+    where
+        T: 'static,
+        P: FunctionParameter,
+        F: 'static + Send + Sync + Fn(P) -> T;
+
+    fn register_native_type_method<P, R, F>(
+        &mut self,
+        _type: &Self::NativeType,
+        name: &str,
+        method: F,
+    ) -> Result<(), TypeCreationError>
+    where
+        P: FunctionParameter,
+        R: FunctionResult,
+        F: 'static + Send + Sync + Fn(P) -> R;
+
+    fn register_native_type_property<P1, P2, R, F1, F2>(
+        &mut self,
+        _type: &Self::NativeType,
+        name: &str,
         getter: Option<F1>,
-        setter: Option<F2>)
-        where T: 'static,
-              P1: FunctionParameter,
-              P2: FunctionParameter,
-              R: FunctionResult,
-              F1: 'static + Send + Sync + Fn(P1) -> R,
-              F2: 'static + Send + Sync + Fn(P2);
+        setter: Option<F2>,
+    ) where
+        P1: FunctionParameter,
+        P2: FunctionParameter,
+        R: FunctionResult,
+        F1: 'static + Send + Sync + Fn(P1) -> R,
+        F2: 'static + Send + Sync + Fn(P2);
 
     fn register_static_property<P1, P2, R, F1, F2>(
-        &mut self, 
-        name: &str, 
+        &mut self,
+        name: &str,
         namespace: Option<&Self::Namespace>,
-        getter: Option<F1>, 
-        setter: Option<F2>)
-        where P1: FunctionParameter,
-              P2: FunctionParameter,
-              R: FunctionResult,
-              F1: 'static + Send + Sync + Fn(P1)->R,
-              F2: 'static + Send + Sync + Fn(P2);
-
-    fn register_component<T: 'static>(&mut self, name: &str);
+        getter: Option<F1>,
+        setter: Option<F2>,
+    ) where
+        P1: FunctionParameter,
+        P2: FunctionParameter,
+        R: FunctionResult,
+        F1: 'static + Send + Sync + Fn(P1) -> R,
+        F2: 'static + Send + Sync + Fn(P2);
 }
 
 pub trait Renderer<H: Hardware + ?Sized> {
-    fn create(hardware: &mut H, world: &mut World, res: Arc<H::RM>) -> Self;
-    fn run(&mut self, hardware: &mut H, res: &H::RM, world: &World);
-    fn dispose(&mut self, hardware: &mut H, world: &World);
+    fn create(hardware: &mut H, world: &mut LWorld, res: Arc<H::RM>) -> Self;
+    fn run(&mut self, hardware: &mut H, res: &H::RM, world: &LWorld);
+    fn dispose(&mut self, hardware: &mut H, world: &LWorld);
 }
 
 pub trait Hardware {
