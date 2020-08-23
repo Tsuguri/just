@@ -7,7 +7,7 @@ pub struct InputApi;
 
 impl InputApi {
     pub fn register<SAR: ScriptApiRegistry>(registry: &mut SAR) {
-        let namespace = registry.register_namespace("Input2", None);
+        let namespace = registry.register_namespace("Input", None);
 
         registry.register_function(
             "isKeyboardKeyPressed",

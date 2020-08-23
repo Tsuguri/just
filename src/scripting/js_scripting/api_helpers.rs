@@ -32,10 +32,6 @@ pub fn world(ctx: &js::Context) -> &mut World {
     *ctx.get_user_data_mut::<&mut World>().unwrap()
 }
 
-pub fn prototypes(ctx: &js::Context) -> &HM {
-    *ctx.get_user_data::<&HM>().unwrap()
-}
-
 pub fn external_prototypes(ctx: &js::Context) -> &EHM {
     *ctx.get_user_data::<&EHM>().unwrap()
 }

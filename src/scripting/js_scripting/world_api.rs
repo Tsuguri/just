@@ -13,14 +13,14 @@ fn gameobject_find_by_name(guard: &ContextGuard, args: CallbackInfo) -> Result<V
     let ctx = guard.context();
     let world = world(&ctx);
 
-    let prototypes = prototypes(&ctx);
+    let prototypes = external_prototypes(&ctx);
     let name = args.arguments[0].to_string(guard);
 
     let objs = GameObject::find_by_name(world, &name);
 
     let result = js::value::Array::new(guard, objs.len() as u32);
 
-    let proto = prototypes[&InternalTypes::GameObject].clone();
+    let proto = prototypes[&std::any::TypeId::of::<GameObjectData>()].clone();
     for (id, val) in objs.iter().enumerate() {
         let obj = js::value::External::new(guard, Box::new(GameObjectData { id: *val }));
         obj.set_prototype(guard, proto.clone());
@@ -35,10 +35,10 @@ fn gameobject_create(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, 
     let ctx = guard.context();
     let world = world(&ctx);
 
-    let prototypes = prototypes(&ctx);
+    let prototypes = external_prototypes(&ctx);
     let obj = GameObject::create_empty(world);
 
-    let proto = prototypes[&InternalTypes::GameObject].clone();
+    let proto = prototypes[&std::any::TypeId::of::<GameObjectData>()].clone();
     let res = js::value::External::new(guard, Box::new(GameObjectData { id: obj }));
     res.set_prototype(guard, proto);
 

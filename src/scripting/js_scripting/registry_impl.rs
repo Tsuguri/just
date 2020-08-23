@@ -8,7 +8,7 @@ use super::js::{
 };
 use super::EHM;
 use super::{JsRuntimeError, JsScriptEngine};
-use crate::traits::{FunctionParameter, FunctionResult, ScriptApiRegistry, TypeCreationError};
+use crate::traits::{FunctionParameter, FunctionResult, ScriptApiRegistry, TypeCreationError, ResultEncoder, ParametersSource};
 use legion::prelude::*;
 
 struct JsResultEncoder<'a> {
@@ -35,8 +35,10 @@ impl<'a> crate::traits::ResultEncoder for JsResultEncoder<'a> {
         Number::new(&self.guard, value).into()
     }
 
-    fn encode_external_type<T>(&mut self, value: T) -> Self::ResultType {
-        External::new(&self.guard, Box::new(value)).into()
+    fn encode_external_type<T: 'static>(&mut self, value: T) -> Self::ResultType {
+        let mut obj = External::new(&self.guard, Box::new(value));
+        obj.set_prototype(&self.guard, self.external_prototypes[&std::any::TypeId::of::<T>()].clone());
+        obj.into()
     }
 
     fn encode_string(&mut self, value: &str) -> Self::ResultType {
@@ -111,6 +113,15 @@ impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
         Result::Ok(&mut self.world)
     }
 
+    fn read_native<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType> {
+        let native = self.params.arguments[self.current]
+            .clone()
+            .into_external()
+            .ok_or(JsRuntimeError::WrongTypeParameter)?;
+        self.current += 1;
+        Result::Ok(unsafe { std::mem::transmute::<&mut T, &'static mut T>(native.value::<T>()) })
+    }
+
     fn read_native_this<T: 'static + Send + Sync + Sized>(
         &mut self,
     ) -> Result<&mut T, Self::ErrorType> {
@@ -123,13 +134,46 @@ impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
         Result::Ok(unsafe { std::mem::transmute::<&mut T, &'static mut T>(native.value::<T>()) })
     }
 
-    fn read_native<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType> {
+    fn read_component<T: 'static + Send + Sync + Sized>(&mut self) -> Result<legion::borrow::RefMut<T>, Self::ErrorType> {
         let native = self.params.arguments[self.current]
             .clone()
             .into_external()
             .ok_or(JsRuntimeError::WrongTypeParameter)?;
         self.current += 1;
-        Result::Ok(unsafe { std::mem::transmute::<&mut T, &'static mut T>(native.value::<T>()) })
+        let component_info = unsafe {native.value::<ComponentHandle>()};
+        let go_id = component_info.id;
+
+        match self.world.get_component_mut(go_id) {
+            None => {
+                Result::Err(JsRuntimeError::ComponentNotPresent)
+            }
+            Some(x) => {
+                Result::Ok(x)
+            }
+        }
+        
+    }
+
+    fn read_component_this<T: 'static + Send + Sync + Sized>(
+            &mut self,
+        ) -> Result<legion::borrow::RefMut<T>, Self::ErrorType> {
+        let native = self
+            .params
+            .this
+            .clone()
+            .into_external()
+            .ok_or(JsRuntimeError::WrongTypeParameter)?;
+        let component_info = unsafe {native.value::<ComponentHandle>()};
+        let go_id = component_info.id;
+
+        match self.world.get_component_mut(go_id) {
+            None => {
+                Result::Err(JsRuntimeError::ComponentNotPresent)
+            }
+            Some(x) => {
+                Result::Ok(x)
+            }
+        }
     }
 
     fn is_null(&self) -> bool {
@@ -159,6 +203,137 @@ impl<'a> JsParamSource<'a> {
         }
     }
 }
+
+struct ComponentCreationData {
+    magic_value: f64,
+    create: Box<dyn Fn(&mut World, Entity)>,
+    delete: Box<dyn Fn(&mut World, Entity)>,
+    get: Box<dyn Fn(&mut World, Entity) -> Option<ComponentHandle>>,
+    handle_prototype: Object,
+}
+
+struct ComponentHandle {
+    id: Entity,
+}
+
+impl JsScriptEngine {
+    pub fn create_component_api(&mut self) {
+        let guard = self.context.make_current().unwrap();
+        let game_object_id = std::any::TypeId::of::<super::game_object_api::GameObjectData>();
+        let game_object_prototype = self.external_types_prototypes[&game_object_id].clone();
+
+        assert!(!game_object_prototype.is_null());
+        let fun = Function::new(
+            &guard,
+            Box::new(move |gd, params| {
+                let ctx = gd.context();
+                let mut world = api_helpers::world(&ctx);
+                let go = params.this.clone().into_external().unwrap();
+                let go_data = unsafe {go.value::<super::game_object_api::GameObjectData>()};
+                let go_id = go_data.id;
+
+                if params.arguments.len() == 0 {
+                    return Result::Err(null(gd));
+                }
+
+                let component_this = params.arguments[0].clone().into_external();
+                match component_this {
+                    Some(x)=>{
+                        unsafe {
+                            let data = x.value::<ComponentCreationData>();
+                            if data.magic_value != 12312.1f64 {
+                                return Result::Err(null(gd));
+                            }
+                            match (data.get)(&mut world,go_id) {
+                                None => return Result::Ok(null(gd)),
+                                Some(y) => {
+                                    let handle = External::new(gd, Box::new(y));
+                                    handle.set_prototype(gd, data.handle_prototype.clone());
+                                    return Result::Ok(handle.into());
+                                }
+                            }
+                        }
+                    },
+                    None =>{
+                        return Result::Err(null(gd));
+                        // passed argument is not component creation data.
+                        // for now it may be script class.
+                    },
+                };
+            }),
+        );
+        game_object_prototype.set(&guard, Property::new(&guard, "getComponent"), fun);
+
+        let fun = Function::new(
+            &guard,
+            Box::new(move |gd, params| {
+                let ctx = gd.context();
+                let mut world = api_helpers::world(&ctx);
+                let go = params.this.clone().into_external().unwrap();
+                let go_data = unsafe{go.value::<super::game_object_api::GameObjectData>()};
+                let go_id = go_data.id;
+
+                if params.arguments.len() == 0 {
+                    return Result::Err(null(gd));
+                }
+
+                let component_this = params.arguments[0].clone().into_external();
+                match component_this {
+                    Some(x)=>{
+                        unsafe {
+                            let data = x.value::<ComponentCreationData>();
+                            if data.magic_value != 12312.1f64 {
+                                return Result::Err(null(gd));
+                            }
+                            (data.delete)(&mut world, go_id);
+                        }
+                    },
+                    None => (),
+                };
+                Result::Ok(null(gd))
+            }),
+        );
+        game_object_prototype.set(&guard, Property::new(&guard, "deleteComponent"), fun);
+
+        let fun = Function::new(
+            &guard,
+            Box::new(move |gd, params| {
+                let ctx = gd.context();
+                let mut world = api_helpers::world(&ctx);
+                let go = params.this.clone().into_external().unwrap();
+                let go_data = unsafe {go.value::<super::game_object_api::GameObjectData>()};
+                let go_id = go_data.id;
+
+                if params.arguments.len() == 0 {
+                    return Result::Err(null(gd));
+                }
+
+                let component_this = params.arguments[0].clone().into_external();
+                match component_this {
+                    Some(x)=>{
+                        unsafe {
+                            let data = x.value::<ComponentCreationData>();
+                            if data.magic_value != 12312.1f64 {
+                                println!("magic value not present");
+                                println!("magic value: {}", data.magic_value);
+                                return Result::Err(null(gd));
+                            }
+                            (data.create)(&mut world, go_id);
+                            return Result::Ok(null(gd));
+                        }
+                    },
+                    None => {
+                        println!("This is not external of GameObjectData");
+                        return Result::Err(null(gd));
+                    },
+                };
+            }),
+        );
+        game_object_prototype.set(&guard, Property::new(&guard, "createComponent"), fun);
+
+    }
+}
+
 
 impl ScriptApiRegistry for JsScriptEngine {
     type Namespace = Object;
@@ -260,16 +435,16 @@ impl ScriptApiRegistry for JsScriptEngine {
 
         Result::Ok(ret.into())
     }
-    fn register_component<T, P, F>(
+
+    fn register_component<T, F>(
         &mut self,
         name: &str,
         namespace: Option<&Self::Namespace>,
         constructor: F,
     ) -> Result<Self::NativeType, TypeCreationError>
     where
-        T: 'static,
-        P: FunctionParameter,
-        F: 'static + Send + Sync + Fn(P) -> T,
+        T: 'static + Send + Sync,
+        F: 'static + Send + Sync + Fn() -> T,
     {
         let guard = self.context.make_current().unwrap();
         let global = guard.global();
@@ -281,26 +456,34 @@ impl ScriptApiRegistry for JsScriptEngine {
         let ret = prototype.clone();
         self.external_types_prototypes
             .insert(type_id, prototype.clone());
-        let factory_function = Function::new(
-            &guard,
-            Box::new(move |g, args| {
-                let ctx = g.context();
-                let world = api_helpers::world(&ctx);
-                let mut param_source = JsParamSource::create(g, args, world);
-                let obj = External::new(
-                    g,
-                    Box::new(constructor(P::read(&mut param_source).unwrap())),
-                );
-                obj.set_prototype(g, prototype.clone()).unwrap();
 
-                Result::Ok(obj.into())
+        let creation_data = External::new(
+            &guard,
+            Box::new(ComponentCreationData {
+                create: Box::new(move |world: &mut World, id: Entity| {
+                    let comp = constructor();
+                    world.add_component(id, comp);
+                }),
+                delete: Box::new(move |world: &mut World, id: Entity| {
+                    world.remove_component::<T>(id);
+                }),
+                get: Box::new(|world: &mut World, id: Entity| {
+                    let cp = world.get_component::<T>(id);
+                    match cp {
+                        None => return None,
+                        Some(x) => return Some(ComponentHandle { id }),
+                    }
+                }),
+                handle_prototype: prototype,
+                magic_value: 12312.1f64 ,
             }),
         );
+
         let par = match namespace {
             Some(x) => x,
             None => &global,
         };
-        par.set(&guard, Property::new(&guard, name), factory_function);
+        par.set(&guard, Property::new(&guard, name), creation_data);
 
         Result::Ok(ret.into())
     }

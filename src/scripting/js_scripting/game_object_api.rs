@@ -7,7 +7,7 @@ use js::{
 
 use super::api_helpers::*;
 use super::{ScriptCreationData, ScriptCreationQueue};
-use crate::core::{GameObject, Mesh, TransformHierarchy};
+use crate::core::{GameObject, Renderable, TransformHierarchy};
 use crate::scripting::js_scripting::resources_api::MeshData;
 use crate::scripting::js_scripting::JsScript;
 use crate::scripting::InternalTypes;
@@ -43,7 +43,7 @@ fn set_renderable(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Val
     let m = args.arguments[0].clone().into_external().unwrap();
     let mesh = unsafe { m.value::<MeshData>() };
 
-    Mesh::add_renderable_to_go(world, this.id, mesh.id);
+    Renderable::add_renderable_to_go(world, this.id, mesh.id);
 
     Result::Ok(js::value::null(guard))
 }

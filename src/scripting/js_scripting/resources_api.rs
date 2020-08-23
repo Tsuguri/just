@@ -9,10 +9,12 @@ use super::api_helpers::*;
 
 use crate::traits::{MeshId, ResourceProvider, TextureId};
 
+#[derive(Copy, Clone)]
 pub struct MeshData {
     pub id: MeshId,
 }
 
+#[derive(Copy, Clone)]
 pub struct TextureData {
     pub id: TextureId,
 }

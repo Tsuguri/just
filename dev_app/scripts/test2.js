@@ -38,8 +38,11 @@ class nojs {
             const pos = new Math.Vector3(this.last, Math.Sin(this.last), 5.0);
             n.position = pos;
             n.name = "heh2";
-            n.setRenderable(this.mesh);
-            n.setScript("test_script");
+            n.createComponent(Renderable);
+            let renderable = n.getComponent(Renderable);
+            renderable.mesh = this.mesh;
+            //n.setRenderable(this.mesh);
+            //n.setScript("test_script");
 
 
         }

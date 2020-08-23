@@ -19,11 +19,18 @@ pub trait ParametersSource {
 
     fn read_world(&mut self) -> Result<&mut legion::world::World, Self::ErrorType>;
 
+    fn read_native<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType>;
+
     fn read_native_this<T: 'static + Send + Sync + Sized>(
         &mut self,
     ) -> Result<&mut T, Self::ErrorType>;
 
-    fn read_native<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType>;
+    fn read_component<T: 'static + Send + Sync + Sized>(&mut self) -> Result<legion::borrow::RefMut<T>, Self::ErrorType>;
+
+    fn read_component_this<T: 'static + Send + Sync + Sized>(
+        &mut self,
+    ) -> Result<legion::borrow::RefMut<T>, Self::ErrorType>;
+
 
     fn is_null(&self) -> bool;
 }
@@ -42,6 +49,56 @@ pub struct Data<'a, T: 'static + Send + Sync> {
 
 pub struct This<T: 'static + Send + Sync> {
     pub val: &'static mut T,
+}
+
+pub struct Component<T: 'static + Send + Sync> {
+    pub val: &'static mut T,
+}
+
+pub struct ComponentThis<T: 'static + Send + Sync> {
+    pub val: &'static mut T,
+}
+
+impl<T: 'static + Send + Sync> FunctionParameter for Component<T> {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        let component =
+            unsafe { std::mem::transmute::<&mut T, &'static mut T>(&mut *source.read_component()?) };
+        Result::Ok(Self { val: component })
+    }
+}
+
+impl<T: 'static + Send + Sync> std::ops::Deref for Component<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.val
+    }
+}
+
+impl<T: 'static + Send + Sync> std::ops::DerefMut for Component<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.val
+    }
+}
+
+impl<T: 'static + Send + Sync> FunctionParameter for ComponentThis<T> {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        let component =
+            unsafe { std::mem::transmute::<&mut T, &'static mut T>(&mut *source.read_component_this()?) };
+        Result::Ok(Self { val: component })
+    }
+}
+
+impl<T: 'static + Send + Sync> std::ops::Deref for ComponentThis<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.val
+    }
+}
+
+impl<T: 'static + Send + Sync> std::ops::DerefMut for ComponentThis<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.val
+    }
 }
 
 impl<'a> FunctionParameter for World<'a> {

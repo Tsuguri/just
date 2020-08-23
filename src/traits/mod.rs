@@ -94,16 +94,15 @@ pub trait ScriptApiRegistry {
         P: FunctionParameter,
         F: 'static + Send + Sync + Fn(P) -> T;
 
-    fn register_component<T, P, F>(
+    fn register_component<T, F>(
         &mut self,
         name: &str,
         namespace: Option<&Self::Namespace>,
         constructor: F,
     ) -> Result<Self::NativeType, TypeCreationError>
     where
-        T: 'static,
-        P: FunctionParameter,
-        F: 'static + Send + Sync + Fn(P) -> T;
+        T: 'static + Send + Sync,
+        F: 'static + Send + Sync + Fn() -> T;
 
     fn register_native_type_method<P, R, F>(
         &mut self,

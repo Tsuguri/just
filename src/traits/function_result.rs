@@ -9,12 +9,12 @@ pub trait ResultEncoder {
 
     fn encode_i32(&mut self, value: i32) -> Self::ResultType;
 
-    fn encode_external_type<T>(&mut self, value: T) -> Self::ResultType;
+    fn encode_external_type<T: 'static>(&mut self, value: T) -> Self::ResultType;
 
     fn encode_string(&mut self, value: &str) -> Self::ResultType;
 }
 
-pub trait FunctionResult: Sized {
+pub trait FunctionResult: Sized + 'static {
     fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
         enc.encode_external_type(self)
     }

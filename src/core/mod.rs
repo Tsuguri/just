@@ -27,7 +27,7 @@ use legion::prelude::*;
 
 pub use game_object::GameObject;
 pub use hierarchy::TransformHierarchy;
-pub use world_data::Mesh;
+pub use world_data::Renderable;
 
 struct Animator;
 
@@ -187,12 +187,12 @@ impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
                 Some(tex_res)
             }
         };
-        let mesh = world_data::Mesh {
-            mesh_id: mesh,
-            texture_id: tex,
+        let mesh = world_data::Renderable {
+            mesh: Some(mesh),
+            texture: tex,
         };
 
-        Mesh::add_tex_renderable(&mut self.world, id, mesh);
+        Renderable::add_tex_renderable(&mut self.world, id, mesh);
     }
 
     pub fn add_script(&mut self, entity_id: Entity, typ: &str) {

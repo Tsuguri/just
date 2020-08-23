@@ -1,7 +1,7 @@
 use super::node_prelude::*;
 
 use super::octo_node::{RenderingConstants, Value};
-use crate::core::Mesh;
+use crate::core::Renderable;
 use crate::core::TransformHierarchy;
 use legion::prelude::*;
 
@@ -241,7 +241,7 @@ where
             let buf = self.renderables_buffer.take();
 
             let buf = {
-                let query = <(Read<Mesh>)>::query();
+                let query = <(Read<Renderable>)>::query();
 
                 let mut buf = match buf {
                     Some(mut vec) => {
@@ -256,7 +256,12 @@ where
 
                 for (entity_id, mesh) in query.iter_entities_immutable(data) {
                     let mat = TransformHierarchy::get_global_matrix(data, entity_id);
-                    buf.push((mesh.mesh_id, mesh.texture_id, mat));
+                    match mesh.mesh {
+                        None =>(),
+                        Some(x) => {
+                            buf.push((x, mesh.texture, mat));
+                        }
+                    }
                 }
                 buf
             };

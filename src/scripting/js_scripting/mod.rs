@@ -25,6 +25,8 @@ use env::JsEnvironment;
 use legion::prelude::*;
 
 use game_object_api::GameObjectApi;
+pub use resources_api::MeshData;
+pub use resources_api::TextureData;
 
 #[derive(PartialEq, Eq, Hash)]
 pub enum InternalTypes {
@@ -92,7 +94,6 @@ pub struct JsScriptEngine {
     _runtime: js::Runtime,
     external_types_prototypes: EHM,
     context: ManuallyDrop<js::Context>,
-    prototypes: HM,
     ui_events_handler: EventDispatcher<UiEvent>,
 }
 
@@ -128,7 +129,6 @@ impl JsScript {
 impl std::ops::Drop for JsScriptEngine {
     fn drop(&mut self) {
         unsafe {
-            self.prototypes.clear();
             self.external_types_prototypes.clear();
             ManuallyDrop::drop(&mut self.context);
         }
@@ -177,9 +177,11 @@ impl JsScriptEngine {
         // TODO: move other systems outside of scripting engine and move GO api creation into configure/initialization steps.
         // TODO: load only needed api?
         GameObjectApi::register(self);
+        self.create_component_api();
         MathApi::register(self);
         ConsoleApi::register(self);
         InputApi::register(self);
+        RenderableApi::register(self);
         self.create_world_api();
         self.create_resources_api();
     }
@@ -284,7 +286,6 @@ impl ScriptingEngine for JsScriptEngine {
         let mut engine = Self {
             _runtime: runtime,
             context: ManuallyDrop::new(context),
-            prototypes: Default::default(),
             ui_events_handler,
             external_types_prototypes: Default::default(),
         };
@@ -297,7 +298,6 @@ impl ScriptingEngine for JsScriptEngine {
         let env = JsEnvironment::set_up(
             &self.context,
             world,
-            &self.prototypes,
             &self.external_types_prototypes,
         );
 
@@ -322,7 +322,6 @@ impl ScriptingEngine for JsScriptEngine {
         let env = JsEnvironment::set_up(
             &self.context,
             world,
-            &self.prototypes,
             &self.external_types_prototypes,
         );
 
@@ -371,11 +370,13 @@ pub enum JsRuntimeError {
     WrongTypeParameter,
     ExpectedParameterNotPresent,
     TypeNotRegistered,
+    ComponentNotPresent,
 }
 
 struct JsApi<'a> {
     guard: &'a ContextGuard<'a>,
 }
+
 struct EventHandler {
     object: js::value::Object,
     handler: js::value::Function,
