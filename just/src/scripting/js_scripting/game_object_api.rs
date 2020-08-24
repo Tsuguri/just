@@ -7,10 +7,8 @@ use js::{
 
 use super::api_helpers::*;
 use super::{ScriptCreationData, ScriptCreationQueue};
-use crate::core::{GameObject, Renderable, TransformHierarchy};
-use crate::scripting::js_scripting::resources_api::MeshData;
+use crate::core::{GameObject, TransformHierarchy};
 use crate::scripting::js_scripting::JsScript;
-use crate::scripting::InternalTypes;
 use crate::traits::*;
 use legion::prelude::Entity;
 
@@ -31,21 +29,6 @@ impl FunctionParameter for GameObjectData {
         let nat = source.read_native()?;
         Result::Ok(*nat)
     }
-}
-
-fn set_renderable(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
-    let ctx = guard.context();
-    let world = world(&ctx);
-
-    let te = args.this.into_external().unwrap();
-    let this = unsafe { te.value::<GameObjectData>() };
-
-    let m = args.arguments[0].clone().into_external().unwrap();
-    let mesh = unsafe { m.value::<MeshData>() };
-
-    Renderable::add_renderable_to_go(world, this.id, mesh.id);
-
-    Result::Ok(js::value::null(guard))
 }
 
 fn set_script(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
@@ -112,7 +95,7 @@ impl GameObjectApi {
             Some(|args: (This<GameObjectData>, World)| {
                 TransformHierarchy::get_global_position(&args.1, args.0.id)
             }),
-            Some(|()| {}),
+            None::<fn(())>,
         );
 
         registry.register_native_type_property(
