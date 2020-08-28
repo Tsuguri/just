@@ -1,4 +1,4 @@
-use legion::prelude::*;
+use just_core::ecs::prelude::*;
 
 #[derive(Clone)]
 pub struct GameObject {

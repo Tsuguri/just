@@ -1,25 +1,13 @@
-use crate::math::*;
+use just_core::math::*;
+use just_core::glm;
 
-use crate::scripting::InternalTypes;
+use just_traits::scripting::{
+    ScriptApiRegistry,
+    function_params::*,
+};
 
-use crate::traits::*;
 
 pub struct MathApi;
-
-impl FunctionResult for Vec3 {}
-impl FunctionParameter for Vec3 {
-    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
-        let nat = source.read_native()?;
-        Result::Ok(*nat)
-    }
-}
-impl FunctionResult for Vec2 {}
-impl FunctionParameter for Vec2 {
-    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
-        let nat = source.read_native()?;
-        Result::Ok(*nat)
-    }
-}
 
 impl MathApi {
     pub fn register<SAR: ScriptApiRegistry>(registry: &mut SAR) {
@@ -46,7 +34,7 @@ impl MathApi {
             .unwrap();
         registry
             .register_native_type_method(&vec3_type, "Len", |args: (This<Vec3>, Vec3)| {
-                nalgebra_glm::distance(&*args.0, &args.1) as f32
+                glm::distance(&*args.0, &args.1) as f32
             })
             .unwrap();
 

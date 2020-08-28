@@ -835,21 +835,46 @@ version = "0.1.0"
 dependencies = [
  "chakracore 0.2.0 (git+https://github.com/darfink/chakracore-rs?rev=93adef0a4ab297fbeaf228c403b8090e0979a1aa)",
  "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "just_core 0.1.0",
+ "just_input 0.1.0",
+ "just_traits 0.1.0",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "legion 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "nalgebra-glm 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "octo 0.1.0",
  "octo_runtime 0.0.1",
  "rand 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "rendy 0.4.0 (git+https://github.com/amethyst/rendy?rev=1980054d9efa3355eaa76163990e7127fb169295)",
  "ron 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "schemars 0.7.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.57 (registry+https://github.com/rust-lang/crates.io-index)",
- "shrev 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "slotmap 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "stretch 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "wavefront_obj 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "just_core"
+version = "0.1.0"
+dependencies = [
+ "legion 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nalgebra-glm 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rendy 0.4.0 (git+https://github.com/amethyst/rendy?rev=1980054d9efa3355eaa76163990e7127fb169295)",
+ "shrev 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "just_input"
+version = "0.1.0"
+dependencies = [
+ "just_core 0.1.0",
+ "just_traits 0.1.0",
+]
+
+[[package]]
+name = "just_traits"
+version = "0.1.0"
+dependencies = [
+ "legion 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nalgebra-glm 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

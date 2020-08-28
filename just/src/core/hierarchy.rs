@@ -1,7 +1,7 @@
 use super::game_object::GameObject;
 use super::transform::Transform;
-use crate::math::*;
-use legion::prelude::{Entity, World};
+use just_core::math::*;
+use just_core::ecs::prelude::{Entity, World};
 
 pub struct TransformHierarchy;
 

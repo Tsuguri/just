@@ -1,5 +1,5 @@
 use super::js;
-use crate::math::*;
+use just_core::math::*;
 use js::{
     value::{function::CallbackInfo, Value},
     ContextGuard,
@@ -9,8 +9,14 @@ use super::api_helpers::*;
 use super::{ScriptCreationData, ScriptCreationQueue};
 use crate::core::{GameObject, TransformHierarchy};
 use crate::scripting::js_scripting::JsScript;
-use crate::traits::*;
-use legion::prelude::Entity;
+use just_core::ecs::prelude::Entity;
+
+use just_traits::scripting::{
+    ScriptApiRegistry,
+    FunctionResult,
+    FunctionParameter,
+    function_params::*,
+};
 
 #[derive(Debug, Copy, Clone)]
 pub struct GameObjectData {

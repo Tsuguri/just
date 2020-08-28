@@ -3,7 +3,7 @@ use crate::glm;
 use crate::graphics::{CameraData, ViewportData};
 use crate::math::*;
 use ron::de::from_str;
-use schemars::{schema_for, JsonSchema};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, JsonSchema)]

@@ -1,6 +1,6 @@
 use crate::traits::{
-    Controller, FunctionParameter, FunctionResult, ResourceManager, ResourceProvider,
-    ScriptApiRegistry, ScriptingEngine,
+    Controller,
+    ScriptingEngine,
 };
 
 use chakracore as js;
@@ -9,12 +9,11 @@ use std::mem::ManuallyDrop;
 
 use crate::ui::UiEvent;
 
-use super::apis::*;
+use crate::apis::*;
 
 #[macro_use]
 mod api_helpers;
 
-mod der;
 mod env;
 mod game_object_api;
 mod registry_impl;
@@ -22,7 +21,7 @@ mod resources_api;
 mod world_api;
 
 use env::JsEnvironment;
-use legion::prelude::*;
+use just_core::ecs::prelude::*;
 
 use game_object_api::GameObjectApi;
 pub use resources_api::MeshData;
@@ -325,7 +324,7 @@ impl ScriptingEngine for JsScriptEngine {
             &self.external_types_prototypes,
         );
 
-        let query = <(Read<JsScript>)>::query();
+        let query = <Read<JsScript>>::query();
 
         self.ui_events_handler.dispatch(&guard, world);
 

@@ -2,15 +2,8 @@ use std::sync::Arc;
 
 use serde::Deserialize;
 
-use legion::prelude::Entity;
-
-use legion::prelude::World as LWorld;
-
-mod function_params;
-mod function_result;
-
-pub use function_params::*;
-pub use function_result::*;
+use just_core::ecs::prelude::Entity;
+use just_core::ecs::prelude::World as LWorld;
 
 pub type MeshId = usize;
 pub type TextureId = usize;
@@ -54,93 +47,6 @@ pub trait ScriptingEngine: Sized {
     fn update(&mut self, world: &mut LWorld);
 }
 
-#[derive(Debug)]
-pub enum TypeCreationError {
-    TypeAlreadyRegistered,
-    TypeNotRegistered,
-}
-
-pub trait ScriptApiRegistry {
-    type Namespace;
-    type Type;
-    type NativeType;
-
-    type ErrorType;
-
-    fn register_namespace(
-        &mut self,
-        name: &str,
-        parent: Option<&Self::Namespace>,
-    ) -> Self::Namespace;
-
-    fn register_function<P, R, F>(
-        &mut self,
-        name: &str,
-        namespace: Option<&Self::Namespace>,
-        fc: F,
-    ) where
-        P: FunctionParameter,
-        R: FunctionResult,
-        F: 'static + Send + Sync + Fn(P) -> R;
-
-    fn register_native_type<T, P, F>(
-        &mut self,
-        name: &str,
-        namespace: Option<&Self::Namespace>,
-        constructor: F,
-    ) -> Result<Self::NativeType, TypeCreationError>
-    where
-        T: 'static,
-        P: FunctionParameter,
-        F: 'static + Send + Sync + Fn(P) -> T;
-
-    fn register_component<T, F>(
-        &mut self,
-        name: &str,
-        namespace: Option<&Self::Namespace>,
-        constructor: F,
-    ) -> Result<Self::NativeType, TypeCreationError>
-    where
-        T: 'static + Send + Sync,
-        F: 'static + Send + Sync + Fn() -> T;
-
-    fn register_native_type_method<P, R, F>(
-        &mut self,
-        _type: &Self::NativeType,
-        name: &str,
-        method: F,
-    ) -> Result<(), TypeCreationError>
-    where
-        P: FunctionParameter,
-        R: FunctionResult,
-        F: 'static + Send + Sync + Fn(P) -> R;
-
-    fn register_native_type_property<P1, P2, R, F1, F2>(
-        &mut self,
-        _type: &Self::NativeType,
-        name: &str,
-        getter: Option<F1>,
-        setter: Option<F2>,
-    ) where
-        P1: FunctionParameter,
-        P2: FunctionParameter,
-        R: FunctionResult,
-        F1: 'static + Send + Sync + Fn(P1) -> R,
-        F2: 'static + Send + Sync + Fn(P2);
-
-    fn register_static_property<P1, P2, R, F1, F2>(
-        &mut self,
-        name: &str,
-        namespace: Option<&Self::Namespace>,
-        getter: Option<F1>,
-        setter: Option<F2>,
-    ) where
-        P1: FunctionParameter,
-        P2: FunctionParameter,
-        R: FunctionResult,
-        F1: 'static + Send + Sync + Fn(P1) -> R,
-        F2: 'static + Send + Sync + Fn(P2);
-}
 
 pub trait Renderer<H: Hardware + ?Sized> {
     fn create(hardware: &mut H, world: &mut LWorld, res: Arc<H::RM>) -> Self;

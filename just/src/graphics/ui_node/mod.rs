@@ -1,12 +1,15 @@
 use super::node_prelude::*;
 use crate::ui::*;
 use failure;
-use legion::prelude::*;
-use rendy::graph::render::{PrepareResult, RenderGroup, RenderGroupDesc};
-use rendy::hal::{
-    self,
-    pass::Subpass,
-    pso::{CreationError, GraphicsPipelineDesc},
+
+use just_core::{
+    ecs::prelude::*,
+    graphics::{
+        self,
+        hal,
+        graph::render::PrepareResult,
+    },
+    math::*,
 };
 
 lazy_static::lazy_static! {
@@ -26,7 +29,7 @@ lazy_static::lazy_static! {
         "main",
     ).precompile().unwrap();
 
-    static ref SHADERS: rendy::shader::ShaderSetBuilder = rendy::shader::ShaderSetBuilder::default()
+    static ref SHADERS: graphics::shader::ShaderSetBuilder = graphics::shader::ShaderSetBuilder::default()
         .with_vertex(&*VERTEX).unwrap()
         .with_fragment(&*FRAGMENT).unwrap();
 }
@@ -42,8 +45,6 @@ pub struct UiNode<B: hal::Backend> {
 }
 
 struct UiRenderingData {}
-
-use crate::math::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub(crate) struct UiArgs {
@@ -92,7 +93,7 @@ where
         let push_constants = vec![
             // vec2, 4 bytes each component
             (
-                rendy::hal::pso::ShaderStageFlags::VERTEX,
+                graphics::hal::pso::ShaderStageFlags::VERTEX,
                 0..((2 + 2 + 2 + 4 + 4 + 4) * 4),
             ),
         ];

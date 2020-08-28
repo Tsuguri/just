@@ -1,11 +1,16 @@
-use crate::traits::ScriptApiRegistry;
+use just_traits::scripting::{
+    ScriptApiRegistry,
+    FunctionResult,
+    FunctionParameter,
+    ParametersSource,
+    function_params::*,
+};
 
 pub struct RenderableApi;
 
 use crate::core::Renderable;
 
-use crate::scripting::js_scripting::{MeshData, TextureData};
-use crate::traits::*;
+use crate::scripting::{MeshData, TextureData};
 
 impl FunctionResult for MeshData {}
 impl FunctionParameter for MeshData {

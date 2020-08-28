@@ -3,11 +3,12 @@
 pub mod core;
 pub mod graphics;
 pub mod input;
-pub mod math;
 pub mod scene_serialization;
 pub mod scripting;
 pub mod traits;
 pub mod ui;
+
+pub mod apis;
 
 pub use scripting::JsEngineConfig;
 

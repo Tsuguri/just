@@ -1,4 +1,4 @@
-use rendy::wsi::winit::VirtualKeyCode as KC;
+use super::winit::VirtualKeyCode as KC;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum KeyCode {

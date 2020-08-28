@@ -1,4 +1,4 @@
-use crate::traits::ScriptApiRegistry;
+use just_traits::scripting::ScriptApiRegistry;
 
 pub struct ConsoleApi;
 

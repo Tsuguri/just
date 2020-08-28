@@ -4,8 +4,9 @@ mod octo_node;
 mod resources;
 mod ui_node;
 
-use legion::prelude::World;
-use rendy;
+use just_core::ecs::prelude::World;
+use just_core::graphics as rendy;
+use just_core::math::{Quat, Vec3};
 
 use crate::traits;
 
@@ -24,7 +25,6 @@ use rendy::{
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
 
-use crate::math::{Quat, Vec3};
 use octo_runtime::OctoModule;
 use ui_node::UiNodeDesc;
 

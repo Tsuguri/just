@@ -1,9 +1,9 @@
 pub use crate::traits::{ResourceManager as _, ResourceProvider as _};
-pub use nalgebra_glm as glm;
+pub use just_core::glm;
 pub use std::sync::Arc;
 
 pub use super::resources::ResourceManager;
-pub use rendy::{
+pub use just_core::graphics::{
     command::{QueueId, RenderPassEncoder},
     factory::Factory,
     graph::{

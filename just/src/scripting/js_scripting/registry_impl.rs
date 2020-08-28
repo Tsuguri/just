@@ -8,15 +8,23 @@ use super::js::{
 };
 use super::EHM;
 use super::{JsRuntimeError, JsScriptEngine};
-use crate::traits::{FunctionParameter, FunctionResult, ScriptApiRegistry, TypeCreationError, ResultEncoder, ParametersSource};
-use legion::prelude::*;
+
+use just_traits::scripting::{
+    ScriptApiRegistry,
+    FunctionResult,
+    FunctionParameter,
+    TypeCreationError,
+    ResultEncoder,
+    ParametersSource,
+};
+use just_core::ecs::prelude::*;
 
 struct JsResultEncoder<'a> {
     guard: &'a ContextGuard<'a>,
     external_prototypes: &'a EHM,
 }
 
-impl<'a> crate::traits::ResultEncoder for JsResultEncoder<'a> {
+impl<'a> ResultEncoder for JsResultEncoder<'a> {
     type ResultType = Value;
 
     fn empty(&mut self) -> Self::ResultType {
@@ -36,8 +44,8 @@ impl<'a> crate::traits::ResultEncoder for JsResultEncoder<'a> {
     }
 
     fn encode_external_type<T: 'static>(&mut self, value: T) -> Self::ResultType {
-        let mut obj = External::new(&self.guard, Box::new(value));
-        obj.set_prototype(&self.guard, self.external_prototypes[&std::any::TypeId::of::<T>()].clone());
+        let obj = External::new(&self.guard, Box::new(value));
+        obj.set_prototype(&self.guard, self.external_prototypes[&std::any::TypeId::of::<T>()].clone()).unwrap();
         obj.into()
     }
 
@@ -53,7 +61,7 @@ struct JsParamSource<'a> {
     current: usize,
 }
 
-impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
+impl<'a> ParametersSource for JsParamSource<'a> {
     type ErrorType = JsRuntimeError;
 
     fn read_float(&mut self) -> Result<f32, Self::ErrorType> {
@@ -179,18 +187,6 @@ impl<'a> crate::traits::ParametersSource for JsParamSource<'a> {
     fn is_null(&self) -> bool {
         self.params.arguments.len() <= self.current || self.params.arguments[self.current].is_null()
     }
-
-    /*
-    fn read_component<'b, T: 'b + Send + Sync>(&'b mut self, id: Entity) -> Result<&'b T, JsRuntimeError> {
-        let external = self.params.this.into_external().ok_or(JsRuntimeError::WrongTypeParameter)?;
-        let this = unsafe { external.value::<game_object_api::GameObjectData>() };
-        let ctx = self.guard.context();
-
-        let world = api_helpers::world(&ctx);
-        let component = world.get_component::<T>(this.id).ok_or(JsRuntimeError::WrongTypeParameter)?;
-        Result::Ok(&component)
-    }
-    */
 }
 
 impl<'a> JsParamSource<'a> {
@@ -248,7 +244,7 @@ impl JsScriptEngine {
                                 None => return Result::Ok(null(gd)),
                                 Some(y) => {
                                     let handle = External::new(gd, Box::new(y));
-                                    handle.set_prototype(gd, data.handle_prototype.clone());
+                                    handle.set_prototype(gd, data.handle_prototype.clone()).unwrap();
                                     return Result::Ok(handle.into());
                                 }
                             }
@@ -361,8 +357,8 @@ impl ScriptApiRegistry for JsScriptEngine {
 
     fn register_function<P, R, F>(&mut self, name: &str, namespace: Option<&Self::Namespace>, fc: F)
     where
-        P: crate::traits::FunctionParameter,
-        R: crate::traits::FunctionResult,
+        P: FunctionParameter,
+        R: FunctionResult,
         F: 'static + Send + Sync + Fn(P) -> R,
     {
         let guard = self.context.make_current().unwrap();
@@ -471,7 +467,7 @@ impl ScriptApiRegistry for JsScriptEngine {
                     let cp = world.get_component::<T>(id);
                     match cp {
                         None => return None,
-                        Some(x) => return Some(ComponentHandle { id }),
+                        Some(_) => return Some(ComponentHandle { id }),
                     }
                 }),
                 handle_prototype: prototype,

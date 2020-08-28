@@ -7,23 +7,17 @@ mod transform;
 mod world_data;
 
 use crate::traits::{
-    Data, Hardware, MeshId, Renderer, ResourceManager, ResourceProvider, ScriptApiRegistry,
-    ScriptingEngine, TextureId,
+    Hardware, Renderer, ResourceManager, ResourceProvider, 
+    ScriptingEngine,
 };
 use crate::ui;
 use legion::prelude::*;
 
 use crate::input;
-use crate::math::*;
-use crate::scripting;
 #[cfg(test)]
 use crate::scripting::test_scripting::MockScriptEngine;
 use crate::scripting::JsScriptEngine;
 use std::sync::Arc;
-
-use std::cell::RefCell;
-
-use legion::prelude::*;
 
 pub use game_object::GameObject;
 pub use hierarchy::TransformHierarchy;
@@ -109,6 +103,8 @@ struct TimeData {
 
 struct TimeSystem;
 
+use just_traits::scripting::{ScriptApiRegistry,function_params::Data};
+
 impl TimeSystem {
     pub fn initialize(world: &mut World) {
         let system = TimeData {
@@ -129,7 +125,7 @@ impl TimeSystem {
         sys.elapsed = elapsed as f32;
     }
 
-    pub fn register_api<SAR: crate::traits::ScriptApiRegistry>(sar: &mut SAR) {
+    pub fn register_api<SAR: ScriptApiRegistry>(sar: &mut SAR) {
         let nm = sar.register_namespace("Time", None);
 
         sar.register_static_property(

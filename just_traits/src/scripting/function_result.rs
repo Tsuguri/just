@@ -64,3 +64,7 @@ impl FunctionResult for () {
         enc.empty()
     }
 }
+
+impl<T: nalgebra_glm::Scalar + Send + Sync> FunctionResult for nalgebra_glm::TVec2<T> {}
+impl<T: nalgebra_glm::Scalar + Send + Sync> FunctionResult for nalgebra_glm::TVec3<T> {}
+impl<T: nalgebra_glm::Scalar + Send + Sync> FunctionResult for nalgebra_glm::TVec4<T> {}

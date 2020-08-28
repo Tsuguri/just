@@ -1,7 +1,11 @@
-use crate::input::{KeyCode, KeyboardState, MouseState};
-use crate::math::{Vec2, Vec3};
+use just_traits::scripting::{
+    ScriptApiRegistry,
+    function_params::*,
+};
 
-use crate::traits::*;
+use crate::input::{KeyCode, KeyboardState, MouseState};
+use crate::math::Vec2;
+
 
 pub struct InputApi;
 

@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 
-use schemars::{schema_for, JsonSchema};
-use serde::{Deserialize, Serialize};
+use schemars::{schema_for};
 
 use just::scene_serialization::*;
 
@@ -9,7 +8,7 @@ fn generate_schemas() {
     use std::fs::File;
     use std::io::prelude::*;
 
-    std::fs::create_dir_all("schemas");
+    std::fs::create_dir_all("schemas").unwrap();
 
     let scene_schema = schema_for!(Scene);
     let mut file = File::create("schemas/scene.schema").unwrap();

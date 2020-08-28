@@ -1,7 +1,7 @@
 use chakracore as js;
-use legion::prelude::*;
+use just_core::ecs::prelude::*;
 
-use super::{EHM, };
+use super::EHM;
 
 pub struct JsEnvironment;
 

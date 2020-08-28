@@ -1,5 +1,8 @@
 [workspace]
 
 members = [
-    "just"
+    "just_core",
+    "just_traits",
+    "just",
+    "just_input"
 ]

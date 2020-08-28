@@ -1,5 +1,3 @@
-use legion::prelude::*;
-
 pub trait ParametersSource {
     type ErrorType: 'static + Send + Sync;
 
@@ -194,7 +192,7 @@ impl FunctionParameter for bool {
 }
 
 impl FunctionParameter for () {
-    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+    fn read<PS: ParametersSource>(_source: &mut PS) -> Result<Self, PS::ErrorType> {
         Result::Ok(())
     }
 }
@@ -227,5 +225,26 @@ impl<A: FunctionParameter, B: FunctionParameter, C: FunctionParameter> FunctionP
         let b = B::read(source)?;
         let c = C::read(source)?;
         Result::Ok((a, b, c))
+    }
+}
+
+impl<T: nalgebra_glm::Scalar + Send + Sync> FunctionParameter for nalgebra_glm::TVec2<T> {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        let nat = source.read_native()?;
+        Result::Ok(*nat)
+    }
+}
+
+impl<T: nalgebra_glm::Scalar + Send + Sync> FunctionParameter for nalgebra_glm::TVec3<T> {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        let nat = source.read_native()?;
+        Result::Ok(*nat)
+    }
+}
+
+impl<T: nalgebra_glm::Scalar + Send + Sync> FunctionParameter for nalgebra_glm::TVec4<T> {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        let nat = source.read_native()?;
+        Result::Ok(*nat)
     }
 }

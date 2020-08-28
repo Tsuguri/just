@@ -1,7 +1,8 @@
-use crate::input::{InputEvent, MouseState};
-use crate::math::*;
+use just_input::{InputEvent, MouseState};
+
+use just_core::math::*;
 use crate::traits::{ResourceProvider, TextureId};
-use legion::prelude::*;
+use just_core::{ecs::prelude::*, shrev};
 use std::collections::HashSet;
 use std::sync::Arc;
 use stretch::node::*;

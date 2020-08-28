@@ -1,4 +1,5 @@
-use rendy::{
+use just_core::graphics::{
+    self,
     hal,
     hal::device::Device,
     mesh::{Mesh, MeshBuilder, Normal, PosNormTex, Position, TexCoord},
@@ -12,8 +13,8 @@ use crate::traits;
 use std::collections::HashMap;
 
 pub struct TextureRes<B: hal::Backend> {
-    pub texture: rendy::texture::Texture<B>,
-    pub desc: rendy::resource::DescriptorSet<B>,
+    pub texture: graphics::texture::Texture<B>,
+    pub desc: graphics::resource::DescriptorSet<B>,
 }
 
 pub struct ResourceManager<B: hal::Backend> {
