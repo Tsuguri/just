@@ -18,6 +18,7 @@ use just_traits::scripting::{
     ParametersSource,
 };
 use just_core::ecs::prelude::*;
+use just_core::ecs;
 
 struct JsResultEncoder<'a> {
     guard: &'a ContextGuard<'a>,
@@ -113,7 +114,7 @@ impl<'a> ParametersSource for JsParamSource<'a> {
 
     fn read_system_data<T: 'static + Send + Sync>(
         &mut self,
-    ) -> Result<legion::resource::FetchMut<T>, Self::ErrorType> {
+    ) -> Result<ecs::resource::FetchMut<T>, Self::ErrorType> {
         Result::Ok(self.world.resources.get_mut::<T>().unwrap())
     }
 
@@ -142,7 +143,7 @@ impl<'a> ParametersSource for JsParamSource<'a> {
         Result::Ok(unsafe { std::mem::transmute::<&mut T, &'static mut T>(native.value::<T>()) })
     }
 
-    fn read_component<T: 'static + Send + Sync + Sized>(&mut self) -> Result<legion::borrow::RefMut<T>, Self::ErrorType> {
+    fn read_component<T: 'static + Send + Sync + Sized>(&mut self) -> Result<ecs::borrow::RefMut<T>, Self::ErrorType> {
         let native = self.params.arguments[self.current]
             .clone()
             .into_external()
@@ -164,7 +165,7 @@ impl<'a> ParametersSource for JsParamSource<'a> {
 
     fn read_component_this<T: 'static + Send + Sync + Sized>(
             &mut self,
-        ) -> Result<legion::borrow::RefMut<T>, Self::ErrorType> {
+        ) -> Result<ecs::borrow::RefMut<T>, Self::ErrorType> {
         let native = self
             .params
             .this

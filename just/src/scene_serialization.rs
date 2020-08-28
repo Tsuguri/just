@@ -1,7 +1,8 @@
 use crate::core::{GameObject, TransformHierarchy};
-use crate::glm;
 use crate::graphics::{CameraData, ViewportData};
-use crate::math::*;
+use just_core::math::*;
+use just_core::ecs;
+use just_core::glm;
 use ron::de::from_str;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -70,7 +71,7 @@ pub fn deserialize_scene(path: &str, engine: &mut crate::core::JsEngine) -> Resu
 
 fn spawn_object(
     object: Object,
-    parent: Option<legion::prelude::Entity>,
+    parent: Option<ecs::prelude::Entity>,
     engine: &mut crate::core::JsEngine,
 ) {
     println!("loading object {}.", object.name);

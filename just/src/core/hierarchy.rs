@@ -1,6 +1,7 @@
 use super::game_object::GameObject;
 use super::transform::Transform;
 use just_core::math::*;
+use just_core::glm;
 use just_core::ecs::prelude::{Entity, World};
 
 pub struct TransformHierarchy;
@@ -51,9 +52,9 @@ impl TransformHierarchy {
         let mut local_matrix = transform.local_matrix.borrow_mut();
 
         if local_matrix.changed {
-            local_matrix.item = crate::glm::translation(&transform.position)
-                * crate::glm::quat_to_mat4(&transform.rotation)
-                * crate::glm::scaling(&transform.scale);
+            local_matrix.item = glm::translation(&transform.position)
+                * glm::quat_to_mat4(&transform.rotation)
+                * glm::scaling(&transform.scale);
             local_matrix.changed = false;
         }
 

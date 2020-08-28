@@ -1,10 +1,17 @@
 use super::node_prelude::*;
 use std::collections::HashMap;
 
-use crate::math::*;
-use legion::prelude::*;
+use just_core::math::*;
+use just_core::glm;
+use just_core::ecs::prelude::*;
 use octo_runtime::ValueType;
 use std::cell::RefCell;
+
+use just_core::graphics::{
+    hal::memory,
+    hal::pso::ShaderStageFlags,
+    shader::ShaderSetBuilder,
+};
 
 pub struct PushConstantsBlock {
     buffer: RefCell<Vec<u32>>,
@@ -49,8 +56,8 @@ impl RenderingConstants {
         let left = -right;
         let near = -50.0f32;
         let far = 300.0f32;
-        let mut temp = nalgebra_glm::ortho_lh_zo(left, right, bot, top, near, far);
-        // let mut temp = nalgebra_glm::perspective_lh_zo(
+        let mut temp = glm::ortho_lh_zo(left, right, bot, top, near, far);
+        // let mut temp = glm::perspective_lh_zo(
         //     256.0f32 / 108.0, f32::to_radians(45.0f32), 0.1f32, 100.0f32);
         temp[(1, 1)] *= -1.0;
         temp
@@ -62,8 +69,8 @@ impl RenderingConstants {
             .get::<crate::graphics::CameraData>()
             .unwrap();
 
-        nalgebra_glm::quat_to_mat4(&camera_data.rotation)
-            * nalgebra_glm::translation(&(-camera_data.position))
+        glm::quat_to_mat4(&camera_data.rotation)
+            * glm::translation(&(-camera_data.position))
     }
 
     pub fn get_rendering_constant(world: &World, name: &str) -> Value {
@@ -101,9 +108,8 @@ impl PushConstantsBlock {
         self.buffer.borrow_mut().iter_mut().map(|x| *x = 0).count();
     }
 
-    pub fn fill(&self, world: &World, view_size: crate::math::Vec2) {
+    pub fn fill(&self, world: &World, view_size: Vec2) {
         let mut buff = self.buffer.borrow_mut();
-        use rendy::hal::memory;
 
         for (name, info) in &self.definitions {
             if name == "view_size" {
@@ -272,20 +278,20 @@ where
                         binding: 0,
                         ty: hal::pso::DescriptorType::Sampler,
                         count: 1,
-                        stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
+                        stage_flags: ShaderStageFlags::FRAGMENT,
                         immutable_samplers: false,
                     },
                     hal::pso::DescriptorSetLayoutBinding {
                         binding: 1,
                         ty: hal::pso::DescriptorType::SampledImage,
                         count: self.images.len(),
-                        stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
+                        stage_flags: ShaderStageFlags::FRAGMENT,
                         immutable_samplers: false,
                     },
                 ],
             }],
             push_constants: vec![(
-                rendy::hal::pso::ShaderStageFlags::FRAGMENT,
+                ShaderStageFlags::FRAGMENT,
                 0..self.push_constants_size as u32,
             )],
         }
@@ -299,7 +305,7 @@ where
             SpirvShader::new(fragment_spirv, hal::pso::ShaderStageFlags::FRAGMENT, "main");
         let vertex = SpirvShader::new(vertex_spirv, hal::pso::ShaderStageFlags::VERTEX, "main");
 
-        let shaders: rendy::shader::ShaderSetBuilder = rendy::shader::ShaderSetBuilder::default()
+        let shaders: ShaderSetBuilder = ShaderSetBuilder::default()
             .with_vertex(&vertex)
             .unwrap()
             .with_fragment(&fragment)
@@ -408,7 +414,7 @@ impl<B: hal::Backend> SimpleGraphicsPipeline<B, World> for OctoNode<B> {
         unsafe {
             let buf = self.push_constants_block.buffer.borrow();
 
-            encoder.push_constants(layout, hal::pso::ShaderStageFlags::FRAGMENT, 0, &buf);
+            encoder.push_constants(layout, ShaderStageFlags::FRAGMENT, 0, &buf);
 
             encoder.bind_graphics_descriptor_sets(
                 layout,

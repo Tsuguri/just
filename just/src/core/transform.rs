@@ -1,4 +1,4 @@
-use crate::math::*;
+use just_core::math::*;
 use std::cell::RefCell;
 
 pub trait Ident {

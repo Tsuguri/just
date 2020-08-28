@@ -225,7 +225,7 @@ impl<B: hal::Backend> ResourceManager<B> {
 
         let texture = texture_builder
             .build(
-                rendy::factory::ImageState {
+                graphics::factory::ImageState {
                     queue: hardware.families.family(hardware.used_family).queue(0).id(),
                     stage: hal::pso::PipelineStage::FRAGMENT_SHADER,
                     access: hal::image::Access::SHADER_READ,
@@ -287,7 +287,7 @@ impl<B: hal::Backend> ResourceManager<B> {
         }
 
         self.textures.push(TextureRes {
-            texture: texture,
+            texture,
             desc: Escape::unescape(descriptor_set),
         });
         self.texture_names.insert(name.to_owned(), id);

@@ -6,7 +6,7 @@ mod ui_node;
 
 use just_core::ecs::prelude::World;
 use just_core::graphics as rendy;
-use just_core::math::{Quat, Vec3};
+use just_core::math::{Quat, Vec3, Vec2};
 
 use crate::traits;
 
@@ -81,7 +81,7 @@ impl<B: hal::Backend> traits::Renderer<Hardware<B>> for Renderer<B> {
                 self.push_constants_block.clear();
                 self.push_constants_block.fill(
                     world,
-                    crate::math::Vec2::new(size.width as f32, size.height as f32),
+                    Vec2::new(size.width as f32, size.height as f32),
                 );
                 x.run(&mut hardware.factory, &mut hardware.families, world);
             }

@@ -3,7 +3,9 @@ use super::node_prelude::*;
 use super::octo_node::{RenderingConstants, Value};
 use crate::core::Renderable;
 use crate::core::TransformHierarchy;
-use legion::prelude::*;
+use just_core::ecs::prelude::*;
+use just_core::graphics as rendy;
+use just_core::math;
 
 lazy_static::lazy_static! {
     static ref VERTEX: SpirvShader = SourceShaderInfo::new(
@@ -51,7 +53,7 @@ use crate::traits::{MeshId, TextureId};
 pub struct DeferredNode<B: hal::Backend> {
     res: Arc<ResourceManager<B>>,
     descriptor_set: Escape<DescriptorSet<B>>,
-    renderables_buffer: Option<Vec<(MeshId, Option<TextureId>, crate::math::Matrix)>>,
+    renderables_buffer: Option<Vec<(MeshId, Option<TextureId>, math::Matrix)>>,
 }
 
 impl<B: hal::Backend> std::fmt::Debug for DeferredNodeDesc<B> {

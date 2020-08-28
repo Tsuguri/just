@@ -5,7 +5,7 @@ use js::{value::function::CallbackInfo, value::Value, ContextGuard};
 use super::api_helpers::*;
 use super::game_object_api::GameObjectData;
 use crate::core::GameObject;
-use crate::math::Vec3;
+use just_core::math::Vec3;
 
 fn gameobject_find_by_name(guard: &ContextGuard, args: CallbackInfo) -> Result<Value, Value> {
     debug_assert_eq!(args.arguments.len(), 1);

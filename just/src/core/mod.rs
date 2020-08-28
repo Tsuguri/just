@@ -11,7 +11,7 @@ use crate::traits::{
     ScriptingEngine,
 };
 use crate::ui;
-use legion::prelude::*;
+use just_core::ecs::prelude::*;
 
 use crate::input;
 #[cfg(test)]
@@ -36,7 +36,7 @@ pub struct Engine<E: ScriptingEngine, HW: Hardware + 'static> {
     renderer: HW::Renderer,
 }
 
-type Hw = super::graphics::Hardware<rendy::vulkan::Backend>;
+type Hw = super::graphics::Hardware<just_core::graphics::vulkan::Backend>;
 pub type JsEngine = Engine<JsScriptEngine, Hw>;
 
 #[cfg(test)]
@@ -65,7 +65,7 @@ where
         world
             .resources
             .insert::<Arc<dyn ResourceProvider>>(resources.clone());
-        input::UserInput::initialize(&mut world);
+        just_input::InputSystem::initialize(&mut world);
         GameObject::initialize(&mut world);
         ui::UiSystem::initialize(&mut world, resources.clone());
         TimeSystem::initialize(&mut world);
@@ -141,13 +141,12 @@ impl TimeSystem {
 
 impl JsEngine {
     pub fn run(&mut self) {
-        use crate::input::*;
 
         loop {
             self.hardware.factory.maintain(&mut self.hardware.families);
 
             let inputs =
-                UserInput::poll_events_loop(&mut self.hardware.event_loop, &mut self.world);
+                just_input::InputSystem::poll_events(&mut self.hardware.event_loop, &mut self.world);
 
             if inputs.end_requested {
                 break;

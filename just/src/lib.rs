@@ -11,5 +11,3 @@ pub mod ui;
 pub mod apis;
 
 pub use scripting::JsEngineConfig;
-
-pub use nalgebra_glm as glm;

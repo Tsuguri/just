@@ -1,6 +1,6 @@
 use crate::traits::{MeshId, TextureId};
 
-use legion::prelude::*;
+use just_core::ecs::prelude::*;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Renderable {
@@ -24,7 +24,7 @@ impl std::default::Default for Renderable {
 //}
 
 impl Renderable {
-    pub fn add_renderable_to_go(world: &mut legion::prelude::World, id: Entity, mesh: MeshId) {
+    pub fn add_renderable_to_go(world: &mut World, id: Entity, mesh: MeshId) {
         world.add_component(
             id,
             Renderable {
@@ -33,7 +33,7 @@ impl Renderable {
             },
         );
     }
-    pub fn add_tex_renderable(world: &mut legion::prelude::World, id: Entity, mesh: Renderable) {
+    pub fn add_tex_renderable(world: &mut World, id: Entity, mesh: Renderable) {
         world.add_component(id, mesh);
     }
 }

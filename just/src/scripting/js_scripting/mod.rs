@@ -250,7 +250,7 @@ impl DispatchableEvent for UiEvent {
         js::value::null(encoder.guard)
     }
 }
-use crate::input::InputEvent;
+use just_input::InputEvent;
 impl DispatchableEvent for InputEvent {
     type Hash = (std::mem::Discriminant<InputEvent>, usize);
     fn hash(&self) -> Self::Hash {
@@ -409,7 +409,7 @@ impl<'a> ParamEncoder<'a> {
     }
 
     pub fn encode_vec2(
-        value: crate::math::Vec2,
+        value: just_core::math::Vec2,
         guard: &ContextGuard,
         prototypes: &HM,
     ) -> js::value::Value {
@@ -422,7 +422,7 @@ impl<'a> ParamEncoder<'a> {
         Self::encode_float(value, self.guard)
     }
 
-    pub fn encode_v2(&self, value: crate::math::Vec2) -> js::value::Value {
+    pub fn encode_v2(&self, value: just_core::math::Vec2) -> js::value::Value {
         Self::encode_vec2(value, self.guard, self.prototypes)
     }
 }
@@ -434,7 +434,7 @@ trait DispatchableEvent: Copy + Clone + Send + Sync {
 }
 
 struct EventDispatcher<T: 'static + DispatchableEvent> {
-    reader_id: shrev::ReaderId<T>,
+    reader_id: just_core::shrev::ReaderId<T>,
     handlers: HashMap<T::Hash, HashSet<EventHandler>>,
 }
 
@@ -445,7 +445,7 @@ impl<T: 'static + DispatchableEvent> EventDispatcher<T> {
     pub fn create(world: &mut World) -> Self {
         let reader_id = world
             .resources
-            .get_mut::<shrev::EventChannel<T>>()
+            .get_mut::<just_core::shrev::EventChannel<T>>()
             .unwrap()
             .register_reader();
         Self {
@@ -472,7 +472,7 @@ impl<T: 'static + DispatchableEvent> EventDispatcher<T> {
     }
 
     fn dispatch(&mut self, guard: &js::ContextGuard, world: &mut World) {
-        let mut channel = world.resources.get_mut::<shrev::EventChannel<T>>().unwrap();
+        let mut channel = world.resources.get_mut::<just_core::shrev::EventChannel<T>>().unwrap();
         let events = channel.read(&mut self.reader_id);
         for event in events {
             let hash = event.hash();

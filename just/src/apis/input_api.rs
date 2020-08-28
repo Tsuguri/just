@@ -3,8 +3,8 @@ use just_traits::scripting::{
     function_params::*,
 };
 
-use crate::input::{KeyCode, KeyboardState, MouseState};
-use crate::math::Vec2;
+use just_input::{KeyCode, KeyboardState, MouseState};
+use just_core::math::Vec2;
 
 
 pub struct InputApi;
