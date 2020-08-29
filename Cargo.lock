@@ -841,7 +841,7 @@ dependencies = [
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "octo 0.1.0",
  "octo_runtime 0.0.1",
- "rand 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rendy 0.4.0 (git+https://github.com/amethyst/rendy?rev=1980054d9efa3355eaa76163990e7127fb169295)",
  "ron 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "schemars 0.7.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -855,9 +855,10 @@ dependencies = [
 name = "just_core"
 version = "0.1.0"
 dependencies = [
+ "just_traits 0.1.0",
  "legion 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "nalgebra-glm 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rendy 0.4.0 (git+https://github.com/amethyst/rendy?rev=1980054d9efa3355eaa76163990e7127fb169295)",
+ "rand 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "shrev 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -867,6 +868,7 @@ version = "0.1.0"
 dependencies = [
  "just_core 0.1.0",
  "just_traits 0.1.0",
+ "rendy 0.4.0 (git+https://github.com/amethyst/rendy?rev=1980054d9efa3355eaa76163990e7127fb169295)",
 ]
 
 [[package]]

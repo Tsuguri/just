@@ -5,8 +5,8 @@ mod resources;
 mod ui_node;
 
 use just_core::ecs::prelude::World;
-use just_core::graphics as rendy;
 use just_core::math::{Quat, Vec3, Vec2};
+use rendy;
 
 use crate::traits;
 

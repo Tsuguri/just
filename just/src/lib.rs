@@ -2,7 +2,6 @@
 
 pub mod core;
 pub mod graphics;
-pub mod input;
 pub mod scene_serialization;
 pub mod scripting;
 pub mod traits;

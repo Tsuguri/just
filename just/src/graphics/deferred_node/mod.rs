@@ -4,7 +4,6 @@ use super::octo_node::{RenderingConstants, Value};
 use crate::core::Renderable;
 use crate::core::TransformHierarchy;
 use just_core::ecs::prelude::*;
-use just_core::graphics as rendy;
 use just_core::math;
 
 lazy_static::lazy_static! {

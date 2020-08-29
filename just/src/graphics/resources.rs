@@ -1,4 +1,4 @@
-use just_core::graphics::{
+use rendy::{
     self,
     hal,
     hal::device::Device,
@@ -13,8 +13,8 @@ use crate::traits;
 use std::collections::HashMap;
 
 pub struct TextureRes<B: hal::Backend> {
-    pub texture: graphics::texture::Texture<B>,
-    pub desc: graphics::resource::DescriptorSet<B>,
+    pub texture: rendy::texture::Texture<B>,
+    pub desc: rendy::resource::DescriptorSet<B>,
 }
 
 pub struct ResourceManager<B: hal::Backend> {
@@ -225,7 +225,7 @@ impl<B: hal::Backend> ResourceManager<B> {
 
         let texture = texture_builder
             .build(
-                graphics::factory::ImageState {
+                rendy::factory::ImageState {
                     queue: hardware.families.family(hardware.used_family).queue(0).id(),
                     stage: hal::pso::PipelineStage::FRAGMENT_SHADER,
                     access: hal::image::Access::SHADER_READ,

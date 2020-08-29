@@ -1,7 +1,7 @@
 [package]
 name = "just"
 version = "0.1.0"
-authors = ["Adam Winiarczuk <adamosca@gmail.com>"]
+authors = ["Adam Winiarczuk <adam.winiarczuk@gmail.com>"]
 edition = "2018"
 
 exclude = ["dev_app/*"]
@@ -18,6 +18,8 @@ just_input = {path="../just_input"}
 
 # js scripting engine:
 chakracore = {git="https://github.com/darfink/chakracore-rs", rev="93adef0a4ab297fbeaf228c403b8090e0979a1aa"}
+
+rendy = {git = "https://github.com/amethyst/rendy", rev="1980054d9efa3355eaa76163990e7127fb169295", features=["vulkan", "rendy-shader", "rendy-mesh", "mesh-obj", "texture-image"]}
 octo_runtime = {path="../../octo/octo_runtime"}
 slotmap = "0.3.0"
 serde = {version="1.0", features=["derive"]}
@@ -26,6 +28,5 @@ ron = "0.5.1"
 failure="0.1"
 lazy_static = "1.0"
 wavefront_obj = "6.0"
-rand = "0.7"
 stretch = "0.3.2"
 schemars = "0.7.6"

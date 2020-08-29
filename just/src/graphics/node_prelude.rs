@@ -3,7 +3,7 @@ pub use just_core::glm;
 pub use std::sync::Arc;
 
 pub use super::resources::ResourceManager;
-pub use just_core::graphics::{
+pub use rendy::{
     command::{QueueId, RenderPassEncoder},
     factory::Factory,
     graph::{

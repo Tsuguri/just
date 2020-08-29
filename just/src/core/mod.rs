@@ -1,10 +1,13 @@
-mod colliders;
 mod components;
 mod game_object;
 mod hierarchy;
 mod parent_child_manipulation;
 mod transform;
 mod world_data;
+mod time;
+
+use time::TimeSystem;
+use just_traits::scripting::ScriptApiRegistry;
 
 use crate::traits::{
     Hardware, Renderer, ResourceManager, ResourceProvider, 
@@ -13,7 +16,6 @@ use crate::traits::{
 use crate::ui;
 use just_core::ecs::prelude::*;
 
-use crate::input;
 #[cfg(test)]
 use crate::scripting::test_scripting::MockScriptEngine;
 use crate::scripting::JsScriptEngine;
@@ -36,7 +38,7 @@ pub struct Engine<E: ScriptingEngine, HW: Hardware + 'static> {
     renderer: HW::Renderer,
 }
 
-type Hw = super::graphics::Hardware<just_core::graphics::vulkan::Backend>;
+type Hw = super::graphics::Hardware<rendy::vulkan::Backend>;
 pub type JsEngine = Engine<JsScriptEngine, Hw>;
 
 #[cfg(test)]
@@ -92,50 +94,6 @@ impl<E: ScriptingEngine, HW: Hardware + 'static> std::ops::Drop for Engine<E, HW
     fn drop(&mut self) {
         self.renderer.dispose(&mut self.hardware, &self.world);
         ui::UiSystem::shut_down(&mut self.world);
-    }
-}
-
-struct TimeData {
-    start: std::time::Instant,
-    elapsed: f32,
-    dt: f32,
-}
-
-struct TimeSystem;
-
-use just_traits::scripting::{ScriptApiRegistry,function_params::Data};
-
-impl TimeSystem {
-    pub fn initialize(world: &mut World) {
-        let system = TimeData {
-            start: std::time::Instant::now(),
-            elapsed: 0f32,
-            dt: 0.016f32,
-        };
-        world.resources.insert(system);
-    }
-
-    pub fn update(world: &mut World) {
-        let mut sys = <(Write<TimeData>)>::fetch(&world.resources);
-        let duration = sys.start.elapsed();
-
-        let elapsed = duration.as_secs() as f64 + duration.subsec_nanos() as f64 * 1e-9;
-        let dt = elapsed - sys.elapsed as f64;
-        sys.dt = dt as f32;
-        sys.elapsed = elapsed as f32;
-    }
-
-    pub fn register_api<SAR: ScriptApiRegistry>(sar: &mut SAR) {
-        let nm = sar.register_namespace("Time", None);
-
-        sar.register_static_property(
-            "elapsed",
-            Some(&nm),
-            Some(|d: Data<TimeData>| d.fetch.elapsed),
-            Some(|()| {}),
-        );
-
-        //sar.register_function()
     }
 }
 

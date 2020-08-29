@@ -4,12 +4,13 @@ use failure;
 
 use just_core::{
     ecs::prelude::*,
-    graphics::{
-        self,
-        hal,
-        graph::render::PrepareResult,
-    },
     math::*,
+};
+
+use rendy::{
+    self,
+    hal,
+    graph::render::PrepareResult,
 };
 
 lazy_static::lazy_static! {
@@ -29,7 +30,7 @@ lazy_static::lazy_static! {
         "main",
     ).precompile().unwrap();
 
-    static ref SHADERS: graphics::shader::ShaderSetBuilder = graphics::shader::ShaderSetBuilder::default()
+    static ref SHADERS: rendy::shader::ShaderSetBuilder = rendy::shader::ShaderSetBuilder::default()
         .with_vertex(&*VERTEX).unwrap()
         .with_fragment(&*FRAGMENT).unwrap();
 }
@@ -93,7 +94,7 @@ where
         let push_constants = vec![
             // vec2, 4 bytes each component
             (
-                graphics::hal::pso::ShaderStageFlags::VERTEX,
+                rendy::hal::pso::ShaderStageFlags::VERTEX,
                 0..((2 + 2 + 2 + 4 + 4 + 4) * 4),
             ),
         ];

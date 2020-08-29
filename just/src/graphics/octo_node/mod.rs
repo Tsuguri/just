@@ -7,7 +7,7 @@ use just_core::ecs::prelude::*;
 use octo_runtime::ValueType;
 use std::cell::RefCell;
 
-use just_core::graphics::{
+use rendy::{
     hal::memory,
     hal::pso::ShaderStageFlags,
     shader::ShaderSetBuilder,

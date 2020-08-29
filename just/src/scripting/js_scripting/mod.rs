@@ -3,6 +3,9 @@ use crate::traits::{
     ScriptingEngine,
 };
 
+
+use just_input::InputSystem;
+
 use chakracore as js;
 use std::collections::{HashMap, HashSet};
 use std::mem::ManuallyDrop;
@@ -19,6 +22,8 @@ mod game_object_api;
 mod registry_impl;
 mod resources_api;
 mod world_api;
+
+use just_core::math::MathApi;
 
 use env::JsEnvironment;
 use just_core::ecs::prelude::*;
@@ -179,7 +184,8 @@ impl JsScriptEngine {
         self.create_component_api();
         MathApi::register(self);
         ConsoleApi::register(self);
-        InputApi::register(self);
+        //InputApi::register(self);
+        InputSystem::register_api(self);
         RenderableApi::register(self);
         self.create_world_api();
         self.create_resources_api();
@@ -465,14 +471,14 @@ impl<T: 'static + DispatchableEvent> EventDispatcher<T> {
         let hash = event.hash();
         match self.handlers.get_mut(&hash) {
             None => (),
-            Some(mut x) => {
+            Some(x) => {
                 x.remove(&handler);
             }
         }
     }
 
     fn dispatch(&mut self, guard: &js::ContextGuard, world: &mut World) {
-        let mut channel = world.resources.get_mut::<just_core::shrev::EventChannel<T>>().unwrap();
+        let channel = world.resources.get_mut::<just_core::shrev::EventChannel<T>>().unwrap();
         let events = channel.read(&mut self.reader_id);
         for event in events {
             let hash = event.hash();
@@ -480,7 +486,7 @@ impl<T: 'static + DispatchableEvent> EventDispatcher<T> {
                 None => (),
                 Some(x) => {
                     for hd in x.iter() {
-                        hd.handler.call_with_this(guard, &hd.object, &[]);
+                        hd.handler.call_with_this(guard, &hd.object, &[]).unwrap();
                     }
                 }
             }
