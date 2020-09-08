@@ -1,4 +1,4 @@
-use just_traits::scripting::{
+use crate::traits::scripting::{
     ScriptApiRegistry,
     function_params::*,
 };
@@ -28,7 +28,7 @@ pub fn pos(vec: &Vec4) -> Vec3 {
 pub struct MathApi;
 
 impl MathApi {
-    pub fn register<SAR: ScriptApiRegistry>(registry: &mut SAR) {
+    pub fn register_api<SAR: ScriptApiRegistry>(registry: &mut SAR) {
         let namespace = registry.register_namespace("Math", None);
 
         registry.register_function("Sin", Some(&namespace), |args: f32| args.sin());

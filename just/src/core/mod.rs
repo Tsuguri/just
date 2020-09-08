@@ -1,4 +1,3 @@
-mod components;
 mod game_object;
 mod hierarchy;
 mod parent_child_manipulation;
@@ -7,19 +6,27 @@ mod world_data;
 mod time;
 
 use time::TimeSystem;
-use just_traits::scripting::ScriptApiRegistry;
+
+use just_input::InputSystem;
+use just_core::math::MathApi;
+use crate::apis::ConsoleApi;
+use crate::apis::RenderableApi;
+use crate::apis::WorldApi;
+use crate::apis::TransformApi;
+use just_core::traits::scripting::ScriptApiRegistry;
 
 use crate::traits::{
     Hardware, Renderer, ResourceManager, ResourceProvider, 
-    ScriptingEngine,
 };
+
+use just_core::traits::scripting::ScriptingEngine;
 use crate::ui;
 use just_core::ecs::prelude::*;
 
 #[cfg(test)]
 use crate::scripting::test_scripting::MockScriptEngine;
-use crate::scripting::JsScriptEngine;
 use std::sync::Arc;
+use just_js::JsScriptEngine;
 
 pub use game_object::GameObject;
 pub use hierarchy::TransformHierarchy;
@@ -67,14 +74,21 @@ where
         world
             .resources
             .insert::<Arc<dyn ResourceProvider>>(resources.clone());
-        just_input::InputSystem::initialize(&mut world);
+        InputSystem::initialize(&mut world);
         GameObject::initialize(&mut world);
         ui::UiSystem::initialize(&mut world, resources.clone());
         TimeSystem::initialize(&mut world);
 
         let renderer = HW::Renderer::create(&mut hardware, &mut world, resources.clone());
         let mut scripting_engine = E::create(engine_config, &mut world);
+        TransformApi::register(&mut scripting_engine);
+        WorldApi::register(&mut scripting_engine);
         TimeSystem::register_api(&mut scripting_engine);
+        MathApi::register_api(&mut scripting_engine);
+        ConsoleApi::register(&mut scripting_engine);
+
+        RenderableApi::register(&mut scripting_engine);
+        InputSystem::register_api(&mut scripting_engine);
         let eng = Engine {
             world,
             scripting_engine,

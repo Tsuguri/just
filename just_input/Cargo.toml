@@ -7,7 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-just_traits = {"path"="../just_traits"}
 just_core = {"path"="../just_core"}
 # Only temporarily: until we move from rendy to pure winit + vulkan/gfx-hal/wgpu(?).
 rendy = {git = "https://github.com/amethyst/rendy", rev="1980054d9efa3355eaa76163990e7127fb169295", features=["vulkan", "rendy-shader", "rendy-mesh", "mesh-obj", "texture-image"]}

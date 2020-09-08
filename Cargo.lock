@@ -833,11 +833,10 @@ dependencies = [
 name = "just"
 version = "0.1.0"
 dependencies = [
- "chakracore 0.2.0 (git+https://github.com/darfink/chakracore-rs?rev=93adef0a4ab297fbeaf228c403b8090e0979a1aa)",
  "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "just_core 0.1.0",
  "just_input 0.1.0",
- "just_traits 0.1.0",
+ "just_js 0.1.0",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "octo 0.1.0",
  "octo_runtime 0.0.1",
@@ -855,10 +854,10 @@ dependencies = [
 name = "just_core"
 version = "0.1.0"
 dependencies = [
- "just_traits 0.1.0",
  "legion 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "nalgebra-glm 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)",
  "shrev 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -867,16 +866,17 @@ name = "just_input"
 version = "0.1.0"
 dependencies = [
  "just_core 0.1.0",
- "just_traits 0.1.0",
  "rendy 0.4.0 (git+https://github.com/amethyst/rendy?rev=1980054d9efa3355eaa76163990e7127fb169295)",
 ]
 
 [[package]]
-name = "just_traits"
+name = "just_js"
 version = "0.1.0"
 dependencies = [
- "legion 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "nalgebra-glm 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "chakracore 0.2.0 (git+https://github.com/darfink/chakracore-rs?rev=93adef0a4ab297fbeaf228c403b8090e0979a1aa)",
+ "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "just_core 0.1.0",
+ "serde 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

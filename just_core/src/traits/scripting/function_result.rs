@@ -12,6 +12,8 @@ pub trait ResultEncoder {
     fn encode_external_type<T: 'static>(&mut self, value: T) -> Self::ResultType;
 
     fn encode_string(&mut self, value: &str) -> Self::ResultType;
+
+    fn encode_array(&mut self, value: Vec<Self::ResultType>) -> Self::ResultType;
 }
 
 pub trait FunctionResult: Sized + 'static {
@@ -47,6 +49,13 @@ impl FunctionResult for bool {
 impl FunctionResult for String {
     fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
         enc.encode_string(&self)
+    }
+}
+
+impl<T: FunctionResult> FunctionResult for Vec<T> {
+    fn into_script_value<PE: ResultEncoder>(self, enc: &mut PE) -> PE::ResultType {
+        let objs = self.into_iter().map(|x| x.into_script_value(enc)).collect();
+        enc.encode_array(objs)
     }
 }
 

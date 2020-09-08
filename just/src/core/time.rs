@@ -1,7 +1,7 @@
 use just_core::ecs::prelude::*;
 
 
-use just_traits::scripting::{ScriptApiRegistry,function_params::Data};
+use just_core::traits::scripting::{ScriptApiRegistry,function_params::Data};
 
 struct TimeData {
     start: std::time::Instant,

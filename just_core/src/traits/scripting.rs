@@ -1,3 +1,8 @@
+use serde::Deserialize;
+
+use legion::world::World as LWorld;
+use legion::entity::Entity;
+
 pub mod function_params;
 mod function_result;
 
@@ -10,13 +15,22 @@ pub use function_params::{
     ParametersSource,
 };
 
-//pub use function_params as Params;
-
 #[derive(Debug)]
 pub enum TypeCreationError {
     TypeAlreadyRegistered,
     TypeNotRegistered,
 }
+
+pub trait ScriptingEngine: Sized + ScriptApiRegistry {
+    type Config: Deserialize<'static>;
+
+    fn create(config: &Self::Config, world: &mut LWorld) -> Self;
+
+    fn create_script(&mut self, gameobject_id: Entity, typ: &str, world: &mut LWorld);
+
+    fn update(&mut self, world: &mut LWorld);
+}
+
 
 pub trait ScriptApiRegistry {
     type Namespace;
@@ -51,6 +65,8 @@ pub trait ScriptApiRegistry {
         T: 'static,
         P: FunctionParameter,
         F: 'static + Send + Sync + Fn(P) -> T;
+
+    fn get_native_type<T: 'static>(&mut self) -> Option<Self::NativeType>;
 
     fn register_component<T, F>(
         &mut self,

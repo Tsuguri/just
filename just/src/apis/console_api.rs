@@ -1,4 +1,4 @@
-use just_traits::scripting::ScriptApiRegistry;
+use just_core::traits::scripting::ScriptApiRegistry;
 
 pub struct ConsoleApi;
 

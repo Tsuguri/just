@@ -2,7 +2,7 @@
 
 members = [
     "just_core",
-    "just_traits",
     "just",
-    "just_input"
+    "just_input",
+    "just_js"
 ]

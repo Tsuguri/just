@@ -1,7 +1,7 @@
 use super::api_helpers;
 use super::js::{
     value::{
-        function::CallbackInfo, null, Boolean, External, Function, Number, Object,
+        function::CallbackInfo, null, Array, Boolean, External, Function, Number, Object,
         String as JsString, Value,
     },
     ContextGuard, Property,
@@ -9,16 +9,14 @@ use super::js::{
 use super::EHM;
 use super::{JsRuntimeError, JsScriptEngine};
 
-use just_traits::scripting::{
-    ScriptApiRegistry,
-    FunctionResult,
-    FunctionParameter,
-    TypeCreationError,
-    ResultEncoder,
-    ParametersSource,
-};
-use just_core::ecs::prelude::*;
 use just_core::ecs;
+use just_core::ecs::prelude::*;
+use just_core::traits::scripting::{
+    FunctionParameter, FunctionResult, ParametersSource, ResultEncoder, ScriptApiRegistry,
+    TypeCreationError,
+};
+
+use just_core::GameObjectData;
 
 struct JsResultEncoder<'a> {
     guard: &'a ContextGuard<'a>,
@@ -46,12 +44,28 @@ impl<'a> ResultEncoder for JsResultEncoder<'a> {
 
     fn encode_external_type<T: 'static>(&mut self, value: T) -> Self::ResultType {
         let obj = External::new(&self.guard, Box::new(value));
-        obj.set_prototype(&self.guard, self.external_prototypes[&std::any::TypeId::of::<T>()].clone()).unwrap();
+        match self.external_prototypes.get(&std::any::TypeId::of::<T>()) {
+            None => (),
+            Some(x) => {
+                obj.set_prototype(
+                    &self.guard,
+                    x.clone()
+                ).unwrap();
+            }
+        }
         obj.into()
     }
 
     fn encode_string(&mut self, value: &str) -> Self::ResultType {
         JsString::new(&self.guard, &value).into()
+    }
+
+    fn encode_array(&mut self, value: Vec<Self::ResultType>) -> Self::ResultType {
+        let res = Array::new(&self.guard, value.len() as u32);
+        for (id, val) in value.iter().enumerate() {
+            res.set_index(&self.guard, id as u32, val);
+        }
+        res.into()
     }
 }
 
@@ -143,45 +157,38 @@ impl<'a> ParametersSource for JsParamSource<'a> {
         Result::Ok(unsafe { std::mem::transmute::<&mut T, &'static mut T>(native.value::<T>()) })
     }
 
-    fn read_component<T: 'static + Send + Sync + Sized>(&mut self) -> Result<ecs::borrow::RefMut<T>, Self::ErrorType> {
+    fn read_component<T: 'static + Send + Sync + Sized>(
+        &mut self,
+    ) -> Result<ecs::borrow::RefMut<T>, Self::ErrorType> {
         let native = self.params.arguments[self.current]
             .clone()
             .into_external()
             .ok_or(JsRuntimeError::WrongTypeParameter)?;
         self.current += 1;
-        let component_info = unsafe {native.value::<ComponentHandle>()};
+        let component_info = unsafe { native.value::<ComponentHandle>() };
         let go_id = component_info.id;
 
         match self.world.get_component_mut(go_id) {
-            None => {
-                Result::Err(JsRuntimeError::ComponentNotPresent)
-            }
-            Some(x) => {
-                Result::Ok(x)
-            }
+            None => Result::Err(JsRuntimeError::ComponentNotPresent),
+            Some(x) => Result::Ok(x),
         }
-        
     }
 
     fn read_component_this<T: 'static + Send + Sync + Sized>(
-            &mut self,
-        ) -> Result<ecs::borrow::RefMut<T>, Self::ErrorType> {
+        &mut self,
+    ) -> Result<ecs::borrow::RefMut<T>, Self::ErrorType> {
         let native = self
             .params
             .this
             .clone()
             .into_external()
             .ok_or(JsRuntimeError::WrongTypeParameter)?;
-        let component_info = unsafe {native.value::<ComponentHandle>()};
+        let component_info = unsafe { native.value::<ComponentHandle>() };
         let go_id = component_info.id;
 
         match self.world.get_component_mut(go_id) {
-            None => {
-                Result::Err(JsRuntimeError::ComponentNotPresent)
-            }
-            Some(x) => {
-                Result::Ok(x)
-            }
+            None => Result::Err(JsRuntimeError::ComponentNotPresent),
+            Some(x) => Result::Ok(x),
         }
     }
 
@@ -216,7 +223,7 @@ struct ComponentHandle {
 impl JsScriptEngine {
     pub fn create_component_api(&mut self) {
         let guard = self.context.make_current().unwrap();
-        let game_object_id = std::any::TypeId::of::<super::game_object_api::GameObjectData>();
+        let game_object_id = std::any::TypeId::of::<GameObjectData>();
         let game_object_prototype = self.external_types_prototypes[&game_object_id].clone();
 
         assert!(!game_object_prototype.is_null());
@@ -226,7 +233,7 @@ impl JsScriptEngine {
                 let ctx = gd.context();
                 let mut world = api_helpers::world(&ctx);
                 let go = params.this.clone().into_external().unwrap();
-                let go_data = unsafe {go.value::<super::game_object_api::GameObjectData>()};
+                let go_data = unsafe { go.value::<GameObjectData>() };
                 let go_id = go_data.id;
 
                 if params.arguments.len() == 0 {
@@ -235,27 +242,27 @@ impl JsScriptEngine {
 
                 let component_this = params.arguments[0].clone().into_external();
                 match component_this {
-                    Some(x)=>{
-                        unsafe {
-                            let data = x.value::<ComponentCreationData>();
-                            if data.magic_value != 12312.1f64 {
-                                return Result::Err(null(gd));
-                            }
-                            match (data.get)(&mut world,go_id) {
-                                None => return Result::Ok(null(gd)),
-                                Some(y) => {
-                                    let handle = External::new(gd, Box::new(y));
-                                    handle.set_prototype(gd, data.handle_prototype.clone()).unwrap();
-                                    return Result::Ok(handle.into());
-                                }
+                    Some(x) => unsafe {
+                        let data = x.value::<ComponentCreationData>();
+                        if data.magic_value != 12312.1f64 {
+                            return Result::Err(null(gd));
+                        }
+                        match (data.get)(&mut world, go_id) {
+                            None => return Result::Ok(null(gd)),
+                            Some(y) => {
+                                let handle = External::new(gd, Box::new(y));
+                                handle
+                                    .set_prototype(gd, data.handle_prototype.clone())
+                                    .unwrap();
+                                return Result::Ok(handle.into());
                             }
                         }
                     },
-                    None =>{
+                    None => {
                         return Result::Err(null(gd));
                         // passed argument is not component creation data.
                         // for now it may be script class.
-                    },
+                    }
                 };
             }),
         );
@@ -267,7 +274,7 @@ impl JsScriptEngine {
                 let ctx = gd.context();
                 let mut world = api_helpers::world(&ctx);
                 let go = params.this.clone().into_external().unwrap();
-                let go_data = unsafe{go.value::<super::game_object_api::GameObjectData>()};
+                let go_data = unsafe { go.value::<GameObjectData>() };
                 let go_id = go_data.id;
 
                 if params.arguments.len() == 0 {
@@ -276,14 +283,12 @@ impl JsScriptEngine {
 
                 let component_this = params.arguments[0].clone().into_external();
                 match component_this {
-                    Some(x)=>{
-                        unsafe {
-                            let data = x.value::<ComponentCreationData>();
-                            if data.magic_value != 12312.1f64 {
-                                return Result::Err(null(gd));
-                            }
-                            (data.delete)(&mut world, go_id);
+                    Some(x) => unsafe {
+                        let data = x.value::<ComponentCreationData>();
+                        if data.magic_value != 12312.1f64 {
+                            return Result::Err(null(gd));
                         }
+                        (data.delete)(&mut world, go_id);
                     },
                     None => (),
                 };
@@ -298,7 +303,7 @@ impl JsScriptEngine {
                 let ctx = gd.context();
                 let mut world = api_helpers::world(&ctx);
                 let go = params.this.clone().into_external().unwrap();
-                let go_data = unsafe {go.value::<super::game_object_api::GameObjectData>()};
+                let go_data = unsafe { go.value::<GameObjectData>() };
                 let go_id = go_data.id;
 
                 if params.arguments.len() == 0 {
@@ -307,30 +312,26 @@ impl JsScriptEngine {
 
                 let component_this = params.arguments[0].clone().into_external();
                 match component_this {
-                    Some(x)=>{
-                        unsafe {
-                            let data = x.value::<ComponentCreationData>();
-                            if data.magic_value != 12312.1f64 {
-                                println!("magic value not present");
-                                println!("magic value: {}", data.magic_value);
-                                return Result::Err(null(gd));
-                            }
-                            (data.create)(&mut world, go_id);
-                            return Result::Ok(null(gd));
+                    Some(x) => unsafe {
+                        let data = x.value::<ComponentCreationData>();
+                        if data.magic_value != 12312.1f64 {
+                            println!("magic value not present");
+                            println!("magic value: {}", data.magic_value);
+                            return Result::Err(null(gd));
                         }
+                        (data.create)(&mut world, go_id);
+                        return Result::Ok(null(gd));
                     },
                     None => {
                         println!("This is not external of GameObjectData");
                         return Result::Err(null(gd));
-                    },
+                    }
                 };
             }),
         );
         game_object_prototype.set(&guard, Property::new(&guard, "createComponent"), fun);
-
     }
 }
-
 
 impl ScriptApiRegistry for JsScriptEngine {
     type Namespace = Object;
@@ -433,6 +434,14 @@ impl ScriptApiRegistry for JsScriptEngine {
         Result::Ok(ret.into())
     }
 
+    fn get_native_type<T: 'static>(&mut self) -> Option<Self::NativeType> {
+        let guard = self.context.make_current().unwrap();
+        let global = guard.global();
+        let type_id = std::any::TypeId::of::<T>();
+
+        return self.external_types_prototypes.get(&type_id).map(|x| x.clone());
+    }
+
     fn register_component<T, F>(
         &mut self,
         name: &str,
@@ -472,7 +481,7 @@ impl ScriptApiRegistry for JsScriptEngine {
                     }
                 }),
                 handle_prototype: prototype,
-                magic_value: 12312.1f64 ,
+                magic_value: 12312.1f64,
             }),
         );
 

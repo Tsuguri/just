@@ -1,18 +1,10 @@
-use crate::traits::{
-    Controller,
-    ScriptingEngine,
-};
-
-
-use just_input::InputSystem;
+pub use chakracore;
 
 use chakracore as js;
 use std::collections::{HashMap, HashSet};
 use std::mem::ManuallyDrop;
 
-use crate::ui::UiEvent;
-
-use crate::apis::*;
+//use crate::ui::UiEvent;
 
 #[macro_use]
 mod api_helpers;
@@ -20,51 +12,19 @@ mod api_helpers;
 mod env;
 mod game_object_api;
 mod registry_impl;
-mod resources_api;
-mod world_api;
-
-use just_core::math::MathApi;
+//mod resources_api;
+//mod world_api;
+use game_object_api::GameObjectApi;
 
 use env::JsEnvironment;
 use just_core::ecs::prelude::*;
+use just_core::traits::scripting::ScriptingEngine;
 
-use game_object_api::GameObjectApi;
-pub use resources_api::MeshData;
-pub use resources_api::TextureData;
+//use game_object_api::GameObjectApi;
+//pub use resources_api::MeshData;
+//pub use resources_api::TextureData;
 
-#[derive(PartialEq, Eq, Hash)]
-pub enum InternalTypes {
-    GameObject,
-    Vec2,
-    Vec3,
-    Quat,
-    Matrix,
-}
-
-pub struct HM(HashMap<InternalTypes, js::value::Object>);
 pub struct EHM(HashMap<std::any::TypeId, js::value::Object>);
-
-impl Default for HM {
-    fn default() -> Self {
-        Self(HashMap::new())
-    }
-}
-
-impl std::ops::Deref for HM {
-    type Target = HashMap<InternalTypes, js::value::Object>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl std::ops::DerefMut for HM {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-unsafe impl Send for HM {}
-unsafe impl Sync for HM {}
 
 impl Default for EHM {
     fn default() -> Self {
@@ -98,7 +58,7 @@ pub struct JsScriptEngine {
     _runtime: js::Runtime,
     external_types_prototypes: EHM,
     context: ManuallyDrop<js::Context>,
-    ui_events_handler: EventDispatcher<UiEvent>,
+    //ui_events_handler: EventDispatcher<UiEvent>,
 }
 
 pub struct JsScript {
@@ -182,13 +142,7 @@ impl JsScriptEngine {
         // TODO: load only needed api?
         GameObjectApi::register(self);
         self.create_component_api();
-        MathApi::register(self);
-        ConsoleApi::register(self);
-        //InputApi::register(self);
-        InputSystem::register_api(self);
-        RenderableApi::register(self);
-        self.create_world_api();
-        self.create_resources_api();
+        //self.create_resources_api();
     }
 
     fn configure(&mut self, config: &JsEngineConfig) {
@@ -238,6 +192,7 @@ impl JsScriptEngine {
     }
 }
 
+/*
 impl DispatchableEvent for UiEvent {
     type Hash = (
         Entity,
@@ -279,19 +234,19 @@ impl DispatchableEvent for InputEvent {
     }
 }
 
+*/
 impl ScriptingEngine for JsScriptEngine {
-    type Controller = JsScript;
     type Config = JsEngineConfig;
 
     fn create(config: &Self::Config, world: &mut World) -> Self {
         world.resources.insert(ScriptCreationQueue { q: vec![] });
         let runtime = js::Runtime::new().unwrap();
         let context = js::Context::new(&runtime).unwrap();
-        let ui_events_handler = EventDispatcher::<UiEvent>::create(world);
+        //let ui_events_handler = EventDispatcher::<UiEvent>::create(world);
         let mut engine = Self {
             _runtime: runtime,
             context: ManuallyDrop::new(context),
-            ui_events_handler,
+            //ui_events_handler,
             external_types_prototypes: Default::default(),
         };
         engine.configure(config);
@@ -332,7 +287,7 @@ impl ScriptingEngine for JsScriptEngine {
 
         let query = <Read<JsScript>>::query();
 
-        self.ui_events_handler.dispatch(&guard, world);
+        //self.ui_events_handler.dispatch(&guard, world);
 
         for (_entity_id, script) in query.iter_entities_immutable(world) {
             match &script.update {
@@ -378,10 +333,6 @@ pub enum JsRuntimeError {
     ComponentNotPresent,
 }
 
-struct JsApi<'a> {
-    guard: &'a ContextGuard<'a>,
-}
-
 struct EventHandler {
     object: js::value::Object,
     handler: js::value::Function,
@@ -406,7 +357,7 @@ use js::ContextGuard;
 
 struct ParamEncoder<'a> {
     guard: &'a ContextGuard<'a>,
-    prototypes: &'a HM,
+    prototypes: &'a EHM,
 }
 
 impl<'a> ParamEncoder<'a> {
@@ -417,10 +368,10 @@ impl<'a> ParamEncoder<'a> {
     pub fn encode_vec2(
         value: just_core::math::Vec2,
         guard: &ContextGuard,
-        prototypes: &HM,
+        prototypes: &EHM,
     ) -> js::value::Value {
         let ob = js::value::External::new(guard, Box::new(value));
-        ob.set_prototype(guard, prototypes[&InternalTypes::Vec2].clone());
+        ob.set_prototype(guard, prototypes[&std::any::TypeId::of::<just_core::math::Vec2>()].clone()).unwrap();
         ob.into()
     }
 
@@ -492,23 +443,4 @@ impl<T: 'static + DispatchableEvent> EventDispatcher<T> {
             }
         }
     }
-}
-
-impl Controller for JsScript {
-    fn prepare(&mut self) {}
-
-    fn init(&mut self) {}
-    fn destroy(&mut self) {}
-
-    fn get_type_name(&self) -> String {
-        String::new()
-    }
-
-    fn set_bool_property(&mut self, _name: &str, _value: bool) {}
-    fn set_int_property(&mut self, _name: &str, _value: i64) {}
-    fn set_float_property(&mut self, _name: &str, _value: f32) {}
-    fn set_string_property(&mut self, _name: &str, _value: String) {}
-
-    fn set_controller_property(&mut self, _name: &str, _value: &Self) {}
-    fn set_gameobject_property(&mut self, _name: &str, _value: Entity) {}
 }

@@ -1,0 +1,13 @@
+[package]
+name = "just_js"
+version = "0.1.0"
+authors = ["Adam Winiarczuk <aw@instalod.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+just_core = {"path"="../just_core"}
+chakracore = {git="https://github.com/darfink/chakracore-rs", rev="93adef0a4ab297fbeaf228c403b8090e0979a1aa"}
+serde = {version="1.0", features=["derive"]}
+failure="0.1"

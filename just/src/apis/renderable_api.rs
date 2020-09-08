@@ -1,4 +1,4 @@
-use just_traits::scripting::{
+use just_core::traits::scripting::{
     ScriptApiRegistry,
     FunctionResult,
     FunctionParameter,
@@ -6,11 +6,23 @@ use just_traits::scripting::{
     function_params::*,
 };
 
+use std::sync::Arc;
+
 pub struct RenderableApi;
 
 use crate::core::Renderable;
 
-use crate::scripting::{MeshData, TextureData};
+use crate::traits::{MeshId, ResourceProvider, TextureId};
+
+#[derive(Copy, Clone)]
+pub struct MeshData {
+    pub id: MeshId,
+}
+
+#[derive(Copy, Clone)]
+pub struct TextureData {
+    pub id: TextureId,
+}
 
 impl FunctionResult for MeshData {}
 impl FunctionParameter for MeshData {
@@ -30,6 +42,18 @@ impl FunctionParameter for TextureData {
 
 impl RenderableApi {
     pub fn register<SAR: ScriptApiRegistry>(registry: &mut SAR) {
+        let resources_namespace = registry.register_namespace("Resources", None);
+
+        registry.register_function("getMesh", Some(&resources_namespace), |mut args: (World, String)| -> Option<MeshData> {
+            let obj = (*args.0).resources.get::<Arc<dyn ResourceProvider>>().unwrap().get_mesh(&args.1);
+            obj.map(|x| MeshData{id: x})
+        });
+
+        registry.register_function("getTexture", Some(&resources_namespace), |mut args: (World, String)| {
+            let obj = (*args.0).resources.get::<Arc<dyn ResourceProvider>>().unwrap().get_texture(&args.1);
+            obj.map(|x| TextureData{id: x})
+        });
+
         let renderable_type = registry
             .register_component::<Renderable, _>("Renderable", None, || Default::default())
             .unwrap();

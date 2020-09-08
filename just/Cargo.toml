@@ -12,12 +12,8 @@ octo = {path="../../octo/octo"}
 
 [dependencies]
 just_core = {path="../just_core"}
-just_traits = {path="../just_traits"}
 just_input = {path="../just_input"}
-
-
-# js scripting engine:
-chakracore = {git="https://github.com/darfink/chakracore-rs", rev="93adef0a4ab297fbeaf228c403b8090e0979a1aa"}
+just_js = {path="../just_js"}
 
 rendy = {git = "https://github.com/amethyst/rendy", rev="1980054d9efa3355eaa76163990e7127fb169295", features=["vulkan", "rendy-shader", "rendy-mesh", "mesh-obj", "texture-image"]}
 octo_runtime = {path="../../octo/octo_runtime"}

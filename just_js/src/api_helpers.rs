@@ -1,5 +1,5 @@
 use super::js;
-use crate::scripting::{EHM};
+use crate::{EHM};
 
 use js::value::function::FunctionCallback;
 use js::ContextGuard;
@@ -31,10 +31,4 @@ pub fn world(ctx: &js::Context) -> &mut World {
 
 pub fn external_prototypes(ctx: &js::Context) -> &EHM {
     *ctx.get_user_data::<&EHM>().unwrap()
-}
-
-macro_rules! mf {
-    ($i: ident) => {
-        Box::new(|a, b| $i(a, b))
-    };
 }

@@ -1,8 +1,9 @@
 use super::Engine;
 use super::GameObjectError;
 use super::TransformHierarchy;
-use crate::traits::*;
 use just_core::ecs::prelude::Entity;
+use just_core::traits::scripting::ScriptingEngine;
+use crate::traits::Hardware;
 
 impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
     pub fn set_parent(&mut self, obj: Entity, new_parent: Option<Entity>) -> Result<(), ()> {

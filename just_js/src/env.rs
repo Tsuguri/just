@@ -1,4 +1,4 @@
-use chakracore as js;
+use super::js;
 use just_core::ecs::prelude::*;
 
 use super::EHM;

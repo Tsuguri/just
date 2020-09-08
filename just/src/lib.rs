@@ -8,5 +8,3 @@ pub mod traits;
 pub mod ui;
 
 pub mod apis;
-
-pub use scripting::JsEngineConfig;

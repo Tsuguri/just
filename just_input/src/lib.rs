@@ -8,7 +8,7 @@ use rendy::wsi::winit;
 
 use just_core::{ecs, math, shrev};
 
-use just_traits::scripting::{function_params::Data, ScriptApiRegistry};
+use just_core::traits::scripting::{function_params::Data, ScriptApiRegistry};
 
 use ecs::prelude::*;
 use math::Vec2;

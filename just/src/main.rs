@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use just::*;
+use just_js::JsEngineConfig;
 
 fn main() {
     let engine_config = JsEngineConfig {
