@@ -44,12 +44,12 @@ impl RenderableApi {
     pub fn register<SAR: ScriptApiRegistry>(registry: &mut SAR) {
         let resources_namespace = registry.register_namespace("Resources", None);
 
-        registry.register_function("getMesh", Some(&resources_namespace), |mut args: (World, String)| -> Option<MeshData> {
+        registry.register_function("getMesh", Some(&resources_namespace), |args: (World, String)| -> Option<MeshData> {
             let obj = (*args.0).resources.get::<Arc<dyn ResourceProvider>>().unwrap().get_mesh(&args.1);
             obj.map(|x| MeshData{id: x})
         });
 
-        registry.register_function("getTexture", Some(&resources_namespace), |mut args: (World, String)| {
+        registry.register_function("getTexture", Some(&resources_namespace), |args: (World, String)| {
             let obj = (*args.0).resources.get::<Arc<dyn ResourceProvider>>().unwrap().get_texture(&args.1);
             obj.map(|x| TextureData{id: x})
         });

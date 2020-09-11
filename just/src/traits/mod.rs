@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use serde::Deserialize;
 
-use just_core::ecs::prelude::Entity;
 use just_core::ecs::prelude::World as LWorld;
 
 pub type MeshId = usize;

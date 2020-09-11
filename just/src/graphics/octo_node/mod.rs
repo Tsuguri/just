@@ -4,10 +4,10 @@ use std::collections::HashMap;
 use just_core::math::*;
 use just_core::glm;
 use just_core::ecs::prelude::*;
-use octo_runtime::ValueType;
+use just_rendyocto::octo_runtime::ValueType;
 use std::cell::RefCell;
 
-use rendy::{
+use just_rendyocto::rendy::{
     hal::memory,
     hal::pso::ShaderStageFlags,
     shader::ShaderSetBuilder,

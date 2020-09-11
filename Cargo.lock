@@ -837,10 +837,9 @@ dependencies = [
  "just_core 0.1.0",
  "just_input 0.1.0",
  "just_js 0.1.0",
+ "just_rendyocto 0.1.0",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "octo 0.1.0",
- "octo_runtime 0.0.1",
- "rendy 0.4.0 (git+https://github.com/amethyst/rendy?rev=1980054d9efa3355eaa76163990e7127fb169295)",
  "ron 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "schemars 0.7.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -877,6 +876,14 @@ dependencies = [
  "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "just_core 0.1.0",
  "serde 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "just_rendyocto"
+version = "0.1.0"
+dependencies = [
+ "octo_runtime 0.0.1",
+ "rendy 0.4.0 (git+https://github.com/amethyst/rendy?rev=1980054d9efa3355eaa76163990e7127fb169295)",
 ]
 
 [[package]]

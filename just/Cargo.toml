@@ -14,9 +14,8 @@ octo = {path="../../octo/octo"}
 just_core = {path="../just_core"}
 just_input = {path="../just_input"}
 just_js = {path="../just_js"}
+just_rendyocto = {path="../just_rendyocto"}
 
-rendy = {git = "https://github.com/amethyst/rendy", rev="1980054d9efa3355eaa76163990e7127fb169295", features=["vulkan", "rendy-shader", "rendy-mesh", "mesh-obj", "texture-image"]}
-octo_runtime = {path="../../octo/octo_runtime"}
 slotmap = "0.3.0"
 serde = {version="1.0", features=["derive"]}
 serde_json = "1.0"

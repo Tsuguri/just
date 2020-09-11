@@ -6,7 +6,8 @@ mod ui_node;
 
 use just_core::ecs::prelude::World;
 use just_core::math::{Quat, Vec3, Vec2};
-use rendy;
+use just_rendyocto::rendy;
+use just_rendyocto::octo_runtime;
 
 use crate::traits;
 

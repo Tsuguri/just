@@ -1,4 +1,4 @@
-use rendy::{
+use just_rendyocto::rendy::{
     self,
     hal,
     hal::device::Device,

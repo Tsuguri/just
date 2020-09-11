@@ -7,7 +7,7 @@ use just_core::{
     math::*,
 };
 
-use rendy::{
+use just_rendyocto::rendy::{
     self,
     hal,
     graph::render::PrepareResult,

@@ -1,0 +1,11 @@
+[package]
+name = "just_rendyocto"
+version = "0.1.0"
+authors = ["Adam Winiarczuk <aw@instalod.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rendy = {git = "https://github.com/amethyst/rendy", rev="1980054d9efa3355eaa76163990e7127fb169295", features=["vulkan", "rendy-shader", "rendy-mesh", "mesh-obj", "texture-image"]}
+octo_runtime = {path="../../octo/octo_runtime"}

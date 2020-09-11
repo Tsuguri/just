@@ -4,5 +4,6 @@ members = [
     "just_core",
     "just",
     "just_input",
-    "just_js"
+    "just_js",
+    "just_rendyocto"
 ]

@@ -18,6 +18,7 @@ use just_core::traits::scripting::ScriptApiRegistry;
 use crate::traits::{
     Hardware, Renderer, ResourceManager, ResourceProvider, 
 };
+use just_rendyocto::rendy;
 
 use just_core::traits::scripting::ScriptingEngine;
 use crate::ui;
