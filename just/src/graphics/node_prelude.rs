@@ -1,4 +1,4 @@
-pub use crate::traits::{ResourceManager as _, ResourceProvider as _};
+pub use crate::traits::{ResourceProvider as _};
 pub use just_core::glm;
 pub use std::sync::Arc;
 

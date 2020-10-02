@@ -44,10 +44,8 @@ impl<B: hal::Backend> traits::ResourceProvider for ResourceManager<B> {
     }
 }
 
-impl<B: hal::Backend> traits::ResourceManager<super::Hardware<B>> for ResourceManager<B> {
-    type Config = String;
-
-    fn load_resources(&mut self, config: &Self::Config, hardware: &mut super::Hardware<B>) {
+impl<B: hal::Backend> ResourceManager<B> {
+    pub fn load_resources(&mut self, config: &str, hardware: &mut super::Hardware<B>) {
         let path = std::path::Path::new(config);
         println!(
             "Loading resources from: {}",
@@ -68,7 +66,13 @@ impl<B: hal::Backend> traits::ResourceManager<super::Hardware<B>> for ResourceMa
         }
     }
 
-    fn create(config: &Self::Config, hardware: &mut super::Hardware<B>) -> Self {
+    pub fn cleanup(&mut self) {
+        self.textures.clear();
+        self.meshes.clear();
+
+    }
+
+    pub fn create(config: &str, hardware: &mut super::Hardware<B>) -> Self {
         let mut s: Self = Default::default();
         s.load_resources(config, hardware);
         s

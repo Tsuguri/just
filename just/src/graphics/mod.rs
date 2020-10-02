@@ -4,12 +4,14 @@ mod octo_node;
 mod resources;
 mod ui_node;
 
-use just_core::ecs::prelude::World;
-use just_core::math::{Quat, Vec3, Vec2};
-use just_rendyocto::rendy;
+use just_core::ecs::prelude::*;
+use just_core::math::{Quat, Vec2, Vec3};
 use just_rendyocto::octo_runtime;
+use just_rendyocto::rendy;
 
 use crate::traits;
+
+use traits::ResourceProvider;
 
 #[cfg(test)]
 pub mod test_resources;
@@ -43,13 +45,82 @@ pub struct ViewportData {
     pub ratio: f32,
 }
 
+pub struct RenderingManager {
+    pub hardware: Hw,
+    renderer: Rd,
+    resources: Arc<dyn ResourceProvider>,
+}
+
+unsafe impl Send for RenderingManager{}
+unsafe impl Sync for RenderingManager{}
+
+pub struct RenderingSystem;
+
+impl RenderingSystem {
+    pub fn initialize(world: &mut World, res_path: &str) -> Arc<dyn ResourceProvider>{
+        let mut hardware = Hw::create();
+        let resources = Arc::new(Res::create(res_path, &mut hardware));
+        // render graph elements are fetching stuff from resources Arc
+        let renderer = Rd::create(&mut hardware, world, resources.clone());
+
+        world
+            .resources
+            .insert::<Arc<dyn ResourceProvider>>(resources.clone());
+
+        world
+            .resources
+            .insert::<RenderingManager>(RenderingManager { hardware, renderer, resources: resources.clone()});
+        resources
+    }
+
+    pub fn maintain(world: &mut World) {
+        let mut rm =
+            <Write<RenderingManager>>::fetch(
+                &mut world.resources,
+            );
+        let hardware = &mut rm.hardware;
+        hardware.factory.maintain(&mut hardware.families);
+
+    }
+
+    pub fn run(world: &mut World) {
+        let mut rm =
+            <Write<RenderingManager>>::fetch(
+                &mut world.resources,
+            );
+
+        let RenderingManager{hardware, renderer, resources: _} = &mut (*rm);
+        renderer
+            .run(hardware, &world);
+
+    }
+
+    pub fn shut_down(world: &mut World) {
+        world.resources.remove::<Arc<dyn ResourceProvider>>();
+
+        match world.resources.remove::<RenderingManager>() {
+            None => (),
+            Some(RenderingManager{mut hardware, mut renderer, mut resources}) => {
+                drop(resources);
+                renderer.dispose(&mut hardware, &world);
+                drop(renderer);
+                drop(hardware);
+            }
+        }
+    }
+}
+
 pub struct Renderer<B: hal::Backend> {
     graph: Option<rendy::graph::Graph<B, World>>,
     push_constants_block: Arc<octo_node::PushConstantsBlock>,
 }
 
-impl<B: hal::Backend> traits::Renderer<Hardware<B>> for Renderer<B> {
-    fn create(hardware: &mut Hardware<B>, world: &mut World, res: Arc<ResourceManager<B>>) -> Self {
+impl<B: hal::Backend> Renderer<B> {
+    pub fn create(
+        hardware: &mut Hardware<B>,
+        world: &mut World,
+        res: Arc<ResourceManager<B>>,
+    ) -> Self {
         world.resources.insert(CameraData {
             position: Vec3::zeros(),
             rotation: Quat::identity(),
@@ -71,7 +142,7 @@ impl<B: hal::Backend> traits::Renderer<Hardware<B>> for Renderer<B> {
             push_constants_block: block,
         }
     }
-    fn run(&mut self, hardware: &mut Hardware<B>, _res: &ResourceManager<B>, world: &World) {
+    pub fn run(&mut self, hardware: &mut Hardware<B>, world: &World) {
         match &mut self.graph {
             Some(x) => {
                 let size = hardware
@@ -80,17 +151,15 @@ impl<B: hal::Backend> traits::Renderer<Hardware<B>> for Renderer<B> {
                     .unwrap()
                     .to_physical(hardware.window.get_hidpi_factor());
                 self.push_constants_block.clear();
-                self.push_constants_block.fill(
-                    world,
-                    Vec2::new(size.width as f32, size.height as f32),
-                );
+                self.push_constants_block
+                    .fill(world, Vec2::new(size.width as f32, size.height as f32));
                 x.run(&mut hardware.factory, &mut hardware.families, world);
             }
             None => (),
         }
     }
 
-    fn dispose(&mut self, hardware: &mut Hardware<B>, world: &World) {
+    pub fn dispose(&mut self, hardware: &mut Hardware<B>, world: &World) {
         match self.graph.take() {
             Some(x) => {
                 x.dispose(&mut hardware.factory, world);
@@ -109,6 +178,10 @@ pub struct Hardware<B: hal::Backend> {
     pub used_family: rendy::command::FamilyId,
 }
 
+pub type Hw = Hardware<rendy::vulkan::Backend>;
+pub type Rd = Renderer<rendy::vulkan::Backend>;
+pub type Res = resources::ResourceManager<rendy::vulkan::Backend>;
+
 impl<B: hal::Backend> std::ops::Drop for Hardware<B> {
     fn drop(&mut self) {
         unsafe {
@@ -118,18 +191,11 @@ impl<B: hal::Backend> std::ops::Drop for Hardware<B> {
     }
 }
 
-impl<B: hal::Backend> traits::Hardware for Hardware<B> {
-    type RM = ResourceManager<B>;
-    type Renderer = Renderer<B>;
-    type Config = i32;
-
-    fn create(_config: &Self::Config) -> Self {
+impl<B: hal::Backend> Hardware<B> {
+    pub fn create() -> Self {
         let conf: rendy::factory::Config = Default::default();
         Self::new(conf)
     }
-}
-
-impl<B: hal::Backend> Hardware<B> {
     pub fn new(config: Config) -> Self {
         let (mut factory, families): (Factory<B>, _) = rendy::factory::init(config).unwrap();
         let mut event_loop = EventsLoop::new();

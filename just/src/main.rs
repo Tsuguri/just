@@ -11,7 +11,7 @@ fn main() {
     let _renderer_config = 2i32;
     let _resources = 3i32;
 
-    let mut engine = core::JsEngine::new(&engine_config, &1i32, &"dev_app/res".to_string());
+    let mut engine = core::JsEngine::new(&engine_config, &"dev_app/res");
 
     scene_serialization::deserialize_scene("dev_app/scene.ron", &mut engine).unwrap();
 

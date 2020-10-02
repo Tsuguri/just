@@ -3,9 +3,8 @@ use super::GameObjectError;
 use super::TransformHierarchy;
 use just_core::ecs::prelude::Entity;
 use just_core::traits::scripting::ScriptingEngine;
-use crate::traits::Hardware;
 
-impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
+impl<E: ScriptingEngine> Engine<E> {
     pub fn set_parent(&mut self, obj: Entity, new_parent: Option<Entity>) -> Result<(), ()> {
         TransformHierarchy::set_parent(&mut self.world, obj, new_parent)
     }

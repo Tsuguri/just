@@ -6,7 +6,6 @@ with {
     view_size: vec2,
 }
 {
-
     let ambient = lightColor * vec3(0.3, 0.3, 0.3);
 
     let ret_color = ambient;

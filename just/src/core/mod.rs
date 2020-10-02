@@ -16,7 +16,7 @@ use crate::apis::TransformApi;
 use just_core::traits::scripting::ScriptApiRegistry;
 
 use crate::traits::{
-    Hardware, Renderer, ResourceManager, ResourceProvider, 
+    ResourceProvider, 
 };
 use just_rendyocto::rendy;
 
@@ -28,6 +28,7 @@ use just_core::ecs::prelude::*;
 use crate::scripting::test_scripting::MockScriptEngine;
 use std::sync::Arc;
 use just_js::JsScriptEngine;
+use just_assets::AssetSystem;
 
 pub use game_object::GameObject;
 pub use hierarchy::TransformHierarchy;
@@ -37,17 +38,20 @@ struct Animator;
 
 struct Audio;
 
-pub struct Engine<E: ScriptingEngine, HW: Hardware + 'static> {
+use super::graphics::{
+    Hw,
+    Res,
+    Rd,
+    RenderingSystem,
+};
+
+pub struct Engine<E: ScriptingEngine> {
     pub world: World,
 
     scripting_engine: E,
-    pub resources: Arc<HW::RM>,
-    pub hardware: HW,
-    renderer: HW::Renderer,
 }
 
-type Hw = super::graphics::Hardware<rendy::vulkan::Backend>;
-pub type JsEngine = Engine<JsScriptEngine, Hw>;
+pub type JsEngine = Engine<JsScriptEngine>;
 
 #[cfg(test)]
 pub type MockEngine = Engine<MockScriptEngine, crate::graphics::test_resources::MockHardware>;
@@ -57,45 +61,36 @@ pub enum GameObjectError {
     IdNotExisting,
 }
 
-impl<E: ScriptingEngine + ScriptApiRegistry, HW: Hardware + 'static> Engine<E, HW>
-where
-    <HW as Hardware>::RM: Send + Sync,
+impl<E: ScriptingEngine + ScriptApiRegistry> Engine<E>
 {
-    //type HWA = i32;
-    //use <HW as traits::Hardware> as HW;
     pub fn new(
         engine_config: &E::Config,
-        hw_config: &HW::Config,
-        rm_config: &<HW::RM as ResourceManager<HW>>::Config,
+        res_path: &str,
     ) -> Self {
-        let mut hardware = HW::create(hw_config);
-        let resources = Arc::new(HW::RM::create(rm_config, &mut hardware));
-
         let mut world = World::default();
-        world
-            .resources
-            .insert::<Arc<dyn ResourceProvider>>(resources.clone());
+
+        let resources = RenderingSystem::initialize(&mut world, res_path);
+
         InputSystem::initialize(&mut world);
         GameObject::initialize(&mut world);
-        ui::UiSystem::initialize(&mut world, resources.clone());
+        ui::UiSystem::initialize(&mut world, resources);
         TimeSystem::initialize(&mut world);
+        AssetSystem::initialize(&mut world, res_path);
 
-        let renderer = HW::Renderer::create(&mut hardware, &mut world, resources.clone());
+
         let mut scripting_engine = E::create(engine_config, &mut world);
         TransformApi::register(&mut scripting_engine);
         WorldApi::register(&mut scripting_engine);
         TimeSystem::register_api(&mut scripting_engine);
         MathApi::register_api(&mut scripting_engine);
         ConsoleApi::register(&mut scripting_engine);
+        AssetSystem::register_api(&mut scripting_engine);
 
         RenderableApi::register(&mut scripting_engine);
         InputSystem::register_api(&mut scripting_engine);
         let eng = Engine {
             world,
             scripting_engine,
-            resources,
-            renderer,
-            hardware,
         };
         eng
     }
@@ -105,10 +100,10 @@ where
     }
 }
 
-impl<E: ScriptingEngine, HW: Hardware + 'static> std::ops::Drop for Engine<E, HW> {
+impl<E: ScriptingEngine> std::ops::Drop for Engine<E> {
     fn drop(&mut self) {
-        self.renderer.dispose(&mut self.hardware, &self.world);
         ui::UiSystem::shut_down(&mut self.world);
+        RenderingSystem::shut_down(&mut self.world);
     }
 }
 
@@ -116,28 +111,32 @@ impl JsEngine {
     pub fn run(&mut self) {
 
         loop {
-            self.hardware.factory.maintain(&mut self.hardware.families);
+            RenderingSystem::maintain(&mut self.world);
 
+            let mut rm =
+                <Write<crate::graphics::RenderingManager>>::fetch(
+                    &mut self.world.resources,
+                );
             let inputs =
-                just_input::InputSystem::poll_events(&mut self.hardware.event_loop, &mut self.world);
+                just_input::InputSystem::poll_events(&mut rm.hardware.event_loop, &mut self.world);
 
             if inputs.end_requested {
                 break;
             }
 
             TimeSystem::update(&mut self.world);
+            AssetSystem::update(&mut self.world);
 
             self.update_scripts();
             ui::UiSystem::update(&mut self.world);
-            self.renderer
-                .run(&mut self.hardware, &self.resources, &self.world);
+            RenderingSystem::run(&mut self.world);
 
             GameObject::remove_marked(&mut self.world);
         }
     }
 }
 
-impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
+impl<E: ScriptingEngine> Engine<E> {
     pub fn exists(&self, id: Entity) -> bool {
         self.world.is_alive(id)
     }
@@ -147,11 +146,12 @@ impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
     }
 
     pub fn add_renderable(&mut self, id: Entity, mesh: &str, tex: Option<&str>) {
-        let mesh = self.resources.get_mesh(mesh).unwrap();
+        let res = self.world.resources.get::<Arc<dyn ResourceProvider>>().unwrap();
+        let mesh = res.get_mesh(mesh).unwrap();
         let tex = match tex {
             None => None,
             Some(tex_name) => {
-                let tex_res = self.resources.get_texture(tex_name).unwrap();
+                let tex_res = res.get_texture(tex_name).unwrap();
                 Some(tex_res)
             }
         };
@@ -159,6 +159,7 @@ impl<E: ScriptingEngine, HW: Hardware> Engine<E, HW> {
             mesh: Some(mesh),
             texture: tex,
         };
+        drop(res);
 
         Renderable::add_tex_renderable(&mut self.world, id, mesh);
     }
