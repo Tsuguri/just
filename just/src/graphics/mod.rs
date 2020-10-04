@@ -1,7 +1,6 @@
 mod deferred_node;
 mod node_prelude;
 mod octo_node;
-mod resources;
 mod ui_node;
 
 use just_core::ecs::prelude::*;
@@ -11,12 +10,12 @@ use just_rendyocto::rendy;
 
 use crate::traits;
 
-use traits::ResourceProvider;
+use just_rendyocto::resources::ResourceProvider;
 
 #[cfg(test)]
 pub mod test_resources;
 
-pub use resources::ResourceManager;
+pub use just_rendyocto::resources::ResourceManager;
 
 use rendy::{
     command::Families,
@@ -58,7 +57,7 @@ pub struct RenderingSystem;
 
 impl RenderingSystem {
     pub fn initialize(world: &mut World, res_path: &str) -> Arc<dyn ResourceProvider>{
-        let mut hardware = Hw::create();
+        let mut hardware = create_hardware();
         let resources = Arc::new(Res::create(res_path, &mut hardware));
         // render graph elements are fetching stuff from resources Arc
         let renderer = Rd::create(&mut hardware, world, resources.clone());
@@ -169,61 +168,45 @@ impl<B: hal::Backend> Renderer<B> {
     }
 }
 
-pub struct Hardware<B: hal::Backend> {
-    pub window: Window,
-    pub event_loop: EventsLoop,
-    pub factory: ManuallyDrop<Factory<B>>,
-    pub families: ManuallyDrop<Families<B>>,
-    pub surface: Option<rendy::wsi::Surface<B>>,
-    pub used_family: rendy::command::FamilyId,
-}
+use just_rendyocto::Hardware;
 
 pub type Hw = Hardware<rendy::vulkan::Backend>;
 pub type Rd = Renderer<rendy::vulkan::Backend>;
-pub type Res = resources::ResourceManager<rendy::vulkan::Backend>;
+pub type Res = just_rendyocto::resources::ResourceManager<rendy::vulkan::Backend>;
 
-impl<B: hal::Backend> std::ops::Drop for Hardware<B> {
-    fn drop(&mut self) {
-        unsafe {
-            ManuallyDrop::drop(&mut self.families);
-            ManuallyDrop::drop(&mut self.factory);
-        }
-    }
+
+pub fn create_hardware<B: hal::Backend>() -> Hardware<B> {
+    let conf: rendy::factory::Config = Default::default();
+    new_hardware(conf)
 }
 
-impl<B: hal::Backend> Hardware<B> {
-    pub fn create() -> Self {
-        let conf: rendy::factory::Config = Default::default();
-        Self::new(conf)
-    }
-    pub fn new(config: Config) -> Self {
-        let (mut factory, families): (Factory<B>, _) = rendy::factory::init(config).unwrap();
-        let mut event_loop = EventsLoop::new();
-        event_loop.poll_events(|_| ());
+pub fn new_hardware<B: hal::Backend>(config: Config) -> Hardware<B> {
+    let (mut factory, families): (Factory<B>, _) = rendy::factory::init(config).unwrap();
+    let mut event_loop = EventsLoop::new();
+    event_loop.poll_events(|_| ());
 
-        let monitor_id = event_loop.get_primary_monitor();
+    let monitor_id = event_loop.get_primary_monitor();
 
-        let window = WindowBuilder::new()
-            .with_title("It's Just Game")
-            .with_fullscreen(Some(monitor_id))
-            .build(&event_loop)
-            .unwrap();
-        let surface = factory.create_surface(&window);
-        let family_id = families
-            .as_slice()
-            .iter()
-            .find(|family| factory.surface_support(family.id(), &surface))
-            .map(rendy::command::Family::id)
-            .unwrap();
+    let window = WindowBuilder::new()
+        .with_title("It's Just Game")
+        .with_fullscreen(Some(monitor_id))
+        .build(&event_loop)
+        .unwrap();
+    let surface = factory.create_surface(&window);
+    let family_id = families
+        .as_slice()
+        .iter()
+        .find(|family| factory.surface_support(family.id(), &surface))
+        .map(rendy::command::Family::id)
+        .unwrap();
 
-        Self {
-            factory: ManuallyDrop::new(factory),
-            families: ManuallyDrop::new(families),
-            window,
-            event_loop,
-            surface: Option::Some(surface),
-            used_family: family_id,
-        }
+    Hardware {
+        factory: ManuallyDrop::new(factory),
+        families: ManuallyDrop::new(families),
+        window,
+        event_loop,
+        surface: Option::Some(surface),
+        used_family: family_id,
     }
 }
 

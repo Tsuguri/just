@@ -15,7 +15,7 @@ use crate::apis::WorldApi;
 use crate::apis::TransformApi;
 use just_core::traits::scripting::ScriptApiRegistry;
 
-use crate::traits::{
+use just_rendyocto::resources::{
     ResourceProvider, 
 };
 use just_rendyocto::rendy;

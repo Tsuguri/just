@@ -12,7 +12,7 @@ pub struct RenderableApi;
 
 use crate::core::Renderable;
 
-use crate::traits::{MeshId, ResourceProvider, TextureId};
+use just_rendyocto::resources::{MeshId, ResourceProvider, TextureId};
 
 #[derive(Copy, Clone)]
 pub struct MeshData {

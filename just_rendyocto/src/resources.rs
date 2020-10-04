@@ -1,4 +1,4 @@
-use just_rendyocto::rendy::{
+use rendy::{
     self,
     hal,
     hal::device::Device,
@@ -8,8 +8,14 @@ use just_rendyocto::rendy::{
 };
 use wavefront_obj::obj;
 
-//use super::Backend;
-use crate::traits;
+pub type MeshId = usize;
+pub type TextureId = usize;
+
+pub trait ResourceProvider: Send + Sync {
+    fn get_mesh(&self, name: &str) -> Option<MeshId>;
+    fn get_texture(&self, name: &str) -> Option<TextureId>;
+}
+
 use std::collections::HashMap;
 
 pub struct TextureRes<B: hal::Backend> {
@@ -35,17 +41,17 @@ impl<B: hal::Backend> Default for ResourceManager<B> {
     }
 }
 
-impl<B: hal::Backend> traits::ResourceProvider for ResourceManager<B> {
-    fn get_mesh(&self, name: &str) -> Option<traits::MeshId> {
+impl<B: hal::Backend> ResourceProvider for ResourceManager<B> {
+    fn get_mesh(&self, name: &str) -> Option<MeshId> {
         return self.mesh_names.get(name).copied();
     }
-    fn get_texture(&self, name: &str) -> Option<traits::TextureId> {
+    fn get_texture(&self, name: &str) -> Option<TextureId> {
         return self.texture_names.get(name).copied();
     }
 }
 
 impl<B: hal::Backend> ResourceManager<B> {
-    pub fn load_resources(&mut self, config: &str, hardware: &mut super::Hardware<B>) {
+    pub fn load_resources(&mut self, config: &str, hardware: &mut crate::Hardware<B>) {
         let path = std::path::Path::new(config);
         println!(
             "Loading resources from: {}",

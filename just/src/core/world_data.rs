@@ -1,4 +1,4 @@
-use crate::traits::{MeshId, TextureId};
+use just_rendyocto::resources::{MeshId, TextureId};
 
 use just_core::ecs::prelude::*;
 

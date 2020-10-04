@@ -47,7 +47,7 @@ impl<B: hal::Backend> DeferredNodeDesc<B> {
     }
 }
 
-use crate::traits::{MeshId, TextureId};
+use just_rendyocto::resources::{MeshId, TextureId};
 
 pub struct DeferredNode<B: hal::Backend> {
     res: Arc<ResourceManager<B>>,

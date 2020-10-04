@@ -14,3 +14,5 @@ rendy = {git = "https://github.com/amethyst/rendy", rev="1980054d9efa3355eaa7616
 octo_runtime = {path="../../octo/octo_runtime"}
 just_core = {path="../just_core"}
 just_assets = {path="../just_assets"}
+wavefront_obj = "6.0"
+failure="0.1"
