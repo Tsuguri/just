@@ -1,9 +1,8 @@
-pub use just_rendyocto::resources::{ResourceProvider as _};
+pub use crate::resources::{ResourceProvider as _};
 pub use just_core::glm;
 pub use std::sync::Arc;
 
-pub use just_rendyocto::resources::ResourceManager;
-pub use just_rendyocto::rendy;
+pub use crate::resources::ResourceManager;
 pub use rendy::{
     command::{QueueId, RenderPassEncoder},
     factory::Factory,

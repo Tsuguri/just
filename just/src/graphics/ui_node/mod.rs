@@ -1,4 +1,3 @@
-use super::node_prelude::*;
 use crate::ui::*;
 use failure;
 
@@ -7,10 +6,15 @@ use just_core::{
     math::*,
 };
 
-use just_rendyocto::rendy::{
-    self,
-    hal,
-    graph::render::PrepareResult,
+use just_rendyocto::{
+    rendy::{
+        self,
+        hal,
+        graph::render::PrepareResult,
+    },
+    node_prelude::*,
+    octo_node,
+    deferred_node,
 };
 
 lazy_static::lazy_static! {

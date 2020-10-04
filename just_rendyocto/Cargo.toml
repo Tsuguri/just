@@ -16,3 +16,4 @@ just_core = {path="../just_core"}
 just_assets = {path="../just_assets"}
 wavefront_obj = "6.0"
 failure="0.1"
+lazy_static = "1.0"

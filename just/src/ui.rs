@@ -211,7 +211,7 @@ impl UiSystem {
             <(
                 Read<MouseState>,
                 Write<UiSystem>,
-                Read<crate::graphics::ViewportData>,
+                Read<just_rendyocto::ViewportData>,
                 Write<UiEventChannel>,
                 Write<InputEventChannel>,
             )>::fetch(&world.resources);

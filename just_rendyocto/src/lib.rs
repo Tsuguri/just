@@ -8,6 +8,22 @@ use rendy::{
     wsi::winit::{EventsLoop, Window, WindowBuilder},
 };
 use std::mem::ManuallyDrop;
+use just_core::ecs::prelude::*;
+use just_core::math::{Vec3, Quat};
+
+#[derive(Clone)]
+pub struct CameraData {
+    pub position: Vec3,
+    pub rotation: Quat,
+}
+
+#[derive(Clone)]
+pub struct ViewportData {
+    pub camera_lens_height: f32,
+    pub height: f32,
+    pub width: f32,
+    pub ratio: f32,
+}
 
 pub struct Hardware<B: hal::Backend> {
     pub window: Window,
@@ -64,11 +80,42 @@ impl<B: hal::Backend> Hardware<B> {
 }
 
 pub mod resources;
+pub mod deferred_node;
+pub mod octo_node;
+pub mod node_prelude;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct Renderable {
+    pub mesh: Option<resources::MeshId>,
+    pub texture: Option<resources::TextureId>,
+}
+
+impl std::default::Default for Renderable {
+    fn default() -> Self {
+        Renderable {
+            mesh: None,
+            texture: None,
+        }
+    }
+}
+
+//#[derive(Copy, Clone, Debug, PartialEq)]
+//pub struct Mesh {
+    //pub mesh_id: MeshId,
+    //pub texture_id: Option<TextureId>,
+//}
+
+impl Renderable {
+    pub fn add_renderable_to_go(world: &mut World, id: Entity, mesh: resources::MeshId) {
+        world.add_component(
+            id,
+            Renderable {
+                mesh: Some(mesh),
+                texture: None,
+            },
+        );
+    }
+    pub fn add_tex_renderable(world: &mut World, id: Entity, mesh: Renderable) {
+        world.add_component(id, mesh);
     }
 }

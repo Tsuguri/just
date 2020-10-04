@@ -1,4 +1,4 @@
-use just_core::ecs::prelude::*;
+use crate::ecs::prelude::*;
 
 #[derive(Clone)]
 pub struct GameObject {
@@ -76,7 +76,7 @@ impl GameObject {
     }
 
     fn remove_single(world: &mut World, id: Entity) {
-        super::TransformHierarchy::set_parent(world, id, None).unwrap();
+        crate::hierarchy::TransformHierarchy::set_parent(world, id, None).unwrap();
         world.delete(id);
     }
 

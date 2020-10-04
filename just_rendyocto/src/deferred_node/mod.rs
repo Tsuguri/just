@@ -1,10 +1,11 @@
 use super::node_prelude::*;
 
 use super::octo_node::{RenderingConstants, Value};
-use crate::core::Renderable;
-use crate::core::TransformHierarchy;
+use crate::Renderable;
+use just_core::hierarchy::TransformHierarchy;
 use just_core::ecs::prelude::*;
 use just_core::math;
+use crate::resources::{MeshId, TextureId};
 
 lazy_static::lazy_static! {
     static ref VERTEX: SpirvShader = SourceShaderInfo::new(
@@ -47,7 +48,6 @@ impl<B: hal::Backend> DeferredNodeDesc<B> {
     }
 }
 
-use just_rendyocto::resources::{MeshId, TextureId};
 
 pub struct DeferredNode<B: hal::Backend> {
     res: Arc<ResourceManager<B>>,
@@ -242,7 +242,7 @@ where
             let buf = self.renderables_buffer.take();
 
             let buf = {
-                let query = <(Read<Renderable>)>::query();
+                let query = <Read<Renderable>>::query();
 
                 let mut buf = match buf {
                     Some(mut vec) => {

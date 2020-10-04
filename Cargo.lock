@@ -892,6 +892,7 @@ dependencies = [
  "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "just_assets 0.1.0",
  "just_core 0.1.0",
+ "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "octo 0.1.0",
  "octo_runtime 0.0.1",
  "rendy 0.4.0 (git+https://github.com/amethyst/rendy?rev=1980054d9efa3355eaa76163990e7127fb169295)",

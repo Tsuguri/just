@@ -4,10 +4,10 @@ use std::collections::HashMap;
 use just_core::math::*;
 use just_core::glm;
 use just_core::ecs::prelude::*;
-use just_rendyocto::octo_runtime::ValueType;
+use octo_runtime::ValueType;
 use std::cell::RefCell;
 
-use just_rendyocto::rendy::{
+use rendy::{
     hal::memory,
     hal::pso::ShaderStageFlags,
     shader::ShaderSetBuilder,
@@ -66,7 +66,7 @@ impl RenderingConstants {
     pub fn get_view_matrix(world: &World) -> Matrix {
         let camera_data = world
             .resources
-            .get::<crate::graphics::CameraData>()
+            .get::<crate::CameraData>()
             .unwrap();
 
         glm::quat_to_mat4(&camera_data.rotation)
@@ -80,7 +80,7 @@ impl RenderingConstants {
             "lightColor" => Value::Vector3(Vec3::new(0.6f32, 0.6f32, 0.6f32)),
             "lightDir" => Value::Vector3(Vec3::new(2.0f32, 1.0f32, -0.1f32)),
             "camera_pos" => {
-                Value::Vector3(world.resources.get::<super::CameraData>().unwrap().position)
+                Value::Vector3(world.resources.get::<crate::CameraData>().unwrap().position)
             }
             _ => Value::None,
         }

@@ -1,6 +1,3 @@
-mod deferred_node;
-mod node_prelude;
-mod octo_node;
 mod ui_node;
 
 use just_core::ecs::prelude::*;
@@ -11,6 +8,10 @@ use just_rendyocto::rendy;
 use crate::traits;
 
 use just_rendyocto::resources::ResourceProvider;
+use just_rendyocto::deferred_node;
+use just_rendyocto::octo_node;
+use just_rendyocto::CameraData;
+use just_rendyocto::ViewportData;
 
 #[cfg(test)]
 pub mod test_resources;
@@ -30,19 +31,6 @@ use std::sync::Arc;
 use octo_runtime::OctoModule;
 use ui_node::UiNodeDesc;
 
-#[derive(Clone)]
-pub struct CameraData {
-    pub position: Vec3,
-    pub rotation: Quat,
-}
-
-#[derive(Clone)]
-pub struct ViewportData {
-    pub camera_lens_height: f32,
-    pub height: f32,
-    pub width: f32,
-    pub ratio: f32,
-}
 
 pub struct RenderingManager {
     pub hardware: Hw,
@@ -57,7 +45,7 @@ pub struct RenderingSystem;
 
 impl RenderingSystem {
     pub fn initialize(world: &mut World, res_path: &str) -> Arc<dyn ResourceProvider>{
-        let mut hardware = create_hardware();
+        let mut hardware = Hw::create();
         let resources = Arc::new(Res::create(res_path, &mut hardware));
         // render graph elements are fetching stuff from resources Arc
         let renderer = Rd::create(&mut hardware, world, resources.clone());
@@ -173,42 +161,6 @@ use just_rendyocto::Hardware;
 pub type Hw = Hardware<rendy::vulkan::Backend>;
 pub type Rd = Renderer<rendy::vulkan::Backend>;
 pub type Res = just_rendyocto::resources::ResourceManager<rendy::vulkan::Backend>;
-
-
-pub fn create_hardware<B: hal::Backend>() -> Hardware<B> {
-    let conf: rendy::factory::Config = Default::default();
-    new_hardware(conf)
-}
-
-pub fn new_hardware<B: hal::Backend>(config: Config) -> Hardware<B> {
-    let (mut factory, families): (Factory<B>, _) = rendy::factory::init(config).unwrap();
-    let mut event_loop = EventsLoop::new();
-    event_loop.poll_events(|_| ());
-
-    let monitor_id = event_loop.get_primary_monitor();
-
-    let window = WindowBuilder::new()
-        .with_title("It's Just Game")
-        .with_fullscreen(Some(monitor_id))
-        .build(&event_loop)
-        .unwrap();
-    let surface = factory.create_surface(&window);
-    let family_id = families
-        .as_slice()
-        .iter()
-        .find(|family| factory.surface_support(family.id(), &surface))
-        .map(rendy::command::Family::id)
-        .unwrap();
-
-    Hardware {
-        factory: ManuallyDrop::new(factory),
-        families: ManuallyDrop::new(families),
-        window,
-        event_loop,
-        surface: Option::Some(surface),
-        used_family: family_id,
-    }
-}
 
 pub fn fill_render_graph<'a, B: hal::Backend>(
     hardware: &mut Hardware<B>,

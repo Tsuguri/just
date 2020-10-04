@@ -1,8 +1,8 @@
 use super::game_object::GameObject;
 use super::transform::Transform;
-use just_core::math::*;
-use just_core::glm;
-use just_core::ecs::prelude::{Entity, World};
+use crate::math::*;
+use crate::glm;
+use crate::ecs::prelude::{Entity, World};
 
 pub struct TransformHierarchy;
 

@@ -1,5 +1,5 @@
 use crate::core::{GameObject, TransformHierarchy};
-use crate::graphics::{CameraData, ViewportData};
+use just_rendyocto::{CameraData, ViewportData};
 use just_core::math::*;
 use just_core::ecs;
 use just_core::glm;

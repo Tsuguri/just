@@ -1,5 +1,8 @@
 pub mod math;
 pub mod traits;
+pub mod game_object;
+pub mod transform;
+pub mod hierarchy;
 
 pub use nalgebra_glm as glm;
 pub use legion as ecs;

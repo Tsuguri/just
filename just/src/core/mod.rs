@@ -1,14 +1,15 @@
-mod game_object;
-mod hierarchy;
 mod parent_child_manipulation;
-mod transform;
-mod world_data;
 mod time;
 
 use time::TimeSystem;
 
 use just_input::InputSystem;
 use just_core::math::MathApi;
+use just_core::{
+    game_object,
+    hierarchy,
+    transform,
+};
 use crate::apis::ConsoleApi;
 use crate::apis::RenderableApi;
 use crate::apis::WorldApi;
@@ -32,7 +33,7 @@ use just_assets::AssetSystem;
 
 pub use game_object::GameObject;
 pub use hierarchy::TransformHierarchy;
-pub use world_data::Renderable;
+pub use just_rendyocto::Renderable;
 
 struct Animator;
 
@@ -155,7 +156,7 @@ impl<E: ScriptingEngine> Engine<E> {
                 Some(tex_res)
             }
         };
-        let mesh = world_data::Renderable {
+        let mesh = just_rendyocto::Renderable {
             mesh: Some(mesh),
             texture: tex,
         };
