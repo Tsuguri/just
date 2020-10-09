@@ -4,7 +4,6 @@ mod mouse_state;
 pub use keyboard_state::{KeyCode, KeyboardState};
 pub use mouse_state::MouseState;
 
-use rendy::wsi::winit;
 
 use just_core::{ecs, math, shrev};
 
@@ -13,12 +12,12 @@ use just_core::traits::scripting::{function_params::Data, ScriptApiRegistry};
 use ecs::prelude::*;
 use math::Vec2;
 use shrev::EventChannel;
-use winit::{ElementState, Event, EventsLoop, MouseButton, VirtualKeyCode, WindowEvent};
+use winit::event::{Event, MouseButton, VirtualKeyCode, WindowEvent, ElementState};
 
 #[derive(Debug, Clone, Default)]
 pub struct UserInput {
     pub end_requested: bool,
-    pub new_frame_size: Option<(f64, f64)>,
+    pub new_frame_size: Option<(u32, u32)>,
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -78,7 +77,7 @@ impl InputSystem {
         );
     }
 
-    pub fn poll_events(event_loop: &mut EventsLoop, world: &mut World) -> UserInput {
+    pub fn process_events(events: &mut Vec<Event<()>>, world: &mut World) -> UserInput {
         let (mut keyboard_state, mut mouse_state, mut channel) =
             <(Write<KeyboardState>, Write<MouseState>, Write<InputChannel>)>::fetch(
                 &mut world.resources,
@@ -87,65 +86,67 @@ impl InputSystem {
         let mut output = UserInput::default();
         keyboard_state.next_frame();
         mouse_state.next_frame();
-        event_loop.poll_events(|event| match event {
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                ..
-            } => output.end_requested = true,
-            Event::WindowEvent {
-                event: WindowEvent::Resized(logical),
-                ..
-            } => {
-                output.new_frame_size = Some((logical.width, logical.height));
-            }
-            Event::WindowEvent {
-                event: WindowEvent::CursorMoved { position, .. },
-                ..
-            } => {
-                mouse_state.set_new_position([position.x as f32, position.y as f32]);
-                new_events.push(InputEvent::MouseMoved(Vec2::new(
-                    position.x as f32,
-                    position.y as f32,
-                )));
-            }
-            Event::WindowEvent {
-                event: WindowEvent::MouseInput { state, button, .. },
-                ..
-            } => {
-                let id: usize = match button {
-                    MouseButton::Left => 0,
-                    MouseButton::Right => 1,
-                    MouseButton::Middle => 2,
-                    MouseButton::Other(oth) => oth as usize,
-                };
-                mouse_state.set_button_state(id, state == ElementState::Pressed);
-                match state {
-                    ElementState::Pressed => new_events.push(InputEvent::MouseButtonPressed(id)),
-                    ElementState::Released => new_events.push(InputEvent::MouseButtonReleased(id)),
+        for event in events {
+            match event {
+                Event::WindowEvent {
+                    event: WindowEvent::CloseRequested,
+                    ..
+                } => output.end_requested = true,
+                Event::WindowEvent {
+                    event: WindowEvent::Resized(logical),
+                    ..
+                } => {
+                    output.new_frame_size = Some((logical.width, logical.height));
                 }
-            }
-            Event::WindowEvent {
-                event: WindowEvent::KeyboardInput { input, .. },
-                ..
-            } => {
-                //println!("pressed {:?}", input);
+                Event::WindowEvent {
+                    event: WindowEvent::CursorMoved { position, .. },
+                    ..
+                } => {
+                    mouse_state.set_new_position([position.x as f32, position.y as f32]);
+                    new_events.push(InputEvent::MouseMoved(Vec2::new(
+                        position.x as f32,
+                        position.y as f32,
+                    )));
+                }
+                Event::WindowEvent {
+                    event: WindowEvent::MouseInput { state, button, .. },
+                    ..
+                } => {
+                    let id: usize = match button {
+                        MouseButton::Left => 0,
+                        MouseButton::Right => 1,
+                        MouseButton::Middle => 2,
+                        MouseButton::Other(oth) => *oth as usize,
+                    };
+                    mouse_state.set_button_state(id, *state == ElementState::Pressed);
+                    match state {
+                        ElementState::Pressed => new_events.push(InputEvent::MouseButtonPressed(id)),
+                        ElementState::Released => new_events.push(InputEvent::MouseButtonReleased(id)),
+                    }
+                }
+                Event::WindowEvent {
+                    event: WindowEvent::KeyboardInput { input, .. },
+                    ..
+                } => {
+                    //println!("pressed {:?}", input);
 
-                if input.virtual_keycode == Some(VirtualKeyCode::Escape) {
-                    output.end_requested = true;
+                    if input.virtual_keycode == Some(VirtualKeyCode::Escape) {
+                        output.end_requested = true;
+                    }
+                    let elem = match input.virtual_keycode {
+                        Some(key) => key,
+                        None => break,
+                    };
+                    let kc = KeyCode::from_kc_enum(elem);
+                    keyboard_state.set_button(kc, input.state == ElementState::Pressed);
+                    match input.state {
+                        ElementState::Pressed => new_events.push(InputEvent::KeyPressed(kc)),
+                        ElementState::Released => new_events.push(InputEvent::KeyReleased(kc)),
+                    }
                 }
-                let elem = match input.virtual_keycode {
-                    Some(key) => key,
-                    None => return,
-                };
-                let kc = KeyCode::from_kc_enum(elem);
-                keyboard_state.set_button(kc, input.state == winit::ElementState::Pressed);
-                match input.state {
-                    ElementState::Pressed => new_events.push(InputEvent::KeyPressed(kc)),
-                    ElementState::Released => new_events.push(InputEvent::KeyReleased(kc)),
-                }
+                _ => (),
             }
-            _ => (),
-        });
+        }
         channel.drain_vec_write(&mut new_events);
         output
     }

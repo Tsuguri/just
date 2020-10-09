@@ -27,7 +27,7 @@ impl WorldApi {
         });
 
         registry.register_function("setCameraPosition", Some(&namespace), |mut args: (World, Vec3)| {
-            (*args.0).resources.get_mut::<just_rendyocto::CameraData>().unwrap().position = args.1;
+            (*args.0).resources.get_mut::<just_wgpu::CameraData>().unwrap().position = args.1;
         });
     }
 }

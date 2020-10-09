@@ -1,5 +1,5 @@
 [package]
-name = "just_input"
+name = "just_wgpu"
 version = "0.1.0"
 authors = ["Adam Winiarczuk <aw@instalod.com>"]
 edition = "2018"
@@ -7,5 +7,16 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-just_core = {"path"="../just_core"}
+just_assets = {path="../just_assets"}
+just_core = {path="../just_core"}
 winit = "0.23"
+futures = "0.3"
+shaderc = "0.6"
+bytemuck = "1.4"
+image = "0.23"
+
+[dependencies.wgpu]
+version = "0.6"
+#features = ["vulkan"]
+
+

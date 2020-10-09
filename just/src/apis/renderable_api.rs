@@ -6,22 +6,23 @@ use just_core::traits::scripting::{
     function_params::*,
 };
 
+use just_assets::{AssetStorage, Handle};
+use just_wgpu::Mesh;
+use just_wgpu::Texture;
+use just_wgpu::Renderable;
+
 use std::sync::Arc;
 
 pub struct RenderableApi;
 
-use crate::core::Renderable;
-
-use just_rendyocto::resources::{MeshId, ResourceProvider, TextureId};
-
 #[derive(Copy, Clone)]
 pub struct MeshData {
-    pub id: MeshId,
+    pub handle: Handle<Mesh>,
 }
 
 #[derive(Copy, Clone)]
 pub struct TextureData {
-    pub id: TextureId,
+    pub handle: Handle<Texture>,
 }
 
 impl FunctionResult for MeshData {}
@@ -45,13 +46,13 @@ impl RenderableApi {
         let resources_namespace = registry.register_namespace("Resources", None);
 
         registry.register_function("getMesh", Some(&resources_namespace), |args: (World, String)| -> Option<MeshData> {
-            let obj = (*args.0).resources.get::<Arc<dyn ResourceProvider>>().unwrap().get_mesh(&args.1);
-            obj.map(|x| MeshData{id: x})
+            let handle = (*args.0).resources.get::<AssetStorage<Mesh>>().unwrap().get_handle(&args.1);
+            handle.map(|x| MeshData{handle: x})
         });
 
         registry.register_function("getTexture", Some(&resources_namespace), |args: (World, String)| {
-            let obj = (*args.0).resources.get::<Arc<dyn ResourceProvider>>().unwrap().get_texture(&args.1);
-            obj.map(|x| TextureData{id: x})
+            let handle = (*args.0).resources.get::<AssetStorage<Texture>>().unwrap().get_handle(&args.1);
+            handle.map(|x| TextureData{handle: x})
         });
 
         let renderable_type = registry
@@ -62,10 +63,10 @@ impl RenderableApi {
             &renderable_type,
             "mesh",
             Some(|args: ComponentThis<Renderable>| -> Option<MeshData> {
-                args.mesh.map(|x| MeshData { id: x })
+                args.mesh_handle.map(|handle| MeshData { handle })
             }),
             Some(|mut args: (ComponentThis<Renderable>, Option<MeshData>)| {
-                args.0.mesh = args.1.map(|x| x.id);
+                args.0.mesh_handle = args.1.map(|x| x.handle);
             }),
         );
 
@@ -73,11 +74,11 @@ impl RenderableApi {
             &renderable_type,
             "texture",
             Some(|args: ComponentThis<Renderable>| -> Option<TextureData> {
-                args.texture.map(|x| TextureData { id: x })
+                args.texture_handle.map(|x| TextureData { handle: x })
             }),
             Some(
                 |mut args: (ComponentThis<Renderable>, Option<TextureData>)| {
-                    args.0.texture = args.1.map(|x| x.id);
+                    args.0.texture_handle = args.1.map(|x| x.handle);
                 },
             ),
         );

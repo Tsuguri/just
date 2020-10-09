@@ -1,4 +1,4 @@
-use super::winit::VirtualKeyCode as KC;
+use winit::event::VirtualKeyCode as KC;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum KeyCode {

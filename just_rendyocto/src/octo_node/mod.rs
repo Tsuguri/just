@@ -210,7 +210,6 @@ impl Default for PushConstantsBlock {
 #[derive(Default)]
 pub struct OctoNodeDesc<B: hal::Backend> {
     pub images: Vec<hal::format::Format>,
-    pub res: Arc<ResourceManager<B>>,
     pub vertex_shader: std::cell::RefCell<Vec<u32>>,
     pub fragment_shader: std::cell::RefCell<Vec<u32>>,
     pub stage_name: String,
@@ -218,10 +217,10 @@ pub struct OctoNodeDesc<B: hal::Backend> {
     pub push_constants_size: usize,
     pub push_constants_block: Arc<PushConstantsBlock>,
     pub view_size: (f64, f64),
+    pub _phantom: std::marker::PhantomData<B>,
 }
 
 pub struct OctoNode<B: hal::Backend> {
-    res: Arc<ResourceManager<B>>,
     push_constants_block: Arc<PushConstantsBlock>,
     descriptor_set: Escape<DescriptorSet<B>>,
     image_sampler: Escape<Sampler<B>>,
@@ -380,7 +379,6 @@ where
         }
 
         Result::Ok(OctoNode {
-            res: self.res,
             push_constants_block: self.push_constants_block,
             descriptor_set,
             image_sampler,

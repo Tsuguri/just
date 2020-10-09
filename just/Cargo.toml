@@ -8,7 +8,8 @@ edition = "2018"
 just_core = {path="../just_core"}
 just_input = {path="../just_input"}
 just_js = {path="../just_js"}
-just_rendyocto = {path="../just_rendyocto"}
+#just_rendyocto = {path="../just_rendyocto"}
+just_wgpu = {path="../just_wgpu"}
 just_assets = {path="../just_assets"}
 
 slotmap = "0.3.0"

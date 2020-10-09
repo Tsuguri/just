@@ -1,11 +1,13 @@
 use super::node_prelude::*;
 
 use super::octo_node::{RenderingConstants, Value};
-use crate::Renderable;
+use crate::TRenderable as Renderable;
 use just_core::hierarchy::TransformHierarchy;
 use just_core::ecs::prelude::*;
 use just_core::math;
-use crate::resources::{MeshId, TextureId};
+use just_assets::{Handle as AssetHandle, AssetStorage};
+use super::Mesh;
+use super::RTexture;
 
 lazy_static::lazy_static! {
     static ref VERTEX: SpirvShader = SourceShaderInfo::new(
@@ -31,7 +33,15 @@ lazy_static::lazy_static! {
 
 #[derive(Default)]
 pub struct DeferredNodeDesc<B: hal::Backend> {
-    pub res: Arc<ResourceManager<B>>,
+    _phantom: std::marker::PhantomData<B>,
+}
+
+impl<B: hal::Backend> DeferredNodeDesc<B> {
+    pub fn new() -> Self {
+        Self{
+            _phantom: Default::default(),
+        }
+    }
 }
 
 impl<B: hal::Backend> DeferredNodeDesc<B> {
@@ -50,9 +60,8 @@ impl<B: hal::Backend> DeferredNodeDesc<B> {
 
 
 pub struct DeferredNode<B: hal::Backend> {
-    res: Arc<ResourceManager<B>>,
     descriptor_set: Escape<DescriptorSet<B>>,
-    renderables_buffer: Option<Vec<(MeshId, Option<TextureId>, math::Matrix)>>,
+    renderables_buffer: Option<Vec<(AssetHandle<rendy::mesh::Mesh<B>>, Option<AssetHandle<RTexture<B>>>, math::Matrix)>>,
 }
 
 impl<B: hal::Backend> std::fmt::Debug for DeferredNodeDesc<B> {
@@ -133,7 +142,7 @@ where
         _ctx: &GraphContext<B>,
         factory: &mut Factory<B>,
         _queue: QueueId,
-        _data: &World,
+        data: &World,
         buffers: Vec<NodeBuffer>,
         images: Vec<NodeImage>,
         set_layouts: &[Handle<DescriptorSetLayout<B>>],
@@ -142,8 +151,10 @@ where
         assert!(images.is_empty());
         assert_eq!(set_layouts.len(), 1);
 
-        let texture_id = self.res.get_texture("tex1").unwrap();
-        let texture = self.res.get_real_texture(texture_id);
+        let texture_storage = data.resources.get::<AssetStorage<RTexture<B>>>().unwrap();
+        let texture_handle = texture_storage.get_handle("tex1").unwrap();
+        let texture = texture_storage.get_value(&texture_handle).unwrap();
+
 
         let descriptor_set = factory
             .create_descriptor_set(set_layouts[0].clone())
@@ -171,7 +182,6 @@ where
         }
 
         Ok(DeferredNode {
-            res: self.res,
             descriptor_set,
             renderables_buffer: None,
         })
@@ -242,13 +252,10 @@ where
             let buf = self.renderables_buffer.take();
 
             let buf = {
-                let query = <Read<Renderable>>::query();
+                let query = <Read<Renderable<B>>>::query();
 
                 let mut buf = match buf {
                     Some(mut vec) => {
-                        // if vec.len() < self.renderables.len() {
-                        //     vec.reserve(self.renderables.len() - vec.len());
-                        // }
                         vec.clear();
                         vec
                     }
@@ -257,15 +264,22 @@ where
 
                 for (entity_id, mesh) in query.iter_entities_immutable(data) {
                     let mat = TransformHierarchy::get_global_matrix(data, entity_id);
-                    match mesh.mesh {
-                        None =>(),
+                    match mesh.mesh_handle {
+                        None =>{
+                            println!("\trenderable with empty mesh");
+
+                        },
                         Some(x) => {
-                            buf.push((x, mesh.texture, mat));
+                            buf.push((x, mesh.texture_handle, mat));
                         }
                     }
                 }
+                println!("done with renderables");
                 buf
             };
+
+            let mesh_storage = data.resources.get::<AssetStorage<rendy::mesh::Mesh<B>>>().unwrap();
+            let texture_storage = data.resources.get::<AssetStorage<RTexture<B>>>().unwrap();
 
             for renderable in &buf {
                 let model = renderable.2;
@@ -276,27 +290,38 @@ where
                     model_offset,
                     hal::memory::cast_slice::<f32, u32>(&model.data),
                 );
-                let mesh = self.res.get_real_mesh(renderable.0);
-                match renderable.1 {
-                    None => {
-                        encoder.bind_graphics_descriptor_sets(
-                            layout,
-                            0,
-                            std::iter::once(self.descriptor_set.raw()),
-                            std::iter::empty::<u32>(),
-                        );
-                    }
+                let mesh = mesh_storage.get_value(&renderable.0);
+                
+                match mesh {
+                    None => (),
                     Some(x) => {
-                        let tex = self.res.get_real_texture(x);
-                        encoder.bind_graphics_descriptor_sets(
-                            layout,
-                            0,
-                            std::iter::once(tex.desc.raw()),
-                            std::iter::empty::<u32>(),
-                        );
+                        match renderable.1 {
+                            None => {
+                                encoder.bind_graphics_descriptor_sets(
+                                    layout,
+                                    0,
+                                    std::iter::once(self.descriptor_set.raw()),
+                                    std::iter::empty::<u32>(),
+                                );
+                            }
+                            Some(x) => {
+                                let tex = texture_storage.get_value(&x);
+                                match tex {
+                                    None => (),
+                                    Some(tex) => {
+                                        encoder.bind_graphics_descriptor_sets(
+                                            layout,
+                                            0,
+                                            std::iter::once(tex.desc.raw()),
+                                            std::iter::empty::<u32>(),
+                                        );
+                                    }
+                                }
+                            }
+                        };
+                        x.bind_and_draw(0, &vertex, 0..1, &mut encoder).unwrap();
                     }
-                };
-                mesh.bind_and_draw(0, &vertex, 0..1, &mut encoder).unwrap();
+                }
             }
             self.renderables_buffer = Some(buf);
         }
