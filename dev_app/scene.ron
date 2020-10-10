@@ -2,7 +2,7 @@ Scene(
     name: "Super Scene",
     viewport_height: 15.0,
     camera_rotation: (
-        0.78,
+        -0.78,
         -0.78,
         0.0,
         ),

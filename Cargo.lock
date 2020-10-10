@@ -1100,6 +1100,7 @@ dependencies = [
  "just_assets 0.1.0",
  "just_core 0.1.0",
  "shaderc 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tobj 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "wgpu 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winit 0.23.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2436,6 +2437,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "tobj"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "toml"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3153,6 +3159,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum thiserror-impl 1.0.21 (registry+https://github.com/rust-lang/crates.io-index)" = "cae2447b6282786c3493999f40a9be2a6ad20cb8bd268b0a0dbf5a065535c0ab"
 "checksum thread_local 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "1697c4b57aeeb7a536b647165a2825faddffb1d3bad386d507709bd51a90bb14"
 "checksum tiff 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3f3b8a87c4da944c3f27e5943289171ac71a6150a79ff6bacfff06d159dfff2f"
+"checksum tobj 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "6172100cd5b17cdd085c94f261e31101ca31886c86a2337a6687dac6d2fb3cf1"
 "checksum toml 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)" = "ffc92d160b1eef40665be3a05630d003936a3bc7da7421277846c2613e92c71a"
 "checksum tracing 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)" = "6d79ca061b032d6ce30c660fded31189ca0b9922bf483cd70759f13a2d86786c"
 "checksum tracing-attributes 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)" = "80e0ccfc3378da0cce270c946b676a376943f5cd16aeba64568e7939806f4ada"

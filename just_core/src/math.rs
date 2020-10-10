@@ -3,7 +3,7 @@ use crate::traits::scripting::{
     function_params::*,
 };
 
-use crate::glm;
+pub use crate::glm;
 pub type Fl = f32;
 
 pub type Vec2 = glm::TVec2<Fl>;
