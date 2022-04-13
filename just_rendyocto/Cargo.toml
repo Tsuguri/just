@@ -1,7 +1,7 @@
 [package]
 name = "just_rendyocto"
 version = "0.1.0"
-authors = ["Adam Winiarczuk <aw@instalod.com>"]
+authors = ["Adam Winiarczuk <adam@winiarcz.uk>"]
 edition = "2018"
 build = "build.rs"
 

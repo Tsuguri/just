@@ -4,8 +4,9 @@ members = [
     "just_core",
     "just",
     "just_input",
-    "just_js",
-#"just_rendyocto",
+    # "just_js",
+"just_rendyocto",
     "just_assets",
-    "just_wgpu"
+    # "just_wgpu",
+    "just_v8js"
 ]

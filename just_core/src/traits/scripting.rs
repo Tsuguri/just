@@ -1,19 +1,13 @@
 use serde::Deserialize;
 
-use legion::world::World as LWorld;
 use legion::entity::Entity;
+use legion::world::World as LWorld;
 
 pub mod function_params;
 mod function_result;
 
-pub use function_result::{
-    FunctionResult,
-    ResultEncoder,
-};
-pub use function_params::{
-    FunctionParameter,
-    ParametersSource,
-};
+pub use function_params::{FunctionParameter, ParametersSource};
+pub use function_result::{FunctionResult, ResultEncoder};
 
 #[derive(Debug)]
 pub enum TypeCreationError {
@@ -21,7 +15,8 @@ pub enum TypeCreationError {
     TypeNotRegistered,
 }
 
-pub trait ScriptingEngine: Sized + ScriptApiRegistry {
+pub trait ScriptingEngine: Sized {
+    // + ScriptApiRegistry {
     type Config: Deserialize<'static>;
 
     fn create(config: &Self::Config, world: &mut LWorld) -> Self;
@@ -31,7 +26,6 @@ pub trait ScriptingEngine: Sized + ScriptApiRegistry {
     fn update(&mut self, world: &mut LWorld);
 }
 
-
 pub trait ScriptApiRegistry {
     type Namespace;
     type Type;
@@ -39,18 +33,10 @@ pub trait ScriptApiRegistry {
 
     type ErrorType;
 
-    fn register_namespace(
-        &mut self,
-        name: &str,
-        parent: Option<&Self::Namespace>,
-    ) -> Self::Namespace;
+    fn register_namespace(&mut self, name: &str, parent: Option<&Self::Namespace>) -> Self::Namespace;
 
-    fn register_function<P, R, F>(
-        &mut self,
-        name: &str,
-        namespace: Option<&Self::Namespace>,
-        fc: F,
-    ) where
+    fn register_function<P, R, F>(&mut self, name: &str, namespace: Option<&Self::Namespace>, fc: F)
+    where
         P: FunctionParameter,
         R: FunctionResult,
         F: 'static + Send + Sync + Fn(P) -> R;

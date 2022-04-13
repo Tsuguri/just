@@ -1,15 +1,11 @@
 use just_core::traits::scripting::{
-    ScriptApiRegistry,
-    FunctionResult,
-    FunctionParameter,
-    ParametersSource,
-    function_params::*,
+    function_params::*, FunctionParameter, FunctionResult, ParametersSource, ScriptApiRegistry,
 };
 
 use just_assets::{AssetStorage, Handle};
-use just_wgpu::Mesh;
-use just_wgpu::Texture;
-use just_wgpu::Renderable;
+use just_rendyocto::Mesh;
+use just_rendyocto::Renderable;
+use just_rendyocto::Texture;
 
 use std::sync::Arc;
 
@@ -45,14 +41,26 @@ impl RenderableApi {
     pub fn register<SAR: ScriptApiRegistry>(registry: &mut SAR) {
         let resources_namespace = registry.register_namespace("Resources", None);
 
-        registry.register_function("getMesh", Some(&resources_namespace), |args: (World, String)| -> Option<MeshData> {
-            let handle = (*args.0).resources.get::<AssetStorage<Mesh>>().unwrap().get_handle(&args.1);
-            handle.map(|x| MeshData{handle: x})
-        });
+        registry.register_function(
+            "getMesh",
+            Some(&resources_namespace),
+            |args: (World, String)| -> Option<MeshData> {
+                let handle = (*args.0)
+                    .resources
+                    .get::<AssetStorage<Mesh>>()
+                    .unwrap()
+                    .get_handle(&args.1);
+                handle.map(|x| MeshData { handle: x })
+            },
+        );
 
         registry.register_function("getTexture", Some(&resources_namespace), |args: (World, String)| {
-            let handle = (*args.0).resources.get::<AssetStorage<Texture>>().unwrap().get_handle(&args.1);
-            handle.map(|x| TextureData{handle: x})
+            let handle = (*args.0)
+                .resources
+                .get::<AssetStorage<Texture>>()
+                .unwrap()
+                .get_handle(&args.1);
+            handle.map(|x| TextureData { handle: x })
         });
 
         let renderable_type = registry
@@ -76,11 +84,9 @@ impl RenderableApi {
             Some(|args: ComponentThis<Renderable>| -> Option<TextureData> {
                 args.texture_handle.map(|x| TextureData { handle: x })
             }),
-            Some(
-                |mut args: (ComponentThis<Renderable>, Option<TextureData>)| {
-                    args.0.texture_handle = args.1.map(|x| x.handle);
-                },
-            ),
+            Some(|mut args: (ComponentThis<Renderable>, Option<TextureData>)| {
+                args.0.texture_handle = args.1.map(|x| x.handle);
+            }),
         );
     }
 }

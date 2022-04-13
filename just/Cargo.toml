@@ -1,15 +1,15 @@
 [package]
 name = "just"
 version = "0.1.0"
-authors = ["Adam Winiarczuk <adam.winiarczuk@gmail.com>"]
+authors = ["Adam Winiarczuk <adam@winiarcz.uk>"]
 edition = "2018"
 
 [dependencies]
 just_core = {path="../just_core"}
 just_input = {path="../just_input"}
-just_js = {path="../just_js"}
-#just_rendyocto = {path="../just_rendyocto"}
-just_wgpu = {path="../just_wgpu"}
+# just_js = {path="../just_js"}
+just_v8js = {path="../just_v8js"}
+just_rendyocto = {path="../just_rendyocto"}
 just_assets = {path="../just_assets"}
 
 slotmap = "0.3.0"

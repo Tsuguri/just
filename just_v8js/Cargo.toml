@@ -1,5 +1,5 @@
 [package]
-name = "just_input"
+name = "just_v8js"
 version = "0.1.0"
 authors = ["Adam Winiarczuk <adam@winiarcz.uk>"]
 edition = "2018"
@@ -8,4 +8,6 @@ edition = "2018"
 
 [dependencies]
 just_core = {"path"="../just_core"}
-winit = "0.23"
+serde = {version="1.0", features=["derive"]}
+failure="0.1"
+v8 = "0.41.0"

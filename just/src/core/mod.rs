@@ -3,32 +3,27 @@ mod time;
 
 use time::TimeSystem;
 
-use just_input::InputSystem;
-use just_core::math::{MathApi, Vec2};
-use just_core::{
-    game_object,
-    hierarchy,
-    transform,
-};
 use crate::apis::ConsoleApi;
 use crate::apis::RenderableApi;
-use crate::apis::WorldApi;
 use crate::apis::TransformApi;
+use crate::apis::WorldApi;
+use just_core::math::{MathApi, Vec2};
 use just_core::traits::scripting::ScriptApiRegistry;
+use just_core::{game_object, hierarchy, transform};
+use just_input::InputSystem;
 
 use just_assets::{AssetStorage, Handle};
-use just_wgpu::Mesh;
-use just_wgpu::Texture;
+use just_rendyocto::Mesh;
+use just_rendyocto::Texture;
 
-use just_core::traits::scripting::ScriptingEngine;
 use just_core::ecs::prelude::*;
+use just_core::traits::scripting::ScriptingEngine;
 
 #[cfg(test)]
 use crate::scripting::test_scripting::MockScriptEngine;
-use std::sync::Arc;
-use just_js::JsScriptEngine;
 use just_assets::AssetSystem;
-use just_wgpu::winit::event_loop::EventLoop;
+use just_rendyocto::winit::event_loop::EventLoop;
+use just_v8js::V8Engine;
 
 pub use game_object::GameObject;
 pub use hierarchy::TransformHierarchy;
@@ -37,8 +32,6 @@ struct Animator;
 
 struct Audio;
 
-use just_wgpu::RenderingSystem;
-
 pub struct Engine<E: ScriptingEngine> {
     event_loop: Option<EventLoop<()>>,
     pub world: World,
@@ -46,7 +39,7 @@ pub struct Engine<E: ScriptingEngine> {
     scripting_engine: E,
 }
 
-pub type JsEngine = Engine<JsScriptEngine>;
+pub type JsEngine = Engine<V8Engine>;
 
 #[cfg(test)]
 pub type MockEngine = Engine<MockScriptEngine>;
@@ -56,32 +49,28 @@ pub enum GameObjectError {
     IdNotExisting,
 }
 
-impl<E: ScriptingEngine + ScriptApiRegistry> Engine<E>
-{
-    pub fn new(
-        engine_config: &E::Config,
-        res_path: &str,
-    ) -> Self {
+// impl<E: ScriptingEngine + ScriptApiRegistry> Engine<E> {
+impl<E: ScriptingEngine> Engine<E> {
+    pub fn new(engine_config: &E::Config, res_path: &str) -> Self {
         let mut world = World::default();
         let event_loop = EventLoop::new();
         AssetSystem::initialize(&mut world, res_path);
 
-        RenderingSystem::initialize(&mut world, &event_loop);
+        // RenderingSystem::initialize(&mut world, &event_loop);
         InputSystem::initialize(&mut world);
         GameObject::initialize(&mut world);
         TimeSystem::initialize(&mut world);
 
-
         let mut scripting_engine = E::create(engine_config, &mut world);
-        TransformApi::register(&mut scripting_engine);
-        WorldApi::register(&mut scripting_engine);
-        TimeSystem::register_api(&mut scripting_engine);
-        MathApi::register_api(&mut scripting_engine);
-        ConsoleApi::register(&mut scripting_engine);
-        AssetSystem::register_api(&mut scripting_engine);
+        // TransformApi::register(&mut scripting_engine);
+        // WorldApi::register(&mut scripting_engine);
+        // TimeSystem::register_api(&mut scripting_engine);
+        // MathApi::register_api(&mut scripting_engine);
+        // ConsoleApi::register(&mut scripting_engine);
+        // AssetSystem::register_api(&mut scripting_engine);
 
-        RenderableApi::register(&mut scripting_engine);
-        InputSystem::register_api(&mut scripting_engine);
+        // RenderableApi::register(&mut scripting_engine);
+        // InputSystem::register_api(&mut scripting_engine);
         let eng = Engine {
             event_loop: Some(event_loop),
             world,
@@ -97,26 +86,25 @@ impl<E: ScriptingEngine + ScriptApiRegistry> Engine<E>
 
 impl<E: ScriptingEngine> std::ops::Drop for Engine<E> {
     fn drop(&mut self) {
-        RenderingSystem::shut_down(&mut self.world);
+        // RenderingSystem::shut_down(&mut self.world);
         AssetSystem::cleanup(&mut self.world);
     }
 }
 
 impl JsEngine {
     pub fn run(mut self) {
-        use just_wgpu::winit::event_loop::ControlFlow;
-        use just_wgpu::winit::event::{Event, VirtualKeyCode, WindowEvent, MouseButton, ElementState};
-        use just_input::MouseState;
-        use just_input::KeyboardState;
         use just_input::InputEvent;
+        use just_input::KeyboardState;
+        use just_input::MouseState;
+        use just_rendyocto::winit::event::{ElementState, Event, MouseButton, VirtualKeyCode, WindowEvent};
+        use just_rendyocto::winit::event_loop::ControlFlow;
 
         let mut end_requested = false;
         let mut new_frame_size = None;
         let mut new_events = Vec::with_capacity(20);
         let event_loop = self.event_loop.take().unwrap();
 
-        event_loop.run(move |event, _, control_flow|{
-
+        event_loop.run(move |event, _, control_flow| {
             //*control_flow = ControlFlow::Poll;
 
             match event {
@@ -125,7 +113,7 @@ impl JsEngine {
                     ..
                 } => {
                     end_requested = true;
-                },
+                }
                 Event::WindowEvent {
                     event: WindowEvent::Resized(logical),
                     ..
@@ -136,16 +124,10 @@ impl JsEngine {
                     event: WindowEvent::CursorMoved { position, .. },
                     ..
                 } => {
-                    let mut mouse_state =
-                        <Write<MouseState>>::fetch(
-                            &mut self.world.resources,
-                        );
+                    let mut mouse_state = <Write<MouseState>>::fetch(&mut self.world.resources);
 
                     mouse_state.set_new_position([position.x as f32, position.y as f32]);
-                    new_events.push(InputEvent::MouseMoved(Vec2::new(
-                        position.x as f32,
-                        position.y as f32,
-                    )));
+                    new_events.push(InputEvent::MouseMoved(Vec2::new(position.x as f32, position.y as f32)));
                 }
                 Event::WindowEvent {
                     event: WindowEvent::MouseInput { state, button, .. },
@@ -157,10 +139,7 @@ impl JsEngine {
                         MouseButton::Middle => 2,
                         MouseButton::Other(oth) => oth as usize,
                     };
-                    let mut mouse_state =
-                        <Write<MouseState>>::fetch(
-                            &mut self.world.resources,
-                        );
+                    let mut mouse_state = <Write<MouseState>>::fetch(&mut self.world.resources);
                     mouse_state.set_button_state(id, state == ElementState::Pressed);
                     match state {
                         ElementState::Pressed => new_events.push(InputEvent::MouseButtonPressed(id)),
@@ -181,26 +160,19 @@ impl JsEngine {
                         None => return,
                     };
                     let kc = just_input::KeyCode::from_kc_enum(elem);
-                    let mut keyboard_state =
-                        <Write<KeyboardState>>::fetch(
-                            &mut self.world.resources,
-                        );
+                    let mut keyboard_state = <Write<KeyboardState>>::fetch(&mut self.world.resources);
                     keyboard_state.set_button(kc, input.state == ElementState::Pressed);
                     match input.state {
                         ElementState::Pressed => new_events.push(InputEvent::KeyPressed(kc)),
                         ElementState::Released => new_events.push(InputEvent::KeyReleased(kc)),
                     }
-                },
+                }
                 Event::MainEventsCleared => {
                     //*control_flow = ControlFlow::Poll;
-                    RenderingSystem::maintain(&mut self.world);
+                    // RenderingSystem::maintain(&mut self.world);
 
-                    let mut channel =
-                        <Write<just_input::InputChannel>>::fetch(
-                            &mut self.world.resources,
-                        );
+                    let mut channel = <Write<just_input::InputChannel>>::fetch(&mut self.world.resources);
                     channel.drain_vec_write(&mut new_events);
-
 
                     if end_requested {
                         println!("end_requested");
@@ -211,21 +183,18 @@ impl JsEngine {
                     TimeSystem::update(&mut self.world);
                     AssetSystem::update(&mut self.world);
 
-                    self.update_scripts();
-                    RenderingSystem::update(&mut self.world);
+                    //self.update_scripts();
+                    //RenderingSystem::update(&mut self.world);
 
                     GameObject::remove_marked(&mut self.world);
 
                     let (mut keyboard_state, mut mouse_state) =
-                        <(Write<KeyboardState>, Write<MouseState>)>::fetch(
-                            &mut self.world.resources,
-                        );
+                        <(Write<KeyboardState>, Write<MouseState>)>::fetch(&mut self.world.resources);
                     keyboard_state.next_frame();
                     mouse_state.next_frame();
                 }
                 _ => (),
             }
-
         });
     }
 }
@@ -250,7 +219,7 @@ impl<E: ScriptingEngine> Engine<E> {
                 Some(tex_res)
             }
         };
-        let mesh = just_wgpu::Renderable {
+        let mesh = just_rendyocto::Renderable {
             texture_handle: tex,
             mesh_handle: Some(mesh_handle),
         };
@@ -261,9 +230,7 @@ impl<E: ScriptingEngine> Engine<E> {
     }
 
     pub fn add_script(&mut self, entity_id: Entity, typ: &str) {
-        self
-            .scripting_engine
-            .create_script(entity_id, typ, &mut self.world);
+        self.scripting_engine.create_script(entity_id, typ, &mut self.world);
     }
 }
 

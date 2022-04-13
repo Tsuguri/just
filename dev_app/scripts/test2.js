@@ -4,6 +4,7 @@ class nojs {
         this.last = Time.elapsed;
         this.last_dest = 1.0;
         this.mesh = null;
+        this.texture = null;
         this.some = new Math.Vector3(0.0, 0.0, 0.0);
         this.someLol = new Math.Vector2(0.0, 1.0);
     }
@@ -26,7 +27,11 @@ class nojs {
         //console.log("test: ", pos2.x, " ", pos2.y, " ", pos2.z)
 
         if (!this.mesh) {
-            this.mesh = Resources.getMesh("monkey");
+            this.mesh = Resources.getMesh("cow1");
+        }
+
+        if (!this.texture) {
+            this.texture = Resources.getTexture("tex1.png");
         }
         if (this.changed === false && Input.isKeyboardKeyPressed("A")) {
             this.go.name = "heh";
@@ -41,7 +46,7 @@ class nojs {
             n.createComponent(Renderable);
             let renderable = n.getComponent(Renderable);
             renderable.mesh = this.mesh;
-            //n.setRenderable(this.mesh);
+            renderable.texture = this.texture;
             //n.setScript("test_script");
 
 

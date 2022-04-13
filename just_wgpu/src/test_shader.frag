@@ -13,6 +13,6 @@ layout(set = 0, binding = 0) uniform texture2D diffuse;
 layout(set = 0, binding = 1) uniform sampler diffuse_sampler;
 
 void main() {
-    //color = texture(sampler2D(diffuse, diffuse_sampler), fragment.uv);
-    color = vec4(fragment.normal, 1.0);
+    color = texture(sampler2D(diffuse, diffuse_sampler), fragment.uv);
+    //color = vec4(fragment.normal, 1.0);
 }
