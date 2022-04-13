@@ -5,7 +5,7 @@
 pub use v8;
 
 use just_core::ecs::prelude::*;
-use just_core::traits::scripting::ScriptingEngine;
+use just_core::traits::scripting::{ScriptApiRegistry, ScriptingEngine};
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct JsEngineConfig {
@@ -80,7 +80,11 @@ impl V8Engine {
 impl ScriptingEngine for V8Engine {
     type Config = JsEngineConfig;
 
-    fn create(config: &Self::Config, world: &mut World) -> Self {
+    fn create<SAR: ScriptApiRegistry, Builder: FnOnce(&mut SAR)>(
+        config: &Self::Config,
+        world: &mut World,
+        builder: Builder,
+    ) -> Self {
         V8Engine::create(vec![])
     }
 

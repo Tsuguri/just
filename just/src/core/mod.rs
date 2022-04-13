@@ -22,7 +22,7 @@ use just_core::traits::scripting::ScriptingEngine;
 #[cfg(test)]
 use crate::scripting::test_scripting::MockScriptEngine;
 use just_assets::AssetSystem;
-use just_rendyocto::winit::event_loop::EventLoop;
+use just_rendyocto::winit::EventsLoop;
 use just_v8js::V8Engine;
 
 pub use game_object::GameObject;
@@ -33,7 +33,7 @@ struct Animator;
 struct Audio;
 
 pub struct Engine<E: ScriptingEngine> {
-    event_loop: Option<EventLoop<()>>,
+    event_loop: Option<EventsLoop>,
     pub world: World,
 
     scripting_engine: E,
@@ -53,7 +53,7 @@ pub enum GameObjectError {
 impl<E: ScriptingEngine> Engine<E> {
     pub fn new(engine_config: &E::Config, res_path: &str) -> Self {
         let mut world = World::default();
-        let event_loop = EventLoop::new();
+        let event_loop = EventsLoop::new();
         AssetSystem::initialize(&mut world, res_path);
 
         // RenderingSystem::initialize(&mut world, &event_loop);
@@ -61,16 +61,16 @@ impl<E: ScriptingEngine> Engine<E> {
         GameObject::initialize(&mut world);
         TimeSystem::initialize(&mut world);
 
-        let mut scripting_engine = E::create(engine_config, &mut world);
-        // TransformApi::register(&mut scripting_engine);
-        // WorldApi::register(&mut scripting_engine);
-        // TimeSystem::register_api(&mut scripting_engine);
-        // MathApi::register_api(&mut scripting_engine);
-        // ConsoleApi::register(&mut scripting_engine);
-        // AssetSystem::register_api(&mut scripting_engine);
+        let mut scripting_engine = E::create(engine_config, &mut world, |sar| {
+            TransformApi::register(sar);
+            WorldApi::register(sar);
+            TimeSystem::register_api(sar);
+            MathApi::register_api(sar);
+            ConsoleApi::register(sar);
+            AssetSystem::register_api(sar);
+            // RenderableApi::register(&mut scripting_engine);
+        });
 
-        // RenderableApi::register(&mut scripting_engine);
-        // InputSystem::register_api(&mut scripting_engine);
         let eng = Engine {
             event_loop: Some(event_loop),
             world,
@@ -96,8 +96,8 @@ impl JsEngine {
         use just_input::InputEvent;
         use just_input::KeyboardState;
         use just_input::MouseState;
-        use just_rendyocto::winit::event::{ElementState, Event, MouseButton, VirtualKeyCode, WindowEvent};
-        use just_rendyocto::winit::event_loop::ControlFlow;
+        use just_rendyocto::winit::ControlFlow;
+        use just_rendyocto::winit::{ElementState, Event, MouseButton, VirtualKeyCode, WindowEvent};
 
         let mut end_requested = false;
         let mut new_frame_size = None;
@@ -219,14 +219,14 @@ impl<E: ScriptingEngine> Engine<E> {
                 Some(tex_res)
             }
         };
-        let mesh = just_rendyocto::Renderable {
+        let mesh = just_rendyocto::TRenderable {
             texture_handle: tex,
             mesh_handle: Some(mesh_handle),
         };
         drop(res);
         drop(res2);
 
-        //Renderable::add_tex_renderable(&mut self.world, id, mesh);
+        just_rendyocto::TRenderable::add_tex_renderable(&mut self.world, id, mesh);
     }
 
     pub fn add_script(&mut self, entity_id: Entity, typ: &str) {

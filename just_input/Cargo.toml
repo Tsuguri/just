@@ -8,4 +8,4 @@ edition = "2018"
 
 [dependencies]
 just_core = {"path"="../just_core"}
-winit = "0.23"
+winit = "0.26"
