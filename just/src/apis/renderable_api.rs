@@ -3,9 +3,9 @@ use just_core::traits::scripting::{
 };
 
 use just_assets::{AssetStorage, Handle};
-use just_rendyocto::Mesh;
-use just_rendyocto::Renderable;
-use just_rendyocto::Texture;
+use just_rend3d::Mesh;
+use just_rend3d::Renderable;
+use just_rend3d::Texture;
 
 use std::sync::Arc;
 

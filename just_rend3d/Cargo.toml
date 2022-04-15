@@ -6,6 +6,7 @@ edition = "2021"
 
 [dependencies]
 just_core = {path="../just_core"}
+just_assets = {path="../just_assets"}
 
 # Linear algebra library
 glam = "0.20.0"
@@ -17,3 +18,4 @@ rend3-routine = { version = "^0.3.0"}
 rend3-framework = { version = "^0.3.0"}
 # windowing
 winit = "0.26"
+pollster = "0.2"

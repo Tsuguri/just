@@ -1128,7 +1128,9 @@ name = "just_rend3d"
 version = "0.1.0"
 dependencies = [
  "glam",
+ "just_assets",
  "just_core",
+ "pollster",
  "rend3",
  "rend3-framework",
  "rend3-routine",

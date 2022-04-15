@@ -18,12 +18,10 @@ pub enum TypeCreationError {
 pub trait ScriptingEngine: Sized {
     // + ScriptApiRegistry {
     type Config: Deserialize<'static>;
+    type SAR: ScriptApiRegistry;
 
-    fn create<SAR: ScriptApiRegistry, Builder: FnOnce(&mut SAR)>(
-        config: &Self::Config,
-        world: &mut LWorld,
-        api_builder: Builder,
-    ) -> Self;
+    fn create<Builder: FnOnce(&mut Self::SAR)>(config: &Self::Config, world: &mut LWorld, api_builder: Builder)
+        -> Self;
 
     fn create_script(&mut self, gameobject_id: Entity, typ: &str, world: &mut LWorld);
 

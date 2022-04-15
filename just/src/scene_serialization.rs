@@ -1,8 +1,8 @@
 use crate::core::{GameObject, TransformHierarchy};
-use just_wgpu::{CameraData, ViewportData};
-use just_core::math::*;
 use just_core::ecs;
 use just_core::glm;
+use just_core::math::*;
+use just_rend3d::{CameraData, ViewportData};
 use ron::de::from_str;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -48,12 +48,7 @@ pub fn deserialize_scene(path: &str, engine: &mut crate::core::JsEngine) -> Resu
         ),
         -scene.camera_rotation[2],
     );
-    engine
-        .world
-        .resources
-        .get_mut::<CameraData>()
-        .unwrap()
-        .rotation = glm::to_quat(&camera_rot);
+    engine.world.resources.get_mut::<CameraData>().unwrap().rotation = glm::to_quat(&camera_rot);
     engine
         .world
         .resources
@@ -69,11 +64,7 @@ pub fn deserialize_scene(path: &str, engine: &mut crate::core::JsEngine) -> Resu
     return Result::Ok(());
 }
 
-fn spawn_object(
-    object: Object,
-    parent: Option<ecs::prelude::Entity>,
-    engine: &mut crate::core::JsEngine,
-) {
+fn spawn_object(object: Object, parent: Option<ecs::prelude::Entity>, engine: &mut crate::core::JsEngine) {
     println!("loading object {}.", object.name);
     let obj = engine.create_game_object();
 
@@ -83,9 +74,9 @@ fn spawn_object(
     object.position.map(|x| {
         TransformHierarchy::set_local_position(&mut engine.world, obj, Vec3::new(x[0], x[1], x[2]));
     });
-    object.scale.map(|x| {
-        TransformHierarchy::set_local_scale(&mut engine.world, obj, Vec3::new(x[0], x[1], x[2]))
-    });
+    object
+        .scale
+        .map(|x| TransformHierarchy::set_local_scale(&mut engine.world, obj, Vec3::new(x[0], x[1], x[2])));
     object
         .renderable
         .map(|x| engine.add_renderable(obj, &x.mesh, Some(&x.texture)));

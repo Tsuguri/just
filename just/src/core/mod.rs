@@ -13,8 +13,9 @@ use just_core::{game_object, hierarchy, transform};
 use just_input::InputSystem;
 
 use just_assets::{AssetStorage, Handle};
-use just_rendyocto::Mesh;
-use just_rendyocto::Texture;
+use just_rend3d::winit;
+use just_rend3d::{Mesh, RenderingSystem, Texture};
+use winit::event_loop::EventLoop;
 
 use just_core::ecs::prelude::*;
 use just_core::traits::scripting::ScriptingEngine;
@@ -22,7 +23,6 @@ use just_core::traits::scripting::ScriptingEngine;
 #[cfg(test)]
 use crate::scripting::test_scripting::MockScriptEngine;
 use just_assets::AssetSystem;
-use just_rendyocto::winit::EventsLoop;
 use just_v8js::V8Engine;
 
 pub use game_object::GameObject;
@@ -33,7 +33,7 @@ struct Animator;
 struct Audio;
 
 pub struct Engine<E: ScriptingEngine> {
-    event_loop: Option<EventsLoop>,
+    event_loop: Option<EventLoop<()>>,
     pub world: World,
 
     scripting_engine: E,
@@ -53,10 +53,11 @@ pub enum GameObjectError {
 impl<E: ScriptingEngine> Engine<E> {
     pub fn new(engine_config: &E::Config, res_path: &str) -> Self {
         let mut world = World::default();
-        let event_loop = EventsLoop::new();
+        let event_loop = EventLoop::<()>::new();
         AssetSystem::initialize(&mut world, res_path);
 
-        // RenderingSystem::initialize(&mut world, &event_loop);
+        RenderingSystem::initialize(&mut world, &event_loop);
+        // RenderingSystem::initialize(&mut world);
         InputSystem::initialize(&mut world);
         GameObject::initialize(&mut world);
         TimeSystem::initialize(&mut world);
@@ -68,7 +69,7 @@ impl<E: ScriptingEngine> Engine<E> {
             MathApi::register_api(sar);
             ConsoleApi::register(sar);
             AssetSystem::register_api(sar);
-            // RenderableApi::register(&mut scripting_engine);
+            RenderableApi::register(sar);
         });
 
         let eng = Engine {
@@ -86,7 +87,7 @@ impl<E: ScriptingEngine> Engine<E> {
 
 impl<E: ScriptingEngine> std::ops::Drop for Engine<E> {
     fn drop(&mut self) {
-        // RenderingSystem::shut_down(&mut self.world);
+        RenderingSystem::shut_down(&mut self.world);
         AssetSystem::cleanup(&mut self.world);
     }
 }
@@ -96,8 +97,8 @@ impl JsEngine {
         use just_input::InputEvent;
         use just_input::KeyboardState;
         use just_input::MouseState;
-        use just_rendyocto::winit::ControlFlow;
-        use just_rendyocto::winit::{ElementState, Event, MouseButton, VirtualKeyCode, WindowEvent};
+        use winit::event::{ElementState, Event, MouseButton, VirtualKeyCode, WindowEvent};
+        use winit::event_loop::ControlFlow;
 
         let mut end_requested = false;
         let mut new_frame_size = None;
@@ -169,7 +170,7 @@ impl JsEngine {
                 }
                 Event::MainEventsCleared => {
                     //*control_flow = ControlFlow::Poll;
-                    // RenderingSystem::maintain(&mut self.world);
+                    RenderingSystem::maintain(&mut self.world);
 
                     let mut channel = <Write<just_input::InputChannel>>::fetch(&mut self.world.resources);
                     channel.drain_vec_write(&mut new_events);
@@ -184,7 +185,7 @@ impl JsEngine {
                     AssetSystem::update(&mut self.world);
 
                     //self.update_scripts();
-                    //RenderingSystem::update(&mut self.world);
+                    RenderingSystem::update(&mut self.world);
 
                     GameObject::remove_marked(&mut self.world);
 
@@ -219,14 +220,15 @@ impl<E: ScriptingEngine> Engine<E> {
                 Some(tex_res)
             }
         };
-        let mesh = just_rendyocto::TRenderable {
+        let mesh = just_rend3d::Renderable {
             texture_handle: tex,
             mesh_handle: Some(mesh_handle),
         };
         drop(res);
         drop(res2);
 
-        just_rendyocto::TRenderable::add_tex_renderable(&mut self.world, id, mesh);
+        // TODO: create this
+        //just_rend3d::Renderable::add_tex_renderable(&mut self.world, id, mesh);
     }
 
     pub fn add_script(&mut self, entity_id: Entity, typ: &str) {
