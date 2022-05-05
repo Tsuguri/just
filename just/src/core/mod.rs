@@ -51,7 +51,7 @@ pub enum GameObjectError {
 
 // impl<E: ScriptingEngine + ScriptApiRegistry> Engine<E> {
 impl<E: ScriptingEngine> Engine<E> {
-    pub fn new(engine_config: &E::Config, res_path: &str) -> Self {
+    pub fn new(engine_config: E::Config, res_path: &str) -> Self {
         let mut world = World::default();
         let event_loop = EventLoop::<()>::new();
         AssetSystem::initialize(&mut world, res_path);
@@ -210,25 +210,7 @@ impl<E: ScriptingEngine> Engine<E> {
     }
 
     pub fn add_renderable(&mut self, id: Entity, mesh: &str, tex: Option<&str>) {
-        let res2 = self.world.resources.get::<AssetStorage<Mesh>>().unwrap();
-        let res = self.world.resources.get::<AssetStorage<Texture>>().unwrap();
-        let mesh_handle = res2.get_handle(mesh).unwrap();
-        let tex = match tex {
-            None => None,
-            Some(tex_name) => {
-                let tex_res = res.get_handle(tex_name).unwrap();
-                Some(tex_res)
-            }
-        };
-        let mesh = just_rend3d::Renderable {
-            texture_handle: tex,
-            mesh_handle: Some(mesh_handle),
-        };
-        drop(res);
-        drop(res2);
-
-        // TODO: create this
-        //just_rend3d::Renderable::add_tex_renderable(&mut self.world, id, mesh);
+        just_rend3d::RenderingSystem::add_renderable(&mut self.world, id, mesh, tex);
     }
 
     pub fn add_script(&mut self, entity_id: Entity, typ: &str) {

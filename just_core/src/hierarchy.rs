@@ -1,8 +1,8 @@
 use super::game_object::GameObject;
 use super::transform::Transform;
-use crate::math::*;
-use crate::glm;
 use crate::ecs::prelude::{Entity, World};
+use crate::glm;
+use crate::math::*;
 
 pub struct TransformHierarchy;
 
@@ -77,12 +77,7 @@ impl TransformHierarchy {
         }
         global_matrix.changed = true;
 
-        for child in world
-            .get_component::<GameObject>(id)
-            .unwrap()
-            .children
-            .iter()
-        {
+        for child in world.get_component::<GameObject>(id).unwrap().children.iter() {
             Self::void_global_matrix(world, *child);
         }
     }
@@ -131,18 +126,11 @@ impl TransformHierarchy {
         if !world.is_alive(id) {
             return Result::Err(());
         }
-        match new_parent {
-            Some(x) => {
-                if !world.is_alive(x) {
-                    return Result::Err(());
-                }
-                world
-                    .get_component_mut::<GameObject>(x)
-                    .unwrap()
-                    .children
-                    .push(id);
+        if let Some(x) = new_parent {
+            if !world.is_alive(x) {
+                return Result::Err(());
             }
-            None => (),
+            world.get_component_mut::<GameObject>(x).unwrap().children.push(id);
         }
         let parent = Self::get_parent(world, id);
         match parent {

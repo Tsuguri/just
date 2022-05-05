@@ -11,11 +11,10 @@ just_assets = {path="../just_assets"}
 # Linear algebra library
 glam = "0.20.0"
 # Renderer core
-rend3 = { version = "^0.3.0"}
+rend3 = { path="../../rend3/rend3"}
 # Programmable render list that dictates how the scene renders
-rend3-routine = { version = "^0.3.0"}
-# Framework that deals with the event loop, setting up the renderer, and platform differences.
-rend3-framework = { version = "^0.3.0"}
+rend3-routine = { path="../../rend3/rend3-routine"}
 # windowing
 winit = "0.26"
 pollster = "0.2"
+tobj = "2.0"

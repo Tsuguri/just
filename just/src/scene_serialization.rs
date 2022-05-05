@@ -2,6 +2,7 @@ use crate::core::{GameObject, TransformHierarchy};
 use just_core::ecs;
 use just_core::glm;
 use just_core::math::*;
+use just_rend3d::RenderingSystem;
 use just_rend3d::{CameraData, ViewportData};
 use ron::de::from_str;
 use schemars::JsonSchema;
@@ -32,6 +33,7 @@ pub struct Scene {
 }
 
 pub fn deserialize_scene(path: &str, engine: &mut crate::core::JsEngine) -> Result<(), String> {
+    RenderingSystem::update(&mut engine.world);
     let data_string = std::fs::read_to_string(path).unwrap();
 
     let scene: Scene = match from_str(&data_string) {
@@ -61,7 +63,7 @@ pub fn deserialize_scene(path: &str, engine: &mut crate::core::JsEngine) -> Resu
         spawn_object(obj, None, engine);
     }
 
-    return Result::Ok(());
+    Result::Ok(())
 }
 
 fn spawn_object(object: Object, parent: Option<ecs::prelude::Entity>, engine: &mut crate::core::JsEngine) {
@@ -71,16 +73,18 @@ fn spawn_object(object: Object, parent: Option<ecs::prelude::Entity>, engine: &m
     GameObject::set_name(&mut engine.world, obj, object.name);
     engine.set_parent(obj, parent).unwrap();
 
-    object.position.map(|x| {
+    if let Some(x) = object.position {
         TransformHierarchy::set_local_position(&mut engine.world, obj, Vec3::new(x[0], x[1], x[2]));
-    });
-    object
-        .scale
-        .map(|x| TransformHierarchy::set_local_scale(&mut engine.world, obj, Vec3::new(x[0], x[1], x[2])));
-    object
-        .renderable
-        .map(|x| engine.add_renderable(obj, &x.mesh, Some(&x.texture)));
-    object.script.map(|x| engine.add_script(obj, &x));
+    }
+    if let Some(x) = object.scale {
+        TransformHierarchy::set_local_scale(&mut engine.world, obj, Vec3::new(x[0], x[1], x[2]));
+    }
+    if let Some(x) = object.renderable {
+        engine.add_renderable(obj, &x.mesh, Some(&x.texture));
+    }
+    if let Some(x) = object.script {
+        engine.add_script(obj, &x);
+    }
 
     if object.children.is_some() {
         for child in object.children.unwrap() {

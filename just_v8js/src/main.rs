@@ -1,9 +1,14 @@
 #![allow(dead_code)]
 
+use just_v8js::JsEngineConfig;
 use just_v8js::V8Engine;
 
 fn main() {
-    let mut engine = V8Engine::create(vec![]);
+    let config = JsEngineConfig {
+        source_root: "dev_app/scripts".to_string(),
+        v8_args: vec![],
+    };
+    let mut engine = V8Engine::create_without_api(config);
     println!("hello world");
     engine.run("lol(); 2+3");
     engine.lol();

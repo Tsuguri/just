@@ -67,26 +67,26 @@ impl RenderableApi {
             .register_component::<Renderable, _>("Renderable", None, || Default::default())
             .unwrap();
 
-        registry.register_native_type_property(
-            &renderable_type,
-            "mesh",
-            Some(|args: ComponentThis<Renderable>| -> Option<MeshData> {
-                args.mesh_handle.map(|handle| MeshData { handle })
-            }),
-            Some(|mut args: (ComponentThis<Renderable>, Option<MeshData>)| {
-                args.0.mesh_handle = args.1.map(|x| x.handle);
-            }),
-        );
+        // registry.register_native_type_property(
+        //     &renderable_type,
+        //     "mesh",
+        //     Some(|args: ComponentThis<Renderable>| -> Option<MeshData> {
+        //         args.mesh_handle.map(|handle| MeshData { handle })
+        //     }),
+        //     Some(|mut args: (ComponentThis<Renderable>, Option<MeshData>)| {
+        //         args.0.mesh_handle = args.1.map(|x| x.handle);
+        //     }),
+        // );
 
-        registry.register_native_type_property(
-            &renderable_type,
-            "texture",
-            Some(|args: ComponentThis<Renderable>| -> Option<TextureData> {
-                args.texture_handle.map(|x| TextureData { handle: x })
-            }),
-            Some(|mut args: (ComponentThis<Renderable>, Option<TextureData>)| {
-                args.0.texture_handle = args.1.map(|x| x.handle);
-            }),
-        );
+        // registry.register_native_type_property(
+        //     &renderable_type,
+        //     "texture",
+        //     Some(|args: ComponentThis<Renderable>| -> Option<TextureData> {
+        //         args.texture_handle.map(|x| TextureData { handle: x })
+        //     }),
+        //     Some(|mut args: (ComponentThis<Renderable>, Option<TextureData>)| {
+        //         args.0.texture_handle = args.1.map(|x| x.handle);
+        //     }),
+        // );
     }
 }
