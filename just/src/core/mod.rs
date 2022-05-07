@@ -184,7 +184,7 @@ impl JsEngine {
                     TimeSystem::update(&mut self.world);
                     AssetSystem::update(&mut self.world);
 
-                    //self.update_scripts();
+                    self.update_scripts();
                     RenderingSystem::update(&mut self.world);
 
                     GameObject::remove_marked(&mut self.world);

@@ -59,11 +59,12 @@ pub struct V8Engine {
     isolate: v8::OwnedIsolate,
     context: v8::Global<v8::Context>,
     prototypes: EHM,
+    controllers_constructors: HashMap<String, v8::Global<v8::Function>>,
 }
 
 pub struct JsScript {
     object: v8::Global<v8::Object>,
-    update: Option<v8::Global<v8::Function>>,
+    //update: Option<v8::Global<v8::Function>>,
 }
 unsafe impl Send for JsScript {}
 unsafe impl Sync for JsScript {}
@@ -109,17 +110,28 @@ impl V8Engine {
             let context = v8::Context::new_from_template(scope, global_template);
             v8::Global::new(scope, context)
         };
+        let mut controllers_constructors = HashMap::new();
         {
             let scope = &mut v8::HandleScope::with_context(&mut isolate, context.clone());
             let cont = context.open(scope);
-            let global_obj = cont.global(scope);
-            Self::load_at_path(scope, &global_obj, Path::new(&args.source_root)).unwrap();
+            Self::load_at_path(
+                &mut controllers_constructors,
+                scope,
+                &"user",
+                Path::new(&args.source_root),
+            )
+            .unwrap();
+        }
+
+        for item in controllers_constructors.iter() {
+            println!("   loaded controller: {}", item.0);
         }
 
         Self {
             isolate,
             context,
             prototypes: Default::default(),
+            controllers_constructors,
         }
     }
 
@@ -142,11 +154,12 @@ impl V8Engine {
         let test_object = v8::Object::new(scope);
     }
     fn load_at_path(
+        constructors: &mut HashMap<String, v8::Global<v8::Function>>,
         scope: &mut v8::HandleScope,
-        parent: &v8::Object,
+        namespace: &str,
         directory: &std::path::Path,
     ) -> Result<(), &'static str> {
-        println!("loading scripts from: {:?}", directory);
+        println!("loading scripts from: {:?} into {}", directory, namespace);
 
         let paths = std::fs::read_dir(directory).map_err(|_| "counldn't read directory")?;
         for path in paths {
@@ -155,21 +168,24 @@ impl V8Engine {
             if path.path().is_dir() {
                 let p = path.path();
                 let p2 = p.file_stem().unwrap();
-                let namespace = match p2.to_str() {
+                let namespace_suffix = match p2.to_str() {
                     Option::None => return Result::Err("invalid character in namespace string"),
                     Option::Some(name) => name,
                 };
-                println!("creating namespace: {:?}", namespace);
-                let obj = v8::Object::new(scope);
-                Self::load_at_path(scope, &obj, &path.path())?;
-                let key = v8::String::new(scope, namespace).unwrap();
-                parent.set(scope, key.into(), obj.into());
+                println!("creating namespace: {:?}", namespace_suffix);
+                Self::load_at_path(
+                    constructors,
+                    scope,
+                    &format!("{}.{}", namespace, namespace_suffix),
+                    &path.path(),
+                )?;
             } else {
                 let p = path.path();
                 let p2 = p.file_stem().unwrap().to_str().unwrap();
+                let controller_name = format!("{}.{}", namespace, p2);
+                println!("loading controller: {}", controller_name);
                 let obj = ScriptFactory::from_path(scope, &p).unwrap();
-                let key = v8::String::new(scope, p2).unwrap();
-                parent.set(scope, key.into(), obj.into());
+                constructors.insert(controller_name, v8::Global::new(scope, obj));
             }
         }
 
@@ -184,7 +200,7 @@ struct ScriptFactory {}
 impl ScriptFactory {
     fn from_code<'a>(
         scope: &mut v8::HandleScope<'a>,
-        _name: String,
+        name: String,
         _path: &Path,
         code: &str,
     ) -> Result<v8::Local<'a, v8::Function>, ()> {
@@ -200,19 +216,37 @@ impl ScriptFactory {
         let result = v8::Script::compile(try_catch, code, None)
             .and_then(|script| script.run(try_catch))
             .map_or_else(|| Err(try_catch.stack_trace().unwrap()), Ok);
+
+        println!("Looking for class {}", name);
+
         match result {
             Ok(v) => {
+                let context = try_catch.get_current_context();
+                let global = context.global(try_catch);
+                let expected_name = v8::String::new(try_catch, &name).unwrap();
+                println!(
+                    "context has: {}, {:?}",
+                    name,
+                    global.has(try_catch, expected_name.into())
+                );
+                let value = global.get(try_catch, expected_name.into());
+                if !value.is_some() {
+                    //no expected name
+                    return Err(());
+                }
+                let value = value.unwrap();
                 println!("Odpaliło się");
-                println!("undefined: {:#?}", v.is_undefined());
-                println!("null: {:#?}", v.is_null());
-                if v.is_generator_function() {
+                println!("undefined: {:#?}", value.is_undefined());
+                println!("null: {:#?}", value.is_null());
+                println!("function: {}", value.is_function());
+                if value.is_function() {
                     Ok(v.try_into().unwrap())
                 } else {
                     println!("is not a function");
                     Err(())
                 }
             }
-            Err(_e) => Err(()),
+            Err(_) => Err(()),
         }
         // Result::Ok(factory)
     }
@@ -236,10 +270,70 @@ impl ScriptingEngine for V8Engine {
         V8Engine::create_with_api(config, |sar| builder(sar))
     }
 
-    fn create_script(&mut self, gameobject_id: Entity, typ: &str, world: &mut World) {}
+    fn create_script(&mut self, gameobject_id: Entity, typ: &str, world: &mut World) {
+        let script_name = format!("user.{}", typ);
+        println!("Attempting to create controllr: {}", script_name);
+
+        if self.controllers_constructors.contains_key(&script_name) {
+            println!("  Found requested controller");
+            let scope = &mut v8::HandleScope::with_context(&mut self.isolate, self.context.clone());
+            let constructor = self.controllers_constructors.get(&script_name).unwrap();
+            //let recv = v8::null(scope);
+            let controller = constructor.open(scope).new_instance(scope, &vec![]);
+
+            match controller {
+                Some(x) => {
+                    if x.is_object() {
+                        println!("It's an object!!");
+                    } else {
+                        println!("  Ugh");
+                    }
+
+                    let glob_constructor = v8::Global::new(scope, x);
+                    let comp = JsScript {
+                        object: glob_constructor,
+                    };
+                    world.add_component(gameobject_id, comp);
+                }
+                None => {
+                    println!("Failed to create {}", script_name);
+                }
+            }
+        } else {
+            println!("  Missing controller: {}", script_name);
+        }
+    }
 
     fn update(&mut self, world: &mut World) {
         // update scripts
+
+        let mut scope = v8::HandleScope::with_context(&mut self.isolate, self.context.clone());
+        let query = <Read<JsScript>>::query();
+        for (id, script) in query.iter_entities_immutable(world) {
+            let controller = script.object.open(&mut scope);
+            let handl = script.object.clone();
+            let key = v8::String::new(&mut scope, "update").unwrap();
+
+            let update = controller.get(&mut scope, key.into());
+            match update {
+                Some(x) => {
+                    if x.is_function() {
+                        let try_catch = &mut v8::TryCatch::new(&mut scope);
+                        let func: v8::Local<v8::Function> = x.try_into().unwrap();
+                        let script_handle = v8::Local::new(try_catch, handl);
+                        func.call(try_catch, script_handle.into(), &vec![]);
+                    } else {
+                        println!("update is not function");
+                    }
+                }
+                None => {
+                    println!("no update here");
+                }
+            }
+        }
+
+        drop(query);
+        drop(scope);
 
         // creating scripts requested in this frame
         let to_create: Vec<_> = std::mem::take(&mut world.resources.get_mut::<ScriptCreationQueue>().unwrap().q);

@@ -1,4 +1,4 @@
-class nojs {
+test2 = class test2 {
     constructor() {
         this.changed = false;
         this.last = Time.elapsed;
@@ -14,6 +14,7 @@ class nojs {
     }
 
     update() {
+        lol();
         let posit = this.go.position;
         //console.log(posit.x, " ", posit.y, " ", posit.z);
         this.some.x = Math.Sin(Time.elapsed);
