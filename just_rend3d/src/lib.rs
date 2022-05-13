@@ -266,7 +266,7 @@ impl RenderingSystem {
         // Dispatch a render using the built up rendergraph!
         graph.execute(&manager.renderer, frame, cmd_bufs, &ready);
     }
-    pub fn register_api<SAR: ScriptApiRegistry>(registry: &mut SAR) {}
+    pub fn register_api<'a, 'b, 'c, SAR: ScriptApiRegistry<'b, 'c>>(registry: &'a mut SAR) {}
     pub fn shut_down(world: &mut World) {
         let manago = world.resources.remove::<RenderingManager>();
         if let Some(manager) = manago {

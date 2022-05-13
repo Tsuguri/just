@@ -1,1 +1,0 @@
-..\..\..\..\..\Tools\"Visual Studio 2019"\VC\Auxiliary\Build\vcvars64.bat

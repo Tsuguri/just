@@ -3,6 +3,6 @@ test_script = class {
     }
 
     update() {
-        lol();
+        // lol();
     }
 }

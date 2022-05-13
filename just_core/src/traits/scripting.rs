@@ -15,28 +15,22 @@ pub enum TypeCreationError {
     TypeNotRegistered,
 }
 
-pub trait ScriptingEngine: Sized {
-    // + ScriptApiRegistry {
-    type Config: Deserialize<'static>;
-    type SAR: ScriptApiRegistry;
-
-    fn create<Builder: FnOnce(&mut Self::SAR)>(config: Self::Config, world: &mut LWorld, api_builder: Builder) -> Self;
-
-    fn create_script(&mut self, gameobject_id: Entity, typ: &str, world: &mut LWorld);
-
-    fn update(&mut self, world: &mut LWorld);
+#[derive(Copy, Clone, Debug)]
+pub enum RuntimeError {
+    NotEnoughParameters,
+    WrongTypeParameter,
+    ExpectedParameterNotPresent,
+    TypeNotRegistered,
+    ComponentNotPresent,
 }
 
-pub trait ScriptApiRegistry {
-    type Namespace;
-    type Type;
-    type NativeType;
+pub type NamespaceId = i32;
+pub type NativeTypeId = i32;
 
-    type ErrorType;
+pub trait ScriptApiRegistry<'a, 'b> {
+    fn register_namespace(&mut self, name: &str, parent: Option<NamespaceId>) -> NamespaceId;
 
-    fn register_namespace(&mut self, name: &str, parent: Option<&Self::Namespace>) -> Self::Namespace;
-
-    fn register_function<P, R, F>(&mut self, name: &str, namespace: Option<&Self::Namespace>, fc: F)
+    fn register_function<P, R, F>(&mut self, name: &str, namespace: Option<NamespaceId>, fc: F)
     where
         P: FunctionParameter,
         R: FunctionResult,
@@ -45,29 +39,29 @@ pub trait ScriptApiRegistry {
     fn register_native_type<T, P, F>(
         &mut self,
         name: &str,
-        namespace: Option<&Self::Namespace>,
+        namespace: Option<NamespaceId>,
         constructor: F,
-    ) -> Result<Self::NativeType, TypeCreationError>
+    ) -> Result<NativeTypeId, TypeCreationError>
     where
         T: 'static,
         P: FunctionParameter,
         F: 'static + Send + Sync + Fn(P) -> T;
 
-    fn get_native_type<T: 'static>(&mut self) -> Option<Self::NativeType>;
+    fn get_native_type<T: 'static>(&mut self) -> Option<NativeTypeId>;
 
     fn register_component<T, F>(
         &mut self,
         name: &str,
-        namespace: Option<&Self::Namespace>,
+        namespace: Option<NamespaceId>,
         constructor: F,
-    ) -> Result<Self::NativeType, TypeCreationError>
+    ) -> Result<NativeTypeId, TypeCreationError>
     where
         T: 'static + Send + Sync,
         F: 'static + Send + Sync + Fn() -> T;
 
     fn register_native_type_method<P, R, F>(
         &mut self,
-        _type: &Self::NativeType,
+        _type: NativeTypeId,
         name: &str,
         method: F,
     ) -> Result<(), TypeCreationError>
@@ -78,7 +72,7 @@ pub trait ScriptApiRegistry {
 
     fn register_native_type_property<P1, P2, R, F1, F2>(
         &mut self,
-        _type: &Self::NativeType,
+        _type: NativeTypeId,
         name: &str,
         getter: Option<F1>,
         setter: Option<F2>,
@@ -92,7 +86,7 @@ pub trait ScriptApiRegistry {
     fn register_static_property<P1, P2, R, F1, F2>(
         &mut self,
         name: &str,
-        namespace: Option<&Self::Namespace>,
+        namespace: Option<NamespaceId>,
         getter: Option<F1>,
         setter: Option<F2>,
     ) where

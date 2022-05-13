@@ -1,6 +1,9 @@
 mod parent_child_manipulation;
 mod time;
 
+use std::marker::PhantomData;
+
+use just_v8js::JsEngineConfig;
 use time::TimeSystem;
 
 use crate::apis::ConsoleApi;
@@ -18,10 +21,7 @@ use just_rend3d::{Mesh, RenderingSystem, Texture};
 use winit::event_loop::EventLoop;
 
 use just_core::ecs::prelude::*;
-use just_core::traits::scripting::ScriptingEngine;
 
-#[cfg(test)]
-use crate::scripting::test_scripting::MockScriptEngine;
 use just_assets::AssetSystem;
 use just_v8js::V8Engine;
 
@@ -32,17 +32,14 @@ struct Animator;
 
 struct Audio;
 
-pub struct Engine<E: ScriptingEngine> {
+pub struct Engine {
     event_loop: Option<EventLoop<()>>,
     pub world: World,
 
-    scripting_engine: E,
+    scripting_engine: V8Engine,
 }
 
-pub type JsEngine = Engine<V8Engine>;
-
-#[cfg(test)]
-pub type MockEngine = Engine<MockScriptEngine>;
+pub type JsEngine = Engine;
 
 #[derive(Debug)]
 pub enum GameObjectError {
@@ -50,8 +47,8 @@ pub enum GameObjectError {
 }
 
 // impl<E: ScriptingEngine + ScriptApiRegistry> Engine<E> {
-impl<E: ScriptingEngine> Engine<E> {
-    pub fn new(engine_config: E::Config, res_path: &str) -> Self {
+impl Engine {
+    pub fn new(engine_config: JsEngineConfig, res_path: &str) -> Self {
         let mut world = World::default();
         let event_loop = EventLoop::<()>::new();
         AssetSystem::initialize(&mut world, res_path);
@@ -62,14 +59,14 @@ impl<E: ScriptingEngine> Engine<E> {
         GameObject::initialize(&mut world);
         TimeSystem::initialize(&mut world);
 
-        let mut scripting_engine = E::create(engine_config, &mut world, |sar| {
-            TransformApi::register(sar);
-            WorldApi::register(sar);
+        let mut scripting_engine = V8Engine::create(engine_config, &mut world, |sar| {
+            TransformApi::register_api(sar);
+            WorldApi::register_api(sar);
             TimeSystem::register_api(sar);
             MathApi::register_api(sar);
-            ConsoleApi::register(sar);
+            ConsoleApi::register_api(sar);
             AssetSystem::register_api(sar);
-            RenderableApi::register(sar);
+            RenderableApi::register_api(sar);
         });
 
         let eng = Engine {
@@ -85,7 +82,7 @@ impl<E: ScriptingEngine> Engine<E> {
     }
 }
 
-impl<E: ScriptingEngine> std::ops::Drop for Engine<E> {
+impl std::ops::Drop for Engine {
     fn drop(&mut self) {
         RenderingSystem::shut_down(&mut self.world);
         AssetSystem::cleanup(&mut self.world);
@@ -200,7 +197,7 @@ impl JsEngine {
     }
 }
 
-impl<E: ScriptingEngine> Engine<E> {
+impl Engine {
     pub fn exists(&self, id: Entity) -> bool {
         self.world.is_alive(id)
     }
@@ -215,17 +212,5 @@ impl<E: ScriptingEngine> Engine<E> {
 
     pub fn add_script(&mut self, entity_id: Entity, typ: &str) {
         self.scripting_engine.create_script(entity_id, typ, &mut self.world);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::graphics::test_resources::MockResourceManager;
-
-    #[test]
-    fn simple() {
-        let _mrm = MockResourceManager {};
-        let _scene = MockEngine::new(&(1i32.into()), &1, &1);
     }
 }

@@ -38,28 +38,29 @@ impl InputSystem {
         world.resources.insert::<MouseState>(Default::default());
         world.resources.insert::<InputChannel>(InputChannel::with_capacity(64));
     }
-    pub fn register_api<SAR: ScriptApiRegistry>(registry: &mut SAR) {
+    //pub fn register_api<'a, SAR: ScriptApiRegistry<'a>>(registry: &mut SAR) {
+    pub fn register_api<'a, 'b, 'c, SAR: ScriptApiRegistry<'b, 'c>>(registry: &'a mut SAR) {
         let namespace = registry.register_namespace("Input", None);
 
         registry.register_function(
             "isKeyboardKeyPressed",
-            Some(&namespace),
+            Some(namespace),
             |args: (Data<KeyboardState>, String)| args.0.is_button_down(KeyCode::from_string(&args.1)),
         );
 
         registry.register_function(
             "keyPressedInLastFrame",
-            Some(&namespace),
+            Some(namespace),
             |args: (Data<KeyboardState>, String)| args.0.button_pressed_in_last_frame(KeyCode::from_string(&args.1)),
         );
 
         registry.register_function(
             "isMouseKeyPressed",
-            Some(&namespace),
+            Some(namespace),
             |args: (Data<MouseState>, usize)| args.0.is_button_down(args.1),
         );
 
-        registry.register_function("mousePosition", Some(&namespace), |args: Data<MouseState>| {
+        registry.register_function("mousePosition", Some(namespace), |args: Data<MouseState>| {
             let pos = args.get_mouse_position();
             Vec2::new(pos[0], pos[1])
         });

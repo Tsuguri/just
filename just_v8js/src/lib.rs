@@ -3,12 +3,14 @@ use std::collections::{HashMap, HashSet};
 
 //use crate::ui::UiEvent;
 use core::convert::{TryFrom, TryInto};
+use std::ffi::c_void;
 pub use v8;
 
 use just_core::ecs::prelude::*;
 use just_core::traits::scripting::{
-    FunctionParameter, FunctionResult, ScriptApiRegistry, ScriptingEngine, TypeCreationError,
+    FunctionParameter, FunctionResult, NamespaceId, NativeTypeId, RuntimeError, ScriptApiRegistry, TypeCreationError,
 };
+use v8::{Handle, HandleScope, Script, V8};
 
 pub struct EHM(HashMap<std::any::TypeId, v8::Object>);
 
@@ -92,7 +94,15 @@ impl V8Engine {
         Self::create_with_api(args, |_| {})
     }
 
-    pub fn create_with_api<Fill: FnOnce(&mut V8ApiRegistry)>(args: JsEngineConfig, fill_api: Fill) -> Self {
+    fn fill<'a>(scope: HandleScope<'a>, context: v8::Global<v8::Context>) {
+        //let ctx = context.open(scope);
+        //let global = ctx.global(scope);
+    }
+
+    pub fn create_with_api<Builder>(args: JsEngineConfig, builder: Builder) -> Self
+    where
+        Builder: for<'a, 'b, 'c> FnOnce(&'c mut V8ApiRegistry<'a, 'b>),
+    {
         if !args.v8_args.is_empty() {
             v8::V8::set_flags_from_command_line(args.v8_args);
         }
@@ -103,12 +113,11 @@ impl V8Engine {
         let create_params = v8::Isolate::create_params();
         let mut isolate = v8::Isolate::new(create_params);
         let context = {
-            let scope = &mut v8::HandleScope::new(&mut isolate);
-            let global_template = Self::create_global_object_template(scope);
-            let mut registry = V8ApiRegistry {};
+            let mut scope = v8::HandleScope::new(&mut isolate);
+            let global_template = Self::create_global_object_template(&mut scope);
             //fill_api(&mut registry);
-            let context = v8::Context::new_from_template(scope, global_template);
-            v8::Global::new(scope, context)
+            let context = v8::Context::new_from_template(&mut scope, global_template);
+            v8::Global::new(&mut scope, context)
         };
         let mut controllers_constructors = HashMap::new();
         {
@@ -121,6 +130,15 @@ impl V8Engine {
                 Path::new(&args.source_root),
             )
             .unwrap();
+        }
+        {
+            let mut scope = v8::HandleScope::with_context(&mut isolate, context.clone());
+            let mut sar = V8ApiRegistry {
+                scope: &mut scope,
+                things: Default::default(),
+                last_id: 0,
+            };
+            builder(&mut sar);
         }
 
         for item in controllers_constructors.iter() {
@@ -259,18 +277,22 @@ impl ScriptFactory {
     }
 }
 
-pub struct V8ApiRegistry {}
+pub struct V8ApiRegistry<'a, 'b> {
+    scope: &'b mut v8::HandleScope<'a>,
+    things: HashMap<i32, v8::Local<'a, v8::Object>>,
+    last_id: i32,
+}
 
-impl ScriptingEngine for V8Engine {
-    type Config = JsEngineConfig;
-    type SAR = V8ApiRegistry;
-
-    fn create<Builder: FnOnce(&mut Self::SAR)>(config: Self::Config, world: &mut World, builder: Builder) -> Self {
+impl V8Engine {
+    pub fn create<Builder>(config: JsEngineConfig, world: &mut World, builder: Builder) -> Self
+    where
+        Builder: for<'a, 'b, 'c> FnOnce(&'c mut V8ApiRegistry<'a, 'b>),
+    {
         world.resources.insert(ScriptCreationQueue { q: vec![] });
         V8Engine::create_with_api(config, |sar| builder(sar))
     }
 
-    fn create_script(&mut self, gameobject_id: Entity, typ: &str, world: &mut World) {
+    pub fn create_script(&mut self, gameobject_id: Entity, typ: &str, world: &mut World) {
         let script_name = format!("user.{}", typ);
         println!("Attempting to create controllr: {}", script_name);
 
@@ -304,7 +326,7 @@ impl ScriptingEngine for V8Engine {
         }
     }
 
-    fn update(&mut self, world: &mut World) {
+    pub fn update(&mut self, world: &mut World) {
         // update scripts
 
         let mut scope = v8::HandleScope::with_context(&mut self.isolate, self.context.clone());
@@ -344,18 +366,27 @@ impl ScriptingEngine for V8Engine {
     }
 }
 
-impl ScriptApiRegistry for V8ApiRegistry {
-    type Namespace = i32;
-    type Type = i32;
-    type NativeType = i32;
+impl<'a, 'b> ScriptApiRegistry<'a, 'b> for V8ApiRegistry<'a, 'b> {
+    fn register_namespace(&mut self, name: &str, parent: Option<NamespaceId>) -> NamespaceId {
+        let key = v8::String::new(&mut self.scope, name).unwrap();
+        let obj = v8::Object::new(&mut self.scope);
+        match parent {
+            Some(x) => {
+                let par = self.things.get(&x).unwrap();
+                par.set(&mut self.scope, key.into(), obj.into());
+            }
+            None => {
+                //self.global.set(&mut self.scope, key.into(), obj.into());
+            }
+        }
 
-    type ErrorType = i32;
+        let id = self.last_id + 1;
+        self.last_id += 1;
 
-    fn register_namespace(&mut self, name: &str, parent: Option<&Self::Namespace>) -> Self::Namespace {
-        0
+        id
     }
 
-    fn register_function<P, R, F>(&mut self, name: &str, namespace: Option<&Self::Namespace>, fc: F)
+    fn register_function<P, R, F>(&mut self, name: &str, namespace: Option<NamespaceId>, fc: F)
     where
         P: FunctionParameter,
         R: FunctionResult,
@@ -366,9 +397,9 @@ impl ScriptApiRegistry for V8ApiRegistry {
     fn register_native_type<T, P, F>(
         &mut self,
         name: &str,
-        namespace: Option<&Self::Namespace>,
+        namespace: Option<NamespaceId>,
         constructor: F,
-    ) -> Result<Self::NativeType, TypeCreationError>
+    ) -> Result<NativeTypeId, TypeCreationError>
     where
         T: 'static,
         P: FunctionParameter,
@@ -377,16 +408,16 @@ impl ScriptApiRegistry for V8ApiRegistry {
         Ok(0)
     }
 
-    fn get_native_type<T: 'static>(&mut self) -> Option<Self::NativeType> {
+    fn get_native_type<T: 'static>(&mut self) -> Option<NativeTypeId> {
         None
     }
 
     fn register_component<T, F>(
         &mut self,
         name: &str,
-        namespace: Option<&Self::Namespace>,
+        namespace: Option<NamespaceId>,
         constructor: F,
-    ) -> Result<Self::NativeType, TypeCreationError>
+    ) -> Result<NativeTypeId, TypeCreationError>
     where
         T: 'static + Send + Sync,
         F: 'static + Send + Sync + Fn() -> T,
@@ -396,7 +427,7 @@ impl ScriptApiRegistry for V8ApiRegistry {
 
     fn register_native_type_method<P, R, F>(
         &mut self,
-        _type: &Self::NativeType,
+        _type: NativeTypeId,
         name: &str,
         method: F,
     ) -> Result<(), TypeCreationError>
@@ -410,7 +441,7 @@ impl ScriptApiRegistry for V8ApiRegistry {
 
     fn register_native_type_property<P1, P2, R, F1, F2>(
         &mut self,
-        _type: &Self::NativeType,
+        _type: NativeTypeId,
         name: &str,
         getter: Option<F1>,
         setter: Option<F2>,
@@ -426,7 +457,7 @@ impl ScriptApiRegistry for V8ApiRegistry {
     fn register_static_property<P1, P2, R, F1, F2>(
         &mut self,
         name: &str,
-        namespace: Option<&Self::Namespace>,
+        namespace: Option<NamespaceId>,
         getter: Option<F1>,
         setter: Option<F2>,
     ) where
@@ -508,40 +539,6 @@ impl ScriptApiRegistry for V8ApiRegistry {
 //         callback(&p)
 //     }
 
-//     fn load_at_path(
-//         guard: &js::ContextGuard,
-//         parent: &js::value::Object,
-//         directory: &std::path::Path,
-//     ) -> Result<(), &'static str> {
-//         println!("loading scripts from: {:?}", directory);
-
-//         let paths = std::fs::read_dir(directory).map_err(|_| "counldn't read directory")?;
-//         for path in paths {
-//             let path = path.map_err(|_| "error reading script directory")?;
-
-//             if path.path().is_dir() {
-//                 let p = path.path();
-//                 let p2 = p.file_stem().unwrap();
-//                 let namespace = match p2.to_str() {
-//                     Option::None => return Result::Err("invalid character in namespace string"),
-//                     Option::Some(name) => name,
-//                 };
-//                 println!("creating namespace: {:?}", namespace);
-//                 let obj = js::value::Object::new(guard);
-//                 Self::load_at_path(guard, &obj, &path.path())?;
-//                 parent.set(guard, js::Property::new(guard, namespace), obj);
-//             } else {
-//                 let p = path.path();
-//                 let p2 = p.file_stem().unwrap().to_str().unwrap();
-//                 let factory = ScriptFactory::from_path(guard, &p).unwrap();
-//                 parent.set(guard, js::Property::new(guard, p2), factory);
-//             }
-//         }
-
-//         Result::Ok(())
-//     }
-// }
-
 // /*
 // impl DispatchableEvent for UiEvent {
 //     type Hash = (
@@ -587,21 +584,6 @@ impl ScriptApiRegistry for V8ApiRegistry {
 // */
 // impl ScriptingEngine for JsScriptEngine {
 //     type Config = JsEngineConfig;
-
-//     fn create(config: &Self::Config, world: &mut World) -> Self {
-//         world.resources.insert(ScriptCreationQueue { q: vec![] });
-//         let runtime = js::Runtime::new().unwrap();
-//         let context = js::Context::new(&runtime).unwrap();
-//         //let ui_events_handler = EventDispatcher::<UiEvent>::create(world);
-//         let mut engine = Self {
-//             _runtime: runtime,
-//             context: ManuallyDrop::new(context),
-//             //ui_events_handler,
-//             external_types_prototypes: Default::default(),
-//         };
-//         engine.configure(config);
-//         engine
-//     }
 
 //     fn create_script(&mut self, id: Entity, typ: &str, world: &mut World) {
 //         let command = format!("new {}();", typ);
@@ -672,15 +654,6 @@ impl ScriptApiRegistry for V8ApiRegistry {
 //             self.create_script(data.object, &data.script_type, world);
 //         }
 //     }
-// }
-
-// #[derive(Copy, Clone, Debug)]
-// pub enum JsRuntimeError {
-//     NotEnoughParameters,
-//     WrongTypeParameter,
-//     ExpectedParameterNotPresent,
-//     TypeNotRegistered,
-//     ComponentNotPresent,
 // }
 
 // struct EventHandler {

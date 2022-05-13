@@ -38,12 +38,12 @@ impl FunctionParameter for TextureData {
 }
 
 impl RenderableApi {
-    pub fn register<SAR: ScriptApiRegistry>(registry: &mut SAR) {
+    pub fn register_api<'a, 'b, 'c, SAR: ScriptApiRegistry<'b, 'c>>(registry: &'a mut SAR) {
         let resources_namespace = registry.register_namespace("Resources", None);
 
         registry.register_function(
             "getMesh",
-            Some(&resources_namespace),
+            Some(resources_namespace),
             |args: (World, String)| -> Option<MeshData> {
                 let handle = (*args.0)
                     .resources
@@ -54,7 +54,7 @@ impl RenderableApi {
             },
         );
 
-        registry.register_function("getTexture", Some(&resources_namespace), |args: (World, String)| {
+        registry.register_function("getTexture", Some(resources_namespace), |args: (World, String)| {
             let handle = (*args.0)
                 .resources
                 .get::<AssetStorage<Texture>>()
