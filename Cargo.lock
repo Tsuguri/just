@@ -1835,6 +1835,7 @@ dependencies = [
 [[package]]
 name = "rend3"
 version = "0.3.0"
+source = "git+https://github.com/BVE-Reborn/rend3#74d1e1204eb1b3104e18fa02b995233cdcea0802"
 dependencies = [
  "arrayvec 0.7.2",
  "bitflags",
@@ -1864,6 +1865,7 @@ dependencies = [
 [[package]]
 name = "rend3-routine"
 version = "0.3.0"
+source = "git+https://github.com/BVE-Reborn/rend3#74d1e1204eb1b3104e18fa02b995233cdcea0802"
 dependencies = [
  "arrayvec 0.7.2",
  "bitflags",
@@ -1883,6 +1885,7 @@ dependencies = [
 [[package]]
 name = "rend3-types"
 version = "0.3.0"
+source = "git+https://github.com/BVE-Reborn/rend3#74d1e1204eb1b3104e18fa02b995233cdcea0802"
 dependencies = [
  "bitflags",
  "glam",

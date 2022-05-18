@@ -3,21 +3,15 @@ use just_core::{ecs::prelude::World, traits::scripting::ParametersSource};
 pub struct V8ParametersSource<'a, 'b, 'c> {
     scope: &'a mut v8::HandleScope<'b>,
     arguments: &'a v8::FunctionCallbackArguments<'c>,
-    world: &'a mut World,
     current: usize,
 }
 
 impl<'a, 'b, 'c> V8ParametersSource<'a, 'b, 'c> {
-    pub fn new(
-        scope: &'a mut v8::HandleScope<'b>,
-        arguments: &'a v8::FunctionCallbackArguments<'c>,
-        world: &'a mut World,
-    ) -> Self {
+    pub fn new(scope: &'a mut v8::HandleScope<'b>, arguments: &'a v8::FunctionCallbackArguments<'c>) -> Self {
         Self {
             scope,
             arguments,
             current: 0,
-            world,
         }
     }
 }
@@ -87,11 +81,19 @@ impl<'a, 'b, 'c> ParametersSource for V8ParametersSource<'a, 'b, 'c> {
     fn read_system_data<T: 'static + Send + Sync + Sized>(
         &mut self,
     ) -> Result<just_core::ecs::resource::FetchMut<T>, Self::ErrorType> {
-        Result::Ok(self.world.resources.get_mut::<T>().unwrap())
+        Result::Ok(
+            self.scope
+                .get_slot_mut::<&mut World>()
+                .unwrap()
+                .resources
+                .get_mut::<T>()
+                .unwrap(),
+        )
     }
 
     fn read_world(&mut self) -> Result<&mut just_core::ecs::world::World, Self::ErrorType> {
-        Result::Ok(&mut self.world)
+        //Result::Ok(&mut self.world)
+        Result::Ok(self.scope.get_slot_mut::<&mut World>().unwrap())
     }
 
     fn read_native<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType> {

@@ -15,8 +15,11 @@ use param_source::V8ParametersSource;
 use result_encoder::V8ResultEncoder;
 pub use v8;
 
-use just_core::traits::scripting::{
-    FunctionParameter, FunctionResult, NamespaceId, NativeTypeId, ScriptApiRegistry, TypeCreationError,
+use just_core::{
+    ecs::prelude::World,
+    traits::scripting::{
+        FunctionParameter, FunctionResult, NamespaceId, NativeTypeId, ScriptApiRegistry, TypeCreationError,
+    },
 };
 use script_creation::{ScriptCreationData, ScriptCreationQueue};
 use v8::{FunctionCallbackArguments, ReturnValue};
@@ -158,6 +161,8 @@ impl<'a, 'b> ScriptApiRegistry<'a, 'b> for V8ApiRegistry<'a, 'b> {
         };
         let key = v8::String::new(&mut self.scope, name).unwrap();
         let v8_func = create_v8_func(&mut self.scope, |a, b, mut c| {
+            // read world from context data somehow.
+            //let mut world = a.get_slot::<&'static mut World>().unwrap();
             let mut param_source = V8ParametersSource::new(a, &b);
 
             let result = fc(P::read(&mut param_source).unwrap());

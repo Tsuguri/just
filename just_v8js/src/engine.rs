@@ -198,6 +198,9 @@ impl V8Engine {
         // update scripts
 
         let mut scope = v8::HandleScope::with_context(&mut self.isolate, self.context.clone());
+        let reference = unsafe { std::mem::transmute::<&mut World, &'static mut World>(world) };
+        scope.set_slot(reference);
+
         let query = <Read<JsScript>>::query();
         for script in query.iter_immutable(world) {
             let controller = script.object.open(&mut scope);
@@ -221,6 +224,7 @@ impl V8Engine {
                 }
             }
         }
+        scope.remove_slot::<&'static mut World>();
 
         drop(query);
         drop(scope);
