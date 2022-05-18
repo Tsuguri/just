@@ -1,4 +1,3 @@
-use super::js;
 use just_core::ecs::prelude::*;
 
 use super::EHM;
@@ -6,11 +5,7 @@ use super::EHM;
 pub struct JsEnvironment;
 
 impl JsEnvironment {
-    pub fn set_up(
-        context: &js::Context,
-        world: &mut World,
-        external_prototypes: &EHM,
-    ) -> Self {
+    pub fn set_up(context: &js::Context, world: &mut World, external_prototypes: &EHM) -> Self {
         let reference = unsafe { std::mem::transmute::<&mut World, &'static mut World>(world) };
         context.insert_user_data::<&mut World>(reference);
 

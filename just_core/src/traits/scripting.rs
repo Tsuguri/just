@@ -59,16 +59,12 @@ pub trait ScriptApiRegistry<'a, 'b> {
         T: 'static + Send + Sync,
         F: 'static + Send + Sync + Fn() -> T;
 
-    fn register_native_type_method<P, R, F>(
+    fn register_native_type_method(
         &mut self,
         _type: NativeTypeId,
         name: &str,
-        method: F,
-    ) -> Result<(), TypeCreationError>
-    where
-        P: FunctionParameter,
-        R: FunctionResult,
-        F: 'static + Send + Sync + Fn(P) -> R;
+        fc: impl v8::MapFnTo<v8::FunctionCallback>,
+    ) -> Result<(), TypeCreationError>;
 
     fn register_native_type_property<P1, P2, R, F1, F2>(
         &mut self,

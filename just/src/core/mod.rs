@@ -3,13 +3,13 @@ mod time;
 
 use std::marker::PhantomData;
 
-use just_v8js::JsEngineConfig;
+use just_v8js::engine::JsEngineConfig;
 use time::TimeSystem;
 
-use crate::apis::ConsoleApi;
-use crate::apis::RenderableApi;
-use crate::apis::TransformApi;
-use crate::apis::WorldApi;
+// use crate::apis::ConsoleApi;
+// use crate::apis::RenderableApi;
+// use crate::apis::TransformApi;
+// use crate::apis::WorldApi;
 use just_core::math::{MathApi, Vec2};
 use just_core::traits::scripting::ScriptApiRegistry;
 use just_core::{game_object, hierarchy, transform};
@@ -23,7 +23,7 @@ use winit::event_loop::EventLoop;
 use just_core::ecs::prelude::*;
 
 use just_assets::AssetSystem;
-use just_v8js::V8Engine;
+use just_v8js::engine::V8Engine;
 
 pub use game_object::GameObject;
 pub use hierarchy::TransformHierarchy;
@@ -54,19 +54,18 @@ impl Engine {
         AssetSystem::initialize(&mut world, res_path);
 
         RenderingSystem::initialize(&mut world, &event_loop);
-        // RenderingSystem::initialize(&mut world);
         InputSystem::initialize(&mut world);
         GameObject::initialize(&mut world);
         TimeSystem::initialize(&mut world);
 
         let mut scripting_engine = V8Engine::create(engine_config, &mut world, |sar| {
-            TransformApi::register_api(sar);
-            WorldApi::register_api(sar);
+            // TransformApi::register_api(sar);
+            // WorldApi::register_api(sar);
             TimeSystem::register_api(sar);
-            MathApi::register_api(sar);
-            ConsoleApi::register_api(sar);
+            // MathApi::register_api(sar);
+            // ConsoleApi::register_api(sar);
             AssetSystem::register_api(sar);
-            RenderableApi::register_api(sar);
+            // RenderableApi::register_api(sar);
         });
 
         let eng = Engine {
