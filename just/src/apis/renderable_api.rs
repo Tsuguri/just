@@ -7,8 +7,6 @@ use just_rend3d::Mesh;
 use just_rend3d::Renderable;
 use just_rend3d::Texture;
 
-use std::sync::Arc;
-
 pub struct RenderableApi;
 
 #[derive(Copy, Clone)]
@@ -63,7 +61,7 @@ impl RenderableApi {
             handle.map(|x| TextureData { handle: x })
         });
 
-        let renderable_type = registry
+        registry
             .register_component::<Renderable, _>("Renderable", None, || Default::default())
             .unwrap();
 

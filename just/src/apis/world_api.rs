@@ -21,7 +21,7 @@ impl WorldApi {
             GameObjectData { id: obj }
         });
 
-        registry.register_function("setCameraPosition", Some(namespace), |mut args: (World, Vec3)| {
+        registry.register_function("setCameraPosition", Some(namespace), |args: (World, Vec3)| {
             (*args.0)
                 .resources
                 .get_mut::<just_rend3d::CameraData>()

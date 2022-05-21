@@ -1,5 +1,4 @@
 use super::Engine;
-use super::GameObjectError;
 use super::TransformHierarchy;
 use just_core::ecs::prelude::Entity;
 

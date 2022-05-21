@@ -6,20 +6,16 @@ mod result_encoder;
 mod script_creation;
 mod script_factory;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, convert::TryFrom, ffi::c_void};
 // use std::mem::ManuallyDrop;
 
 //use crate::ui::UiEvent;
-use game_object_api::GameObjectApi;
 use param_source::V8ParametersSource;
 use result_encoder::V8ResultEncoder;
 pub use v8;
 
-use just_core::{
-    ecs::prelude::World,
-    traits::scripting::{
-        FunctionParameter, FunctionResult, NamespaceId, NativeTypeId, ScriptApiRegistry, TypeCreationError,
-    },
+use just_core::traits::scripting::{
+    FunctionParameter, FunctionResult, NamespaceId, ScriptApiRegistry, TypeCreationError,
 };
 use script_creation::{ScriptCreationData, ScriptCreationQueue};
 use v8::{FunctionCallbackArguments, ReturnValue};
@@ -65,64 +61,36 @@ pub struct V8ApiRegistry<'a, 'b> {
     scope: &'b mut v8::HandleScope<'a>,
     context: v8::Global<v8::Context>,
     things: HashMap<i32, v8::Local<'a, v8::Object>>,
+    object_templates: HashMap<std::any::TypeId, v8::Local<'a, v8::ObjectTemplate>>,
     last_id: i32,
 }
 
-fn creatorFunction<T: 'static>(scope: &mut v8::HandleScope, args: FunctionCallbackArguments, rv: v8::ReturnValue) {}
-fn creatorFunction2<P1, R, F1>(scope: &mut v8::HandleScope, args: FunctionCallbackArguments, rv: v8::ReturnValue)
-where
-    P1: FunctionParameter,
-    R: FunctionResult,
-    F1: 'static + Fn(P1) -> R,
-{
-    1 + 2;
-}
+type CallbackClosure = dyn for<'a> Fn(&mut v8::HandleScope<'a>, v8::FunctionCallbackArguments<'a>, v8::ReturnValue);
 
-fn creatorFunc(_scope: &mut v8::HandleScope, _args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue) {}
+struct CallbackData(Box<CallbackClosure>);
 
-fn create_v8_func<'a, F: for<'c, 'd, 'e> Fn(&'c mut v8::HandleScope, FunctionCallbackArguments, ReturnValue)>(
-    scope: &mut v8::HandleScope<'a>,
-    cf: F,
-) -> v8::Local<'a, v8::Function> {
-    let func = v8::Function::builder(&cf).build(scope).unwrap();
+fn create_v8_func<'a>(scope: &mut v8::HandleScope<'a>, cf: Box<CallbackClosure>) -> v8::Local<'a, v8::Function> {
+    let data = Box::<CallbackData>::new(CallbackData(cf));
+    let fn_ptr = Box::into_raw(data);
+    let void_ptr = fn_ptr as *mut std::ffi::c_void;
+    let ag_b = unsafe { Box::<CallbackData>::from_raw(void_ptr as _) };
+    let ext = v8::External::new(scope, void_ptr);
+    let func = v8::Function::builder(closure_unwrap_fn)
+        .data(ext.into())
+        .build(scope)
+        .unwrap();
     func
 }
 
-impl<'a, 'b> V8ApiRegistry<'a, 'b> {
-    fn register<F: for<'c, 'd, 'e> Fn(&'c mut v8::HandleScope, FunctionCallbackArguments, ReturnValue)>(
-        &mut self,
-        cf: F,
-    ) {
-        let loc_namespace = self.context.open(self.scope).global(self.scope);
-
-        let key = v8::String::new(&mut self.scope, "lolek").unwrap();
-
-        let v2 = v8::Function::builder(creatorFunction::<i32>)
-            .build(&mut self.scope)
-            .unwrap();
-        let v2 = v8::Function::builder(&cf).build(&mut self.scope).unwrap();
-        loc_namespace.set(&mut self.scope, key.into(), v2.into());
-    }
-    fn lolz<F: Fn(i32)>(&mut self, f: F, data: i32) {
-        self.register(|a, b, c| {
-            f(data);
-        });
-    }
-    fn register_native_type_property<P1, R, F1>(&mut self, getter: F1)
-    where
-        P1: FunctionParameter,
-        R: FunctionResult,
-        F1: 'static + Send + Sync + Fn(P1) -> R,
-    {
-        self.lolz(
-            |data| {
-                let _ = data + data;
-            },
-            13,
-        );
-        //self.register(creatorFunction2::<P1, R, F1>);
-        //self.register
-    }
+fn closure_unwrap_fn<'a>(
+    scope: &mut v8::HandleScope<'a>,
+    args: v8::FunctionCallbackArguments<'a>,
+    rv: v8::ReturnValue,
+) {
+    let external = v8::Local::<v8::External>::try_from(args.data().unwrap()).unwrap();
+    let raw_pointer: *mut std::ffi::c_void = external.value(); // explicit type for exposition
+    let fn_ptr: *mut CallbackData = raw_pointer as *mut CallbackData;
+    unsafe { (*fn_ptr).0(scope, args, rv) };
 }
 
 impl<'a, 'b> ScriptApiRegistry<'a, 'b> for V8ApiRegistry<'a, 'b> {
@@ -160,16 +128,16 @@ impl<'a, 'b> ScriptApiRegistry<'a, 'b> for V8ApiRegistry<'a, 'b> {
             None => self.context.open(self.scope).global(self.scope),
         };
         let key = v8::String::new(&mut self.scope, name).unwrap();
-        let v8_func = create_v8_func(&mut self.scope, |a, b, mut c| {
-            // read world from context data somehow.
-            //let mut world = a.get_slot::<&'static mut World>().unwrap();
-            let mut param_source = V8ParametersSource::new(a, &b);
+        let v8_func = create_v8_func(
+            &mut self.scope,
+            Box::new(move |a, b, mut c| {
+                let mut param_source = V8ParametersSource::new(a, &b);
 
-            let result = fc(P::read(&mut param_source).unwrap());
-            //
-            let mut encoder = V8ResultEncoder::new(a);
-            c.set(result.into_script_value(&mut encoder));
-        });
+                let result = fc(P::read(&mut param_source).unwrap());
+                let mut encoder = V8ResultEncoder::new(a);
+                c.set(result.into_script_value(&mut encoder));
+            }),
+        );
         loc_namespace.set(&mut self.scope, key.into(), v8_func.into());
     }
 
@@ -178,17 +146,46 @@ impl<'a, 'b> ScriptApiRegistry<'a, 'b> for V8ApiRegistry<'a, 'b> {
         name: &str,
         namespace: Option<NamespaceId>,
         constructor: F,
-    ) -> Result<NativeTypeId, TypeCreationError>
+    ) -> Result<(), TypeCreationError>
     where
         T: 'static,
         P: FunctionParameter,
         F: 'static + Send + Sync + Fn(P) -> T,
     {
-        Ok(0)
+        let type_id = std::any::TypeId::of::<T>();
+        if self.object_templates.contains_key(&type_id) {
+            assert!(false);
+        }
+        let template = v8::ObjectTemplate::new(self.scope);
+        template.set_internal_field_count(1);
+        self.object_templates.insert(type_id, template);
+        let temp = v8::Global::new(self.scope, template.clone());
+        let constructor = create_v8_func(
+            self.scope,
+            Box::new(move |a, b, mut c| {
+                let mut param_source = V8ParametersSource::new(a, &b);
+
+                let result = constructor(P::read(&mut param_source).unwrap());
+
+                let obj = temp.open(a).new_instance(a).unwrap();
+                let ext = v8::External::new(a, Box::into_raw(Box::new(result)) as *mut c_void);
+                obj.set_internal_field(0, ext.into());
+
+                c.set(obj.into());
+            }),
+        );
+        let loc_namespace = match namespace {
+            Some(id) => self.things.get(&id).unwrap().clone(),
+            None => self.context.open(self.scope).global(self.scope),
+        };
+        let key = v8::String::new(&mut self.scope, name).unwrap();
+        loc_namespace.set(self.scope, key.into(), constructor.into());
+        Ok(())
     }
 
-    fn get_native_type<T: 'static>(&mut self) -> Option<NativeTypeId> {
-        None
+    fn native_type_is_registered<T: 'static>(&mut self) -> bool {
+        let type_id = std::any::TypeId::of::<T>();
+        self.object_templates.contains_key(&type_id)
     }
 
     fn register_component<T, F>(
@@ -196,36 +193,54 @@ impl<'a, 'b> ScriptApiRegistry<'a, 'b> for V8ApiRegistry<'a, 'b> {
         name: &str,
         namespace: Option<NamespaceId>,
         constructor: F,
-    ) -> Result<NativeTypeId, TypeCreationError>
+    ) -> Result<(), TypeCreationError>
     where
         T: 'static + Send + Sync,
         F: 'static + Send + Sync + Fn() -> T,
     {
-        Ok(0)
-    }
-
-    fn register_native_type_method(
-        &mut self,
-        _type: NativeTypeId,
-        name: &str,
-        fc: impl v8::MapFnTo<v8::FunctionCallback>,
-    ) -> Result<(), TypeCreationError> {
+        let type_id = std::any::TypeId::of::<T>();
+        if self.object_templates.contains_key(&type_id) {
+            assert!(false);
+        }
         Ok(())
     }
 
-    fn register_native_type_property<P1, P2, R, F1, F2>(
+    fn register_native_type_method<T, P, R, F>(&mut self, name: &str, fc: F) -> Result<(), TypeCreationError>
+    where
+        T: 'static + Send + Sync,
+        P: FunctionParameter,
+        R: FunctionResult,
+        F: 'static + Send + Sync + Fn(P) -> R,
+    {
+        let type_id = std::any::TypeId::of::<T>();
+        if !self.object_templates.contains_key(&type_id) {
+            assert!(false);
+        }
+        Ok(())
+    }
+
+    fn register_native_type_property<T, P1, P2, R, F1, F2>(
         &mut self,
-        _type: NativeTypeId,
         name: &str,
         getter: Option<F1>,
         setter: Option<F2>,
     ) where
+        T: 'static + Send + Sync,
         P1: FunctionParameter,
         P2: FunctionParameter,
         R: FunctionResult,
         F1: 'static + Send + Sync + Fn(P1) -> R,
         F2: 'static + Send + Sync + Fn(P2),
     {
+        let type_id = std::any::TypeId::of::<T>();
+        if !self.object_templates.contains_key(&type_id) {
+            assert!(false);
+        }
+        let template = self.object_templates.get_mut(&type_id).unwrap();
+        let key = v8::String::new(&mut self.scope, name).unwrap();
+        // let getter = getter.map(|a| v8::FunctionTemplate::new(self.scope, |a, b, c| {}));
+        // let setter = setter.map(|a| v8::FunctionTemplate::new(self.scope, |a, b, c| {}));
+        // template.set_accessor_property(key.into(), getter, setter, v8::PropertyAttribute::default());
     }
 
     fn register_static_property<P1, P2, R, F1, F2>(

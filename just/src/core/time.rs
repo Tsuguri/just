@@ -20,7 +20,7 @@ impl TimeSystem {
     }
 
     pub fn update(world: &mut World) {
-        let mut sys = <(Write<TimeData>)>::fetch(&world.resources);
+        let mut sys = <Write<TimeData>>::fetch(&world.resources);
         let duration = sys.start.elapsed();
 
         let elapsed = duration.as_secs() as f64 + duration.subsec_nanos() as f64 * 1e-9;

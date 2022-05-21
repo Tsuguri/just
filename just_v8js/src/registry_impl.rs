@@ -222,55 +222,6 @@ impl JsScriptEngine {
 }
 
 impl ScriptApiRegistry for JsScriptEngine {
-    fn register_native_type<T, P, F>(
-        &mut self,
-        name: &str,
-        namespace: Option<&Self::Namespace>,
-        constructor: F,
-    ) -> Result<Self::NativeType, TypeCreationError>
-    where
-        T: 'static,
-        P: FunctionParameter,
-        F: 'static + Send + Sync + Fn(P) -> T,
-    {
-        let guard = self.context.make_current().unwrap();
-        let global = guard.global();
-        let type_id = std::any::TypeId::of::<T>();
-        if self.external_types_prototypes.contains_key(&type_id) {
-            return Err(TypeCreationError::TypeAlreadyRegistered);
-        }
-        let prototype = Object::new(&guard);
-        let ret = prototype.clone();
-        self.external_types_prototypes.insert(type_id, prototype.clone());
-        let factory_function = Function::new(
-            &guard,
-            Box::new(move |g, args| {
-                let ctx = g.context();
-                let world = api_helpers::world(&ctx);
-                let mut param_source = JsParamSource::create(g, args, world);
-                let obj = External::new(g, Box::new(constructor(P::read(&mut param_source).unwrap())));
-                obj.set_prototype(g, prototype.clone()).unwrap();
-
-                Result::Ok(obj.into())
-            }),
-        );
-        let par = match namespace {
-            Some(x) => x,
-            None => &global,
-        };
-        par.set(&guard, Property::new(&guard, name), factory_function);
-
-        Result::Ok(ret.into())
-    }
-
-    fn get_native_type<T: 'static>(&mut self) -> Option<Self::NativeType> {
-        let guard = self.context.make_current().unwrap();
-        let global = guard.global();
-        let type_id = std::any::TypeId::of::<T>();
-
-        return self.external_types_prototypes.get(&type_id).map(|x| x.clone());
-    }
-
     fn register_component<T, F>(
         &mut self,
         name: &str,

@@ -1,3 +1,4 @@
+use crate::game_object_api::GameObjectApi;
 use crate::V8ApiRegistry;
 use just_core::ecs::prelude::*;
 use std::collections::HashMap;
@@ -80,9 +81,10 @@ impl V8Engine {
                 scope: &mut scope,
                 context: context.clone(),
                 things: Default::default(),
+                object_templates: Default::default(),
                 last_id: 0,
             };
-            //GameObjectApi::register(&mut sar);
+            GameObjectApi::register(&mut sar);
             builder(&mut sar);
         }
 
@@ -199,7 +201,7 @@ impl V8Engine {
 
         let mut scope = v8::HandleScope::with_context(&mut self.isolate, self.context.clone());
         let reference = unsafe { std::mem::transmute::<&mut World, &'static mut World>(world) };
-        scope.set_slot(reference);
+        scope.set_slot::<&'static mut World>(reference);
 
         let query = <Read<JsScript>>::query();
         for script in query.iter_immutable(world) {

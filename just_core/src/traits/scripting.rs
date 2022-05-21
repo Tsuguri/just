@@ -25,7 +25,7 @@ pub enum RuntimeError {
 }
 
 pub type NamespaceId = i32;
-pub type NativeTypeId = i32;
+pub type NativeTypeId = std::any::TypeId;
 
 pub trait ScriptApiRegistry<'a, 'b> {
     fn register_namespace(&mut self, name: &str, parent: Option<NamespaceId>) -> NamespaceId;
@@ -41,38 +41,38 @@ pub trait ScriptApiRegistry<'a, 'b> {
         name: &str,
         namespace: Option<NamespaceId>,
         constructor: F,
-    ) -> Result<NativeTypeId, TypeCreationError>
+    ) -> Result<(), TypeCreationError>
     where
         T: 'static,
         P: FunctionParameter,
         F: 'static + Send + Sync + Fn(P) -> T;
 
-    fn get_native_type<T: 'static>(&mut self) -> Option<NativeTypeId>;
+    fn native_type_is_registered<T: 'static>(&mut self) -> bool;
 
     fn register_component<T, F>(
         &mut self,
         name: &str,
         namespace: Option<NamespaceId>,
         constructor: F,
-    ) -> Result<NativeTypeId, TypeCreationError>
+    ) -> Result<(), TypeCreationError>
     where
         T: 'static + Send + Sync,
         F: 'static + Send + Sync + Fn() -> T;
 
-    fn register_native_type_method(
-        &mut self,
-        _type: NativeTypeId,
-        name: &str,
-        fc: impl v8::MapFnTo<v8::FunctionCallback>,
-    ) -> Result<(), TypeCreationError>;
+    fn register_native_type_method<T, P, R, F>(&mut self, name: &str, fc: F) -> Result<(), TypeCreationError>
+    where
+        T: 'static + Send + Sync,
+        P: FunctionParameter,
+        R: FunctionResult,
+        F: 'static + Send + Sync + Fn(P) -> R;
 
-    fn register_native_type_property<P1, P2, R, F1, F2>(
+    fn register_native_type_property<T, P1, P2, R, F1, F2>(
         &mut self,
-        _type: NativeTypeId,
         name: &str,
         getter: Option<F1>,
         setter: Option<F2>,
     ) where
+        T: 'static + Send + Sync,
         P1: FunctionParameter,
         P2: FunctionParameter,
         R: FunctionResult,
