@@ -35,7 +35,9 @@ impl TimeSystem {
         sar.register_static_property(
             "elapsed",
             Some(nm),
-            Some(|d: Data<TimeData>| d.fetch.elapsed),
+            Some(|d: Data<TimeData>| {
+                println!("returning elapsed tim");
+                d.fetch.elapsed}),
             Some(|()| {}),
         );
 

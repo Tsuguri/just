@@ -1,6 +1,7 @@
-mod api_helpers;
 pub mod engine;
+mod env;
 mod game_object_api;
+mod hacky_js_creator;
 mod param_source;
 mod result_encoder;
 mod script_creation;
@@ -18,9 +19,8 @@ use just_core::traits::scripting::{
     FunctionParameter, FunctionResult, NamespaceId, ScriptApiRegistry, TypeCreationError,
 };
 use script_creation::{ScriptCreationData, ScriptCreationQueue};
-use v8::{FunctionCallbackArguments, ReturnValue};
 
-pub struct EHM(HashMap<std::any::TypeId, v8::Object>);
+pub struct EHM(HashMap<std::any::TypeId, v8::Global<v8::ObjectTemplate>>);
 
 impl Default for EHM {
     fn default() -> Self {
@@ -29,7 +29,7 @@ impl Default for EHM {
 }
 
 impl std::ops::Deref for EHM {
-    type Target = HashMap<std::any::TypeId, v8::Object>;
+    type Target = HashMap<std::any::TypeId, v8::Global<v8::ObjectTemplate>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -45,7 +45,7 @@ unsafe impl Send for EHM {}
 unsafe impl Sync for EHM {}
 
 impl EHM {
-    pub fn get_prototype<T: 'static>(&self) -> &v8::Object {
+    pub fn get_prototype<T: 'static>(&self) -> &v8::Global<v8::ObjectTemplate> {
         &self.0[&std::any::TypeId::of::<T>()]
     }
 }
@@ -69,12 +69,21 @@ type CallbackClosure = dyn for<'a> Fn(&mut v8::HandleScope<'a>, v8::FunctionCall
 
 struct CallbackData(Box<CallbackClosure>);
 
+fn create_v8_func_template<'a>(
+    scope: &mut v8::HandleScope<'a>,
+    cf: Box<CallbackClosure>,
+) -> v8::Local<'a, v8::FunctionTemplate> {
+    let data = Box::<CallbackData>::new(CallbackData(cf));
+    let ext = v8::External::new(scope, Box::into_raw(data) as *mut c_void);
+    let func = v8::FunctionTemplate::builder(closure_unwrap_fn)
+        .data(ext.into())
+        .build(scope);
+    func
+}
+
 fn create_v8_func<'a>(scope: &mut v8::HandleScope<'a>, cf: Box<CallbackClosure>) -> v8::Local<'a, v8::Function> {
     let data = Box::<CallbackData>::new(CallbackData(cf));
-    let fn_ptr = Box::into_raw(data);
-    let void_ptr = fn_ptr as *mut std::ffi::c_void;
-    let ag_b = unsafe { Box::<CallbackData>::from_raw(void_ptr as _) };
-    let ext = v8::External::new(scope, void_ptr);
+    let ext = v8::External::new(scope, Box::into_raw(data) as *mut c_void);
     let func = v8::Function::builder(closure_unwrap_fn)
         .data(ext.into())
         .build(scope)
@@ -88,7 +97,7 @@ fn closure_unwrap_fn<'a>(
     rv: v8::ReturnValue,
 ) {
     let external = v8::Local::<v8::External>::try_from(args.data().unwrap()).unwrap();
-    let raw_pointer: *mut std::ffi::c_void = external.value(); // explicit type for exposition
+    let raw_pointer: *mut c_void = external.value(); // explicit type for exposition
     let fn_ptr: *mut CallbackData = raw_pointer as *mut CallbackData;
     unsafe { (*fn_ptr).0(scope, args, rv) };
 }
@@ -216,6 +225,20 @@ impl<'a, 'b> ScriptApiRegistry<'a, 'b> for V8ApiRegistry<'a, 'b> {
         if !self.object_templates.contains_key(&type_id) {
             assert!(false);
         }
+        let template = self.object_templates.get_mut(&type_id).unwrap();
+        let key = v8::String::new(&mut self.scope, name).unwrap();
+        let func = create_v8_func_template(
+            self.scope,
+            Box::new(move |a, b, mut c| {
+                let mut param_source = V8ParametersSource::new(a, &b);
+
+                let result = fc(P::read(&mut param_source).unwrap());
+
+                let mut encoder = V8ResultEncoder::new(a);
+                c.set(result.into_script_value(&mut encoder));
+            }),
+        );
+        template.set(key.into(), func.into());
         Ok(())
     }
 
@@ -236,11 +259,35 @@ impl<'a, 'b> ScriptApiRegistry<'a, 'b> for V8ApiRegistry<'a, 'b> {
         if !self.object_templates.contains_key(&type_id) {
             assert!(false);
         }
-        let template = self.object_templates.get_mut(&type_id).unwrap();
         let key = v8::String::new(&mut self.scope, name).unwrap();
-        // let getter = getter.map(|a| v8::FunctionTemplate::new(self.scope, |a, b, c| {}));
-        // let setter = setter.map(|a| v8::FunctionTemplate::new(self.scope, |a, b, c| {}));
-        // template.set_accessor_property(key.into(), getter, setter, v8::PropertyAttribute::default());
+        let getter = getter.map(|fc| {
+            create_v8_func_template(
+                self.scope,
+                Box::new(move |a, b, mut c| {
+                    let mut param_source = V8ParametersSource::new(a, &b);
+
+                    let result = fc(P1::read(&mut param_source).unwrap());
+
+                    let mut encoder = V8ResultEncoder::new(a);
+                    c.set(result.into_script_value(&mut encoder));
+                }),
+            )
+        });
+        let setter = setter.map(|fc| {
+            create_v8_func_template(
+                self.scope,
+                Box::new(move |a, b, mut c| {
+                    let mut param_source = V8ParametersSource::new(a, &b);
+
+                    let result = fc(P2::read(&mut param_source).unwrap());
+
+                    let mut encoder = V8ResultEncoder::new(a);
+                    c.set(result.into_script_value(&mut encoder));
+                }),
+            )
+        });
+        let template = self.object_templates.get_mut(&type_id).unwrap();
+        template.set_accessor_property(key.into(), getter, setter, v8::PropertyAttribute::default());
     }
 
     fn register_static_property<P1, P2, R, F1, F2>(
@@ -312,7 +359,6 @@ impl<'a, 'b> ScriptApiRegistry<'a, 'b> for V8ApiRegistry<'a, 'b> {
 //         // TODO: load only needed api?
 //         GameObjectApi::register(self);
 //         self.create_component_api();
-//         //self.create_resources_api();
 //     }
 
 //     fn configure(&mut self, config: &JsEngineConfig) {
@@ -453,36 +499,5 @@ impl<'a, 'b> ScriptApiRegistry<'a, 'b> for V8ApiRegistry<'a, 'b> {
 //     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
 //         self.object.as_raw().hash(state);
 //         self.handler.as_raw().hash(state);
-//     }
-// }
-
-// use js::ContextGuard;
-
-// struct ParamEncoder<'a> {
-//     guard: &'a ContextGuard<'a>,
-//     prototypes: &'a EHM,
-// }
-
-// impl<'a> ParamEncoder<'a> {
-//     pub fn encode_float(value: f32, guard: &ContextGuard) -> js::value::Value {
-//         js::value::Number::from_double(guard, value as f64).into()
-//     }
-
-//     pub fn encode_vec2(
-//         value: just_core::math::Vec2,
-//         guard: &ContextGuard,
-//         prototypes: &EHM,
-//     ) -> js::value::Value {
-//         let ob = js::value::External::new(guard, Box::new(value));
-//         ob.set_prototype(guard, prototypes[&std::any::TypeId::of::<just_core::math::Vec2>()].clone()).unwrap();
-//         ob.into()
-//     }
-
-//     pub fn encode_f32(&self, value: f32) -> js::value::Value {
-//         Self::encode_float(value, self.guard)
-//     }
-
-//     pub fn encode_v2(&self, value: just_core::math::Vec2) -> js::value::Value {
-//         Self::encode_vec2(value, self.guard, self.prototypes)
 //     }
 // }

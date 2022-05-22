@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use just::*;
+use just_rend3d::RenderingSystem;
 use just_v8js::engine::JsEngineConfig;
 
 fn main() {

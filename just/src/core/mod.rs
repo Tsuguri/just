@@ -64,6 +64,7 @@ impl Engine {
             AssetSystem::register_api(sar);
             RenderableApi::register_api(sar);
         });
+        RenderingSystem::update(&mut world);
 
         let eng = Engine {
             event_loop: Some(event_loop),
@@ -97,6 +98,8 @@ impl JsEngine {
         let mut new_frame_size = None;
         let mut new_events = Vec::with_capacity(20);
         let event_loop = self.event_loop.take().unwrap();
+
+        self.scripting_engine.run_initializer(&mut self.world);
 
         event_loop.run(move |event, _, control_flow| {
             //*control_flow = ControlFlow::Poll;

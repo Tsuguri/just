@@ -1,5 +1,5 @@
 pub use crate::glm;
-use crate::traits::scripting::ScriptApiRegistry;
+use crate::traits::scripting::{function_params::This, ScriptApiRegistry};
 pub type Fl = f32;
 
 pub type Vec2 = glm::TVec2<Fl>;
@@ -41,45 +41,40 @@ impl MathApi {
             })
             .unwrap();
 
-        // registry
-        //     .register_native_type_method(vec3_type, "Clone", |args: This<Vec3>| *args.val)
-        //     .unwrap();
-        // registry
-        //     .register_native_type_method(vec3_type, "Len", |args: (This<Vec3>, Vec3)| {
-        //         glm::distance(&*args.0, &args.1) as f32
-        //     })
-        //     .unwrap();
+        registry
+            .register_native_type_method::<Vec3, _, _, _>("Clone", |args: This<Vec3>| *args.val)
+            .unwrap();
+        registry
+            .register_native_type_method::<Vec3, _, _, _>("Len", |args: (This<Vec3>, Vec3)| {
+                glm::distance(&*args.0, &args.1) as f32
+            })
+            .unwrap();
 
-        // registry.register_native_type_property(
-        //     vec3_type,
-        //     "x",
-        //     Some(|args: This<Vec3>| args.val[0]),
-        //     Some(|args: (This<Vec3>, f32)| args.0.val[0] = args.1),
-        // );
-        // registry.register_native_type_property(
-        //     vec3_type,
-        //     "y",
-        //     Some(|args: This<Vec3>| args.val[1]),
-        //     Some(|args: (This<Vec3>, f32)| args.0.val[1] = args.1),
-        // );
-        // registry.register_native_type_property(
-        //     vec3_type,
-        //     "z",
-        //     Some(|args: This<Vec3>| args.val[2]),
-        //     Some(|args: (This<Vec3>, f32)| args.0.val[2] = args.1),
-        // );
+        registry.register_native_type_property::<Vec3, _, _, _, _, _>(
+            "x",
+            Some(|args: This<Vec3>| args.val[0]),
+            Some(|args: (This<Vec3>, f32)| args.0.val[0] = args.1),
+        );
+        registry.register_native_type_property::<Vec3, _, _, _, _, _>(
+            "y",
+            Some(|args: This<Vec3>| args.val[1]),
+            Some(|args: (This<Vec3>, f32)| args.0.val[1] = args.1),
+        );
+        registry.register_native_type_property::<Vec3, _, _, _, _, _>(
+            "z",
+            Some(|args: This<Vec3>| args.val[2]),
+            Some(|args: (This<Vec3>, f32)| args.0.val[2] = args.1),
+        );
 
-        // registry.register_native_type_property(
-        //     vec2_type,
-        //     "x",
-        //     Some(|args: This<Vec2>| args.val[0]),
-        //     Some(|args: (This<Vec2>, f32)| args.0.val[0] = args.1),
-        // );
-        // registry.register_native_type_property(
-        //     vec2_type,
-        //     "y",
-        //     Some(|args: This<Vec2>| args.val[1]),
-        //     Some(|args: (This<Vec2>, f32)| args.0.val[1] = args.1),
-        // );
+        registry.register_native_type_property::<Vec2, _, _, _, _, _>(
+            "x",
+            Some(|args: This<Vec2>| args.val[0]),
+            Some(|args: (This<Vec2>, f32)| args.0.val[0] = args.1),
+        );
+        registry.register_native_type_property::<Vec2, _, _, _, _, _>(
+            "y",
+            Some(|args: This<Vec2>| args.val[1]),
+            Some(|args: (This<Vec2>, f32)| args.0.val[1] = args.1),
+        );
     }
 }

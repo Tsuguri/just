@@ -14,10 +14,10 @@ test2 = class test2 {
     }
 
     update() {
-        lol();
-        let posit = this.go.position;
+        console.log("ho ho ho");
+        // let posit = this.go.position;
         //console.log(posit.x, " ", posit.y, " ", posit.z);
-        this.some.x = Math.Sin(Time.elapsed);
+        // this.some.x = Math.Sin(Time.elapsed);
         World.setCameraPosition(this.some);
 
 

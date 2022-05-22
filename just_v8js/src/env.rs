@@ -5,27 +5,25 @@ use super::EHM;
 pub struct JsEnvironment;
 
 impl JsEnvironment {
-    pub fn set_up(context: &js::Context, world: &mut World, external_prototypes: &EHM) -> Self {
-        let reference = unsafe { std::mem::transmute::<&mut World, &'static mut World>(world) };
-        context.insert_user_data::<&mut World>(reference);
-
-        insert(context, external_prototypes);
+    pub fn set_up(scope: &mut v8::HandleScope, world: &mut World, external_prototypes: &EHM) -> Self {
+        insert_mut(scope, world);
+        insert(scope, external_prototypes);
         Self {}
     }
 
-    pub fn drop(self, context: &js::Context) {
-        debug_assert!(context.remove_user_data::<&mut World>().is_some());
+    pub fn drop(self, scope: &mut v8::HandleScope) {
+        scope.remove_slot::<&'static mut World>();
+        scope.remove_slot::<&'static EHM>();
 
-        debug_assert!(context.remove_user_data::<&EHM>().is_some());
     }
 }
 
-fn insert<T: Send + Sync + 'static>(context: &js::Context, val: &T) {
+fn insert<T: Send + Sync + 'static>(scope: &mut v8::HandleScope, val: &T) {
     let reference = unsafe { std::mem::transmute::<&T, &'static T>(val) };
-    context.insert_user_data::<&T>(reference);
+    scope.set_slot(reference);
 }
 
-fn insert_mut<T: Send + Sync + 'static>(context: &js::Context, val: &mut T) {
+fn insert_mut<T: Send + Sync + 'static>(scope: &mut v8::HandleScope, val: &mut T) {
     let reference = unsafe { std::mem::transmute::<&mut T, &'static mut T>(val) };
-    context.insert_user_data::<&mut T>(reference);
+    scope.set_slot(reference);
 }

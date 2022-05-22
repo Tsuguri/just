@@ -1,4 +1,3 @@
-use super::api_helpers::*;
 use super::{ScriptCreationData, ScriptCreationQueue};
 
 use just_core::ecs::prelude::Entity;
@@ -48,15 +47,4 @@ impl GameObjectApi {
             .register_native_type("GameObject", None, |arg: GameObjectData| arg)
             .unwrap();
     }
-}
-
-impl crate::engine::V8Engine {
-    // pub fn create_go_external(&self, id: Entity) -> v8::Value {
-    //     let obj = js::value::External::new(guard, Box::new(GameObjectData { id }));
-    //     let type_id = std::any::TypeId::of::<GameObjectData>();
-    //     obj.set_prototype(guard, (self.external_types_prototypes[&type_id]).clone())
-    //         .unwrap();
-
-    //     obj.into()
-    // }
 }

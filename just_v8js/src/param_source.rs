@@ -1,3 +1,5 @@
+use std::convert::TryFrom;
+
 use just_core::{ecs::prelude::World, traits::scripting::ParametersSource};
 
 pub struct V8ParametersSource<'a, 'b, 'c> {
@@ -92,16 +94,43 @@ impl<'a, 'b, 'c> ParametersSource for V8ParametersSource<'a, 'b, 'c> {
     }
 
     fn read_world(&mut self) -> Result<&mut just_core::ecs::world::World, Self::ErrorType> {
-        //Result::Ok(&mut self.world)
         Result::Ok(self.scope.get_slot_mut::<&mut World>().unwrap())
     }
 
     fn read_native<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType> {
-        todo!()
+        if self.arguments.length() <= self.current as i32 {
+            return Result::Err(0);
+        }
+        let arg = self.arguments.get(self.current as i32);
+        let arg_obj = arg.to_object(self.scope).unwrap();
+        if arg_obj.internal_field_count() < 1 {
+            return Result::Err(1);
+        }
+        let val = arg_obj.get_internal_field(self.scope, 0).unwrap();
+        if !val.is_external() {
+            return Result::Err(2);
+        }
+        let external = v8::Local::<v8::External>::try_from(val).unwrap();
+        let ext_val = external.value();
+        let data_ptr: *mut T = ext_val as *mut T;
+
+        self.current += 1;
+        Ok(unsafe { &mut *data_ptr })
     }
 
     fn read_native_this<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType> {
-        todo!()
+        let arg = self.arguments.this();
+        if arg.internal_field_count() < 1 {
+            return Result::Err(1);
+        }
+        let val = arg.get_internal_field(self.scope, 0).unwrap();
+        if !val.is_external() {
+            return Result::Err(2);
+        }
+        let external = v8::Local::<v8::External>::try_from(val).unwrap();
+        let ext_val = external.value();
+        let data_ptr: *mut T = ext_val as *mut T;
+        Ok(unsafe { &mut *data_ptr })
     }
 
     fn read_component<T: 'static + Send + Sync + Sized>(

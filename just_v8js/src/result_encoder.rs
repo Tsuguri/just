@@ -1,4 +1,8 @@
+use std::ffi::c_void;
+
 use just_core::traits::scripting::ResultEncoder;
+
+use crate::EHM;
 
 pub struct V8ResultEncoder<'a, 'b> {
     scope: &'a mut v8::HandleScope<'b>,
@@ -30,7 +34,13 @@ impl<'a, 'b> ResultEncoder for V8ResultEncoder<'a, 'b> {
     }
 
     fn encode_external_type<T: 'static>(&mut self, value: T) -> Self::ResultType {
-        todo!()
+        let protos = self.scope.get_slot::<&EHM>().unwrap();
+        let prototypes = *protos;
+        let obj = prototypes.get_prototype::<T>().open(self.scope).new_instance(self.scope).unwrap();
+        let ext = v8::External::new(self.scope, Box::into_raw(Box::new(value)) as *mut c_void);
+        obj.set_internal_field(0, ext.into());
+
+        obj.into()
     }
 
     fn encode_string(&mut self, value: &str) -> Self::ResultType {

@@ -1,3 +1,4 @@
+use just_core::RenderableCreationQueue;
 use rend3::*;
 use std::sync::Arc;
 
@@ -205,18 +206,27 @@ impl RenderingSystem {
             resolution,
             directional_handle,
         });
+        world.resources.insert::<RenderableCreationQueue>(Default::default());
     }
     pub fn maintain(world: &mut World) {}
     pub fn update(world: &mut World) {
-        let (manager, mut asset_manager, mut texture_storage, mut mesh_storage, camera_data, viewport_data) =
-            <(
-                Write<RenderingManager>,
-                Write<AssetManager>,
-                Write<AssetStorage<Texture>>,
-                Write<AssetStorage<Mesh>>,
-                Read<CameraData>,
-                Read<ViewportData>,
-            )>::fetch(&mut world.resources);
+        let (
+            manager,
+            mut asset_manager,
+            mut texture_storage,
+            mut mesh_storage,
+            camera_data,
+            viewport_data,
+            mut creation_queue,
+        ) = <(
+            Write<RenderingManager>,
+            Write<AssetManager>,
+            Write<AssetStorage<Texture>>,
+            Write<AssetStorage<Mesh>>,
+            Read<CameraData>,
+            Read<ViewportData>,
+            Write<RenderableCreationQueue>,
+        )>::fetch(&mut world.resources);
         texture_storage.process(&mut asset_manager, "png", |data| {
             (Self::load_png_texture(&manager, data), false)
         });
@@ -224,6 +234,12 @@ impl RenderingSystem {
         mesh_storage.process(&mut asset_manager, "obj", |data| {
             (Self::load_obj_model(&manager, data), false)
         });
+
+        let to_create = std::mem::take(&mut creation_queue.queue);
+
+        for (id, mesh) in to_create.into_iter() {
+            Self::add_renderable(world, id, &mesh, None);
+        }
 
         // update objects transforms
         let query = <Read<Renderable>>::query();

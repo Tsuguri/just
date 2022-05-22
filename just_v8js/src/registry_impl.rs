@@ -41,25 +41,6 @@ struct JsParamSource<'a> {
 impl<'a> ParametersSource for JsParamSource<'a> {
     type ErrorType = JsRuntimeError;
 
-    fn read_native<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType> {
-        let native = self.params.arguments[self.current]
-            .clone()
-            .into_external()
-            .ok_or(JsRuntimeError::WrongTypeParameter)?;
-        self.current += 1;
-        Result::Ok(unsafe { std::mem::transmute::<&mut T, &'static mut T>(native.value::<T>()) })
-    }
-
-    fn read_native_this<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType> {
-        let native = self
-            .params
-            .this
-            .clone()
-            .into_external()
-            .ok_or(JsRuntimeError::WrongTypeParameter)?;
-        Result::Ok(unsafe { std::mem::transmute::<&mut T, &'static mut T>(native.value::<T>()) })
-    }
-
     fn read_component<T: 'static + Send + Sync + Sized>(&mut self) -> Result<ecs::borrow::RefMut<T>, Self::ErrorType> {
         let native = self.params.arguments[self.current]
             .clone()

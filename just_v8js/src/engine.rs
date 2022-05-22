@@ -1,8 +1,13 @@
+use crate::env::JsEnvironment;
 use crate::game_object_api::GameObjectApi;
-use crate::V8ApiRegistry;
+use crate::hacky_js_creator::create_hacky_creator;
+use crate::{V8ApiRegistry, EHM};
 use just_core::ecs::prelude::*;
+use just_core::GameObjectData;
 use std::collections::HashMap;
 use std::convert::TryInto;
+use std::ffi::c_void;
+use v8::HandleScope;
 
 use crate::JsScript;
 use crate::{script_creation::ScriptCreationQueue, script_factory::ScriptFactory};
@@ -16,8 +21,9 @@ pub struct JsEngineConfig {
 pub struct V8Engine {
     isolate: v8::OwnedIsolate,
     context: v8::Global<v8::Context>,
-    //prototypes: EHM,
+    prototypes: EHM,
     controllers_constructors: HashMap<String, v8::Global<v8::Function>>,
+    sources_path: String,
 }
 
 fn println_callback(_scope: &mut v8::HandleScope, _args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue) {
@@ -30,13 +36,6 @@ impl V8Engine {
     ) -> v8::Local<'a, v8::ObjectTemplate> {
         let scope = &mut v8::EscapableHandleScope::new(higher_scope);
         let global_template = v8::ObjectTemplate::new(scope);
-
-        // create built in methods?
-        let key = v8::String::new(scope, "print").unwrap();
-        let val = v8::FunctionTemplate::new(scope, println_callback);
-        // val.set_name(key);
-        global_template.set(key.into(), val.into());
-
         scope.escape(global_template)
     }
 
@@ -75,7 +74,7 @@ impl V8Engine {
             )
             .unwrap();
         }
-        {
+        let templates = {
             let mut scope = v8::HandleScope::with_context(&mut isolate, context.clone());
             let mut sar = V8ApiRegistry {
                 scope: &mut scope,
@@ -86,6 +85,14 @@ impl V8Engine {
             };
             GameObjectApi::register(&mut sar);
             builder(&mut sar);
+            sar.object_templates
+                .into_iter()
+                .map(|(id, x)| (id, v8::Global::new(&mut scope, x)))
+                .collect::<HashMap<_, _>>()
+        };
+        {
+            let mut scope = v8::HandleScope::with_context(&mut isolate, context.clone());
+            create_hacky_creator(&mut scope, context.clone());
         }
 
         for item in controllers_constructors.iter() {
@@ -95,9 +102,37 @@ impl V8Engine {
         Self {
             isolate,
             context,
-            // prototypes: Default::default(),
+            prototypes: EHM(templates),
             controllers_constructors,
+            sources_path: args.source_root,
         }
+    }
+    pub fn run_initializer(&mut self, world: &mut World) {
+        let scope = &mut v8::HandleScope::with_context(&mut self.isolate, self.context.clone());
+
+        let mut initializer_path = std::path::PathBuf::from(&self.sources_path);
+        initializer_path.push("index.js");
+
+        let code = std::fs::read_to_string(initializer_path).unwrap();
+        let mut try_catch = &mut v8::TryCatch::new(scope);
+        let env = JsEnvironment::set_up(&mut try_catch, world, &self.prototypes);
+
+        let code = v8::String::new(try_catch, &code).unwrap();
+        let res_name = v8::String::new(try_catch, "index.js").unwrap();
+        let map = v8::undefined(try_catch).into();
+        let origin = v8::ScriptOrigin::new(try_catch, res_name.into(), 0, 0, false, 0, map, false, false, false);
+
+        let result = v8::Script::compile(try_catch, code, Some(&origin))
+            .and_then(|script| script.run(try_catch))
+            .map_or_else(|| Err(try_catch.stack_trace().unwrap()), Ok);
+
+        let strong = match result {
+            Ok(v) => Ok(v.to_string(try_catch).unwrap().to_rust_string_lossy(try_catch)),
+            Err(e) => Err(e.to_string(try_catch).unwrap().to_rust_string_lossy(try_catch)),
+        };
+        println!("{:?}", strong);
+
+        env.drop(&mut try_catch);
     }
 
     pub fn run(&mut self, source: &str) {
@@ -144,6 +179,9 @@ impl V8Engine {
             } else {
                 let p = path.path();
                 let p2 = p.file_stem().unwrap().to_str().unwrap();
+                if p2 == "index" {
+                    continue;
+                }
                 let controller_name = format!("{}.{}", namespace, p2);
                 println!("loading controller: {}", controller_name);
                 let obj = ScriptFactory::from_path(scope, &p).unwrap();
@@ -168,10 +206,10 @@ impl V8Engine {
 
         if self.controllers_constructors.contains_key(&script_name) {
             println!("  Found requested controller");
-            let scope = &mut v8::HandleScope::with_context(&mut self.isolate, self.context.clone());
+            let mut scope = v8::HandleScope::with_context(&mut self.isolate, self.context.clone());
             let constructor = self.controllers_constructors.get(&script_name).unwrap();
             //let recv = v8::null(scope);
-            let controller = constructor.open(scope).new_instance(scope, &vec![]);
+            let controller = constructor.open(&mut scope).new_instance(&mut scope, &vec![]);
 
             match controller {
                 Some(x) => {
@@ -180,8 +218,7 @@ impl V8Engine {
                     } else {
                         println!("  Ugh");
                     }
-
-                    let glob_constructor = v8::Global::new(scope, x);
+                    let glob_constructor = v8::Global::new(&mut scope, x);
                     let comp = JsScript {
                         object: glob_constructor,
                     };
@@ -200,8 +237,7 @@ impl V8Engine {
         // update scripts
 
         let mut scope = v8::HandleScope::with_context(&mut self.isolate, self.context.clone());
-        let reference = unsafe { std::mem::transmute::<&mut World, &'static mut World>(world) };
-        scope.set_slot::<&'static mut World>(reference);
+        let env = JsEnvironment::set_up(&mut scope, world, &self.prototypes);
 
         let query = <Read<JsScript>>::query();
         for script in query.iter_immutable(world) {
@@ -211,23 +247,27 @@ impl V8Engine {
 
             let update = controller.get(&mut scope, key.into());
             match update {
-                Some(x) => {
-                    if x.is_function() {
-                        let try_catch = &mut v8::TryCatch::new(&mut scope);
-                        let func: v8::Local<v8::Function> = x.try_into().unwrap();
-                        let script_handle = v8::Local::new(try_catch, handl);
-                        func.call(try_catch, script_handle.into(), &vec![]);
-                    } else {
-                        println!("update is not function");
-                    }
+                Some(x) if x.is_function() => {
+                    let try_catch = &mut v8::TryCatch::new(&mut scope);
+                    try_catch.set_verbose(true);
+                    let func: v8::Local<v8::Function> = x.try_into().unwrap();
+                    let script_handle = v8::Local::new(try_catch, handl);
+                    func.call(try_catch, script_handle.into(), &vec![]);
+
+                    // if try_catch.has_caught() {
+                    //     println!("{:#?}", try_catch.exception());
+                    // }
+                }
+                Some(_x) => {
+                    println!("update is not function");
                 }
                 None => {
                     println!("no update here");
                 }
             }
         }
-        scope.remove_slot::<&'static mut World>();
 
+        env.drop(&mut scope);
         drop(query);
         drop(scope);
 
@@ -237,5 +277,17 @@ impl V8Engine {
         for data in to_create {
             self.create_script(data.object, &data.script_type, world);
         }
+    }
+
+    pub fn create_go_external<'a>(&self, scope: &mut v8::HandleScope<'a>, id: Entity) -> v8::Local<'a, v8::Value> {
+        let type_id = std::any::TypeId::of::<GameObjectData>();
+        let data = GameObjectData { id };
+
+        let proto = &self.prototypes[&type_id];
+        let obj = proto.open(scope).new_instance(scope).unwrap();
+        let ext = v8::External::new(scope, Box::into_raw(Box::new(data)) as *mut c_void);
+        obj.set_internal_field(0, ext.into());
+
+        obj.into()
     }
 }

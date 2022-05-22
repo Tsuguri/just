@@ -22,3 +22,8 @@ impl traits::scripting::FunctionParameter for GameObjectData {
         Result::Ok(*nat)
     }
 }
+
+#[derive(Debug, Clone, Default)]
+pub struct RenderableCreationQueue {
+    pub queue: Vec<(ecs::entity::Entity, String)>,
+}
