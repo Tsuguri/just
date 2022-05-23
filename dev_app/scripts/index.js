@@ -55,7 +55,13 @@ class test2 {
 
 console.log("initializing world");
 
-let go = World.createGameObject();
+let floor = World.aniasFunction({
+    name: "floor",
+    mesh: "floor",
+    position: new Math.Vector3(-20, -2, 20),
+    scale: new Math.Vector3(10, 10, 10)
+});
+
 let position = new Math.Vector3(10, 20, 30);
 let go2 = World.aniasFunction({
     name: "heheszko", position: position, controller: new test2()

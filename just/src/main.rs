@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 
 use just::*;
-use just_rend3d::RenderingSystem;
 use just_v8js::engine::JsEngineConfig;
 
 fn main() {
@@ -13,9 +12,5 @@ fn main() {
     let _renderer_config = 2i32;
     let _resources = 3i32;
 
-    let mut engine = core::JsEngine::new(engine_config, &"dev_app/res");
-
-    scene_serialization::deserialize_scene("dev_app/scene.ron", &mut engine).unwrap();
-
-    engine.run();
+    core::JsEngine::new(engine_config, &"dev_app/res").run();
 }
