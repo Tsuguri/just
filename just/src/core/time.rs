@@ -32,14 +32,7 @@ impl TimeSystem {
     pub fn register_api<'a, 'b, 'c, SAR: ScriptApiRegistry<'b, 'c>>(sar: &'a mut SAR) {
         let nm = sar.register_namespace("Time", None);
 
-        sar.register_static_property(
-            "elapsed",
-            Some(nm),
-            Some(|d: Data<TimeData>| {
-                println!("returning elapsed tim");
-                d.fetch.elapsed}),
-            Some(|()| {}),
-        );
+        sar.register_function("elapsed", Some(nm), |d: Data<TimeData>| d.fetch.elapsed);
 
         //sar.register_function()
     }

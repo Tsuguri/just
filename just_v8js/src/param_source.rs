@@ -18,16 +18,24 @@ impl<'a, 'b, 'c> V8ParametersSource<'a, 'b, 'c> {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum ParameterError {
+    NotEnoughParameters,
+    ParameterHasWrongType(String),
+    IntIsNotInt,
+    ExpectedEngineObject,
+}
+
 impl<'a, 'b, 'c> ParametersSource for V8ParametersSource<'a, 'b, 'c> {
-    type ErrorType = i32;
+    type ErrorType = ParameterError;
 
     fn read_float(&mut self) -> Result<f32, Self::ErrorType> {
         if self.arguments.length() <= self.current as i32 {
-            return Result::Err(0);
+            return Err(ParameterError::NotEnoughParameters);
         }
         let value = self.arguments.get(self.current as i32);
-        if !value.is_number() {
-            return Result::Err(1);
+        if !(value.is_number() || value.is_number_object()) {
+            return Result::Err(ParameterError::ParameterHasWrongType("Number".to_owned()));
         }
         self.current += 1;
         return Ok(value.to_number(self.scope).unwrap().value() as f32);
@@ -35,11 +43,11 @@ impl<'a, 'b, 'c> ParametersSource for V8ParametersSource<'a, 'b, 'c> {
 
     fn read_bool(&mut self) -> Result<bool, Self::ErrorType> {
         if self.arguments.length() <= self.current as i32 {
-            return Result::Err(0);
+            return Err(ParameterError::NotEnoughParameters);
         }
         let value = self.arguments.get(self.current as i32);
         if !value.is_boolean() {
-            return Result::Err(1);
+            return Result::Err(ParameterError::ParameterHasWrongType("Boolean".to_owned()));
         }
         self.current += 1;
         return Ok(value.to_boolean(self.scope).boolean_value(self.scope));
@@ -47,22 +55,22 @@ impl<'a, 'b, 'c> ParametersSource for V8ParametersSource<'a, 'b, 'c> {
 
     fn read_i32(&mut self) -> Result<i32, Self::ErrorType> {
         if self.arguments.length() <= self.current as i32 {
-            return Result::Err(0);
+            return Err(ParameterError::NotEnoughParameters);
         }
         let value = self.arguments.get(self.current as i32);
         if !value.is_number() {
-            return Result::Err(1);
+            return Result::Err(ParameterError::ParameterHasWrongType("Number".to_owned()));
         }
         self.current += 1;
         match value.to_number(self.scope).unwrap().int32_value(self.scope) {
-            None => Result::Err(2),
+            None => Result::Err(ParameterError::IntIsNotInt),
             Some(x) => Result::Ok(x),
         }
     }
 
     fn read_formatted(&mut self) -> Result<String, Self::ErrorType> {
         if self.arguments.length() <= self.current as i32 {
-            return Result::Err(0);
+            return Err(ParameterError::NotEnoughParameters);
         }
         let string = self.arguments.get(self.current as i32).to_rust_string_lossy(self.scope);
         self.current += 1;
@@ -99,16 +107,16 @@ impl<'a, 'b, 'c> ParametersSource for V8ParametersSource<'a, 'b, 'c> {
 
     fn read_native<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType> {
         if self.arguments.length() <= self.current as i32 {
-            return Result::Err(0);
+            return Err(ParameterError::NotEnoughParameters);
         }
         let arg = self.arguments.get(self.current as i32);
         let arg_obj = arg.to_object(self.scope).unwrap();
         if arg_obj.internal_field_count() < 1 {
-            return Result::Err(1);
+            return Result::Err(ParameterError::ExpectedEngineObject);
         }
         let val = arg_obj.get_internal_field(self.scope, 0).unwrap();
         if !val.is_external() {
-            return Result::Err(2);
+            return Result::Err(ParameterError::ExpectedEngineObject);
         }
         let external = v8::Local::<v8::External>::try_from(val).unwrap();
         let ext_val = external.value();
@@ -121,11 +129,11 @@ impl<'a, 'b, 'c> ParametersSource for V8ParametersSource<'a, 'b, 'c> {
     fn read_native_this<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType> {
         let arg = self.arguments.this();
         if arg.internal_field_count() < 1 {
-            return Result::Err(1);
+            return Result::Err(ParameterError::ExpectedEngineObject);
         }
         let val = arg.get_internal_field(self.scope, 0).unwrap();
         if !val.is_external() {
-            return Result::Err(2);
+            return Result::Err(ParameterError::ExpectedEngineObject);
         }
         let external = v8::Local::<v8::External>::try_from(val).unwrap();
         let ext_val = external.value();

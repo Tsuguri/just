@@ -1,28 +1,31 @@
-use std::convert::TryFrom;
+use std::{convert::TryFrom, ffi::c_void};
 
-use just_core::math::Vec3;
+use just_core::{
+    ecs::prelude::World, game_object::GameObject, hierarchy::TransformHierarchy, math::Vec3, GameObjectData,
+    RenderableCreationQueue,
+};
+
+use crate::{JsScript, EHM};
 
 struct Renderable {
     mesh: String,
 }
 
-struct Object {
+struct Object<'a> {
     name: String,
     position: Option<Vec3>,
     renderable: Option<Renderable>,
-    script: Option<String>,
-    children: Option<Vec<Object>>,
+    script: Option<v8::Local<'a, v8::Object>>,
     scale: Option<Vec3>,
 }
 
-impl Object {
-    fn new(name: String) -> Object {
+impl<'a> Object<'a> {
+    fn new(name: String) -> Object<'a> {
         Object {
             name,
             position: None,
             renderable: None,
             script: None,
-            children: None,
             scale: None,
         }
     }
@@ -96,6 +99,63 @@ fn hacky_js_creator<'a>(
             .map(|x| x.to_string(scope).unwrap().to_rust_string_lossy(scope))
         {
             obj_data.renderable = Some(Renderable { mesh: x });
+        }
+
+        let controller_key = v8::String::new(scope, "controller").unwrap();
+        if let Some(x) = obj
+            .get(scope, controller_key.into())
+            .filter(|x| x.is_object())
+            .map(|x| x.to_object(scope).unwrap())
+        {
+            let update_key = v8::String::new(scope, "update").unwrap();
+            let controller = x;
+            if !x.has(scope, update_key.into()).unwrap_or(false) {
+                return Result::Err("aniasFunction's controller should have update function!".to_owned());
+            }
+
+            obj_data.script = Some(controller);
+        }
+
+        let id = {
+            let mut world = scope.get_slot_mut::<&'static mut World>().unwrap();
+
+            let id = GameObject::create_empty(&mut world);
+            GameObject::set_name(&mut world, id, obj_data.name);
+
+            if let Some(x) = obj_data.position {
+                TransformHierarchy::set_local_position(&mut world, id, Vec3::new(x[0], x[1], x[2]));
+            }
+            if let Some(x) = obj_data.scale {
+                TransformHierarchy::set_local_scale(&mut world, id, Vec3::new(x[0], x[1], x[2]));
+            }
+            if let Some(x) = obj_data.renderable {
+                let mut renderable_queue = world.resources.get_mut::<RenderableCreationQueue>().unwrap();
+                renderable_queue.queue.push((id, x.mesh));
+            }
+            id
+        };
+        if let Some(x) = obj_data.script {
+            let go_data = Box::new(GameObjectData { id });
+            let ehm = scope.get_slot::<&'static EHM>().unwrap();
+
+            let prototype = ehm.get_prototype::<GameObjectData>().clone();
+            drop(ehm);
+
+            let go_object = prototype.open(scope).new_instance(scope).unwrap();
+            go_object.set_internal_field(
+                0,
+                v8::External::new(scope, Box::into_raw(go_data) as *mut c_void).into(),
+            );
+            let go_key = v8::String::new(scope, "go").unwrap();
+
+            x.set(scope, go_key.into(), go_object.into());
+
+            let glob_constructor = v8::Global::new(scope, x);
+            let comp = JsScript {
+                object: glob_constructor,
+            };
+            let world = scope.get_slot_mut::<&'static mut World>().unwrap();
+            world.add_component(id, comp);
         }
 
         Result::Ok(())

@@ -141,8 +141,18 @@ impl<'a, 'b> ScriptApiRegistry<'a, 'b> for V8ApiRegistry<'a, 'b> {
             &mut self.scope,
             Box::new(move |a, b, mut c| {
                 let mut param_source = V8ParametersSource::new(a, &b);
+                let params = match P::read(&mut param_source) {
+                    Ok(x) => x,
+                    Err(e) => {
+                        let message = format!("{:?}", e);
+                        let msg = v8::String::new(a, &message).unwrap();
+                        let exception = v8::Exception::error(a, msg);
+                        a.throw_exception(exception);
+                        return;
+                    }
+                };
 
-                let result = fc(P::read(&mut param_source).unwrap());
+                let result = fc(params);
                 let mut encoder = V8ResultEncoder::new(a);
                 c.set(result.into_script_value(&mut encoder));
             }),
@@ -173,8 +183,18 @@ impl<'a, 'b> ScriptApiRegistry<'a, 'b> for V8ApiRegistry<'a, 'b> {
             self.scope,
             Box::new(move |a, b, mut c| {
                 let mut param_source = V8ParametersSource::new(a, &b);
+                let params = match P::read(&mut param_source) {
+                    Ok(x) => x,
+                    Err(e) => {
+                        let message = format!("{:?}", e);
+                        let msg = v8::String::new(a, &message).unwrap();
+                        let exception = v8::Exception::error(a, msg);
+                        a.throw_exception(exception);
+                        return;
+                    }
+                };
 
-                let result = constructor(P::read(&mut param_source).unwrap());
+                let result = constructor(params);
 
                 let obj = temp.open(a).new_instance(a).unwrap();
                 let ext = v8::External::new(a, Box::into_raw(Box::new(result)) as *mut c_void);
@@ -303,6 +323,7 @@ impl<'a, 'b> ScriptApiRegistry<'a, 'b> for V8ApiRegistry<'a, 'b> {
         F1: 'static + Send + Sync + Fn(P1) -> R,
         F2: 'static + Send + Sync + Fn(P2),
     {
+        todo!();
     }
 }
 
