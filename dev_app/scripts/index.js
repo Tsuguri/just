@@ -7,6 +7,7 @@ class test2 {
         this.texture = null;
         this.some = new Math.Vector3(0.0, 0.0, 0.0);
         this.someLol = new Math.Vector2(0.0, 1.0);
+        this.create = true;
     }
 
     update() {
@@ -26,11 +27,11 @@ class test2 {
         // if (!this.texture) {
         //     this.texture = Resources.getTexture("tex1.png");
         // }
-        // if (this.changed === false && Input.isKeyboardKeyPressed("A")) {
-        //     this.go.name = "heh";
-        //     this.changed = true;
-        // }
-        if (Time.elapsed() > this.last + 1.0) {
+        if (Input.keyPressedInLastFrame("A")) {
+            console.log("changing state :)")
+            this.create = !this.create;
+        }
+        if (this.create && Time.elapsed() > this.last + 1.0) {
             console.log("creating new cow");
             this.last = Time.elapsed();
             let n = World.createGameObject();
@@ -41,7 +42,7 @@ class test2 {
                 mesh: "cow1"
             });
         }
-        if (Time.elapsed() > this.last_dest + 2.0) {
+        if (this.create && Time.elapsed() > this.last_dest + 2.0) {
             this.last_dest = Time.elapsed();
             console.log("destroying");
             let n = World.findByName("heh2");

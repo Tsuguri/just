@@ -63,6 +63,7 @@ impl Engine {
             ConsoleApi::register_api(sar);
             AssetSystem::register_api(sar);
             RenderableApi::register_api(sar);
+            InputSystem::register_api(sar);
         });
         RenderingSystem::update(&mut world);
 
@@ -147,7 +148,7 @@ impl JsEngine {
                     event: WindowEvent::KeyboardInput { input, .. },
                     ..
                 } => {
-                    //println!("pressed {:?}", input);
+                    // println!("pressed {:?}", input);
 
                     if input.virtual_keycode == Some(VirtualKeyCode::Escape) {
                         end_requested = true;
