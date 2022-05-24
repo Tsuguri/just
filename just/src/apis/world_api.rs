@@ -1,6 +1,6 @@
 use crate::core::GameObject;
 use just_core::{
-    math::Vec3,
+    math::{Quat, Vec3},
     traits::scripting::{function_params::World, ScriptApiRegistry},
     GameObjectData,
 };
@@ -27,6 +27,14 @@ impl WorldApi {
                 .get_mut::<just_rend3d::CameraData>()
                 .unwrap()
                 .position = args.1;
+        });
+
+        registry.register_function("setCameraRotation", Some(namespace), |args: (World, Quat)| {
+            (*args.0)
+                .resources
+                .get_mut::<just_rend3d::CameraData>()
+                .unwrap()
+                .rotation = args.1
         });
     }
 }

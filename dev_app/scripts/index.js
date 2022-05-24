@@ -5,15 +5,17 @@ class test2 {
         this.last_dest = 1.0;
         this.mesh = null;
         this.texture = null;
-        this.some = new Math.Vector3(0.0, 0.0, 0.0);
+        this.some = new Math.Vector3(3.0, 3.0, -5.0);
         this.someLol = new Math.Vector2(0.0, 1.0);
         this.create = true;
+        this.cameraRot = Math.quaternionFromEulerAngles(new Math.Vector3(-0.55, 0.2, 0.0));
     }
 
     update() {
         let posit = this.go.position;
-        this.some.x = Math.Sin(Time.elapsed());
+        this.some.x = 3.0 * Math.Sin(Time.elapsed());
         World.setCameraPosition(this.some); // to jeszcze nie działa :)
+        World.setCameraRotation(this.cameraRot);
 
 
         let pos = new Math.Vector3(0.1, 0.2, 0.3);

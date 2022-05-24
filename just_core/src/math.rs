@@ -41,6 +41,13 @@ impl MathApi {
                 Vec3::new(args.0, args.1, args.2)
             })
             .unwrap();
+        registry
+            .register_native_type("Quaternion", Some(namespace), |args: Quat| args)
+            .unwrap();
+
+        registry.register_function("quaternionFromEulerAngles", Some(namespace), |args: Vec3| {
+            Quat::from_euler(glam::EulerRot::XYZ, args.x, args.y, args.z)
+        });
 
         registry
             .register_native_type_method::<Vec3, _, _, _>("Clone", |args: This<Vec3>| *args.val)

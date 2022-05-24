@@ -79,3 +79,4 @@ impl FunctionResult for glam::Vec3 {}
 impl FunctionResult for glam::Vec4 {}
 impl FunctionResult for glam::Mat3 {}
 impl FunctionResult for glam::Mat4 {}
+impl FunctionResult for glam::Quat {}

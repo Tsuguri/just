@@ -256,3 +256,10 @@ impl FunctionParameter for glam::Mat3 {
         Result::Ok(*nat)
     }
 }
+
+impl FunctionParameter for glam::Quat {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        let nat = source.read_native()?;
+        Result::Ok(*nat)
+    }
+}

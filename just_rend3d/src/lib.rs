@@ -1,3 +1,4 @@
+use glam::Mat4;
 use just_core::RenderableCreationQueue;
 use rend3::*;
 use std::sync::Arc;
@@ -19,12 +20,24 @@ pub struct CameraData {
     pub rotation: Quat,
 }
 
+impl CameraData {
+    pub fn view(&self) -> Mat4 {
+        glam::Mat4::from_quat(self.rotation) * glam::Mat4::from_translation(-self.position)
+    }
+}
+
 #[derive(Clone)]
 pub struct ViewportData {
     pub camera_lens_height: f32,
     pub height: f32,
     pub width: f32,
     pub ratio: f32,
+}
+
+impl ViewportData {
+    pub fn projection(&self) -> rend3::types::CameraProjection {
+        rend3::types::CameraProjection::Perspective { vfov: 60.0, near: 0.1 }
+    }
 }
 pub struct Mesh {
     pub handle: rend3::types::MeshHandle,
@@ -40,65 +53,14 @@ struct RenderingManager {
     renderer: Arc<rend3::Renderer>,
     window: winit::window::Window,
     surface: Arc<rend3::types::Surface>,
-    object_handle: rend3::types::ObjectHandle,
     base_rendergraph: rend3_routine::base::BaseRenderGraph,
     pbr_routine: rend3_routine::pbr::PbrRoutine,
     tonemapping_routine: rend3_routine::tonemapping::TonemappingRoutine,
     directional_handle: rend3::types::DirectionalLightHandle,
     resolution: glam::UVec2,
-    // last_camera_data: CameraData,
 }
 fn vertex(pos: [f32; 3]) -> glam::Vec3 {
     glam::Vec3::from(pos)
-}
-
-fn create_mesh() -> rend3::types::Mesh {
-    let vertex_positions = [
-        // far side (0.0, 0.0, 1.0)
-        vertex([-1.0, -1.0, 1.0]),
-        vertex([1.0, -1.0, 1.0]),
-        vertex([1.0, 1.0, 1.0]),
-        vertex([-1.0, 1.0, 1.0]),
-        // near side (0.0, 0.0, -1.0)
-        vertex([-1.0, 1.0, -1.0]),
-        vertex([1.0, 1.0, -1.0]),
-        vertex([1.0, -1.0, -1.0]),
-        vertex([-1.0, -1.0, -1.0]),
-        // right side (1.0, 0.0, 0.0)
-        vertex([1.0, -1.0, -1.0]),
-        vertex([1.0, 1.0, -1.0]),
-        vertex([1.0, 1.0, 1.0]),
-        vertex([1.0, -1.0, 1.0]),
-        // left side (-1.0, 0.0, 0.0)
-        vertex([-1.0, -1.0, 1.0]),
-        vertex([-1.0, 1.0, 1.0]),
-        vertex([-1.0, 1.0, -1.0]),
-        vertex([-1.0, -1.0, -1.0]),
-        // top (0.0, 1.0, 0.0)
-        vertex([1.0, 1.0, -1.0]),
-        vertex([-1.0, 1.0, -1.0]),
-        vertex([-1.0, 1.0, 1.0]),
-        vertex([1.0, 1.0, 1.0]),
-        // bottom (0.0, -1.0, 0.0)
-        vertex([1.0, -1.0, 1.0]),
-        vertex([-1.0, -1.0, 1.0]),
-        vertex([-1.0, -1.0, -1.0]),
-        vertex([1.0, -1.0, -1.0]),
-    ];
-
-    let index_data: &[u32] = &[
-        0, 1, 2, 2, 3, 0, // far
-        4, 5, 6, 6, 7, 4, // near
-        8, 9, 10, 10, 11, 8, // right
-        12, 13, 14, 14, 15, 12, // left
-        16, 17, 18, 18, 19, 16, // top
-        20, 21, 22, 22, 23, 20, // bottom
-    ];
-
-    rend3::types::MeshBuilder::new(vertex_positions.to_vec(), rend3::types::Handedness::Left)
-        .with_indices(index_data.to_vec())
-        .build()
-        .unwrap()
 }
 
 impl RenderingSystem {
@@ -146,43 +108,15 @@ impl RenderingSystem {
         let tonemapping_routine =
             rend3_routine::tonemapping::TonemappingRoutine::new(&renderer, &base_rendergraph.interfaces, format);
 
-        // Create mesh and calculate smooth normals based on vertices
-        let mesh = create_mesh();
-
-        // Add mesh to renderer's world.
-        //
-        // All handles are refcounted, so we only need to hang onto the handle until we
-        // make an object.
-        let mesh_handle = renderer.add_mesh(mesh);
-
-        // Add PBR material with all defaults except a single color.
-        let material = rend3_routine::pbr::PbrMaterial {
-            albedo: rend3_routine::pbr::AlbedoComponent::Value(glam::Vec4::new(0.0, 0.5, 0.5, 1.0)),
-            ..rend3_routine::pbr::PbrMaterial::default()
-        };
-        let material_handle = renderer.add_material(material);
-
-        // Combine the mesh and the material with a location to give an object.
-        let object = rend3::types::Object {
-            mesh_kind: rend3::types::ObjectMeshKind::Static(mesh_handle),
-            material: material_handle,
-            transform: glam::Mat4::IDENTITY,
-        };
-        // Creating an object will hold onto both the mesh and the material
-        // even if they are deleted.
-        //
-        // We need to keep the object handle alive.
-        let object_handle = renderer.add_object(object);
-
-        let view_location = glam::Vec3::new(3.0, 3.0, -5.0);
-        let view = glam::Mat4::from_euler(glam::EulerRot::XYZ, -0.55, 0.2, 0.0);
-        let view = view * glam::Mat4::from_translation(-view_location);
-
         // Set camera's location
-        renderer.set_camera_data(rend3::types::Camera {
-            projection: rend3::types::CameraProjection::Perspective { vfov: 60.0, near: 0.1 },
-            view,
-        });
+        {
+            let camera_data = world.resources.get::<CameraData>().unwrap();
+
+            renderer.set_camera_data(rend3::types::Camera {
+                projection: rend3::types::CameraProjection::Perspective { vfov: 60.0, near: 0.1 },
+                view: camera_data.view(),
+            });
+        }
 
         // Create a single directional light
         //
@@ -200,7 +134,6 @@ impl RenderingSystem {
             renderer,
             window,
             surface,
-            object_handle,
             base_rendergraph,
             pbr_routine,
             tonemapping_routine,
@@ -252,6 +185,11 @@ impl RenderingSystem {
                 .set_object_transform(renderable.object_handle.as_ref().unwrap(), global_matrix);
         }
 
+        manager.renderer.set_camera_data(rend3::types::Camera {
+            projection: rend3::types::CameraProjection::Perspective { vfov: 60.0, near: 0.1 },
+            view: camera_data.view(),
+        });
+
         let frame = rend3::util::output::OutputFrame::Surface {
             surface: Arc::clone(&manager.surface),
         };
@@ -285,7 +223,6 @@ impl RenderingSystem {
                 renderer,
                 window,
                 surface,
-                object_handle,
                 base_rendergraph,
                 pbr_routine,
                 tonemapping_routine,
@@ -294,7 +231,6 @@ impl RenderingSystem {
             drop(tonemapping_routine);
             drop(pbr_routine);
             drop(base_rendergraph);
-            drop(object_handle);
             drop(renderer);
             drop(surface);
             drop(window);
@@ -406,6 +342,8 @@ impl RenderingSystem {
         world.resources.insert(CameraData {
             position: Vec3::ZERO,
             rotation: Quat::IDENTITY,
+            // position: glam::Vec3::new(3.0, 3.0, -5.0),
+            // rotation: glam::Quat::from_euler(glam::EulerRot::XYZ, -0.55, 0.2, 0.0),
         });
         world.resources.insert(ViewportData {
             width: 0.0f32,
