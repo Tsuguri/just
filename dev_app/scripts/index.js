@@ -17,6 +17,11 @@ class test2 {
         World.setCameraPosition(this.some); // to jeszcze nie działa :)
         World.setCameraRotation(this.cameraRot);
 
+        if (Input.isMouseKeyPressed(0)) {
+            const mousePos = Input.mousePosition();
+            console.log("Mouse pos: ", mousePos.x, "  ", mousePos.y);
+        };
+
 
         let pos = new Math.Vector3(0.1, 0.2, 0.3);
         pos.x = 12.0;

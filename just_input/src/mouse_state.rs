@@ -2,7 +2,8 @@ pub struct MouseState {
     pub mouse_moved: bool,
     pub current_position: [f32; 2],
     pub previous_position: [f32; 2],
-    pub button_pressed: [bool; 8],
+    pub buttons: [bool; 8],
+    pub old_buttons: [bool; 8],
 }
 
 impl MouseState {
@@ -22,18 +23,31 @@ impl MouseState {
     }
 
     pub fn left_button_down(&self) -> bool {
-        self.button_pressed[0]
+        self.buttons[0]
     }
+
+    pub fn left_button_pressed_in_last_frame(&self) -> bool {
+        self.buttons[0] && !self.old_buttons[0]
+    }
+
     pub fn is_button_down(&self, id: usize) -> bool {
-        self.button_pressed[id]
+        self.buttons[id]
+    }
+
+    pub fn button_pressed_in_last_frame(&self, id: usize) -> bool {
+        self.buttons[id] && !self.old_buttons[id]
     }
 
     pub fn right_button_down(&self) -> bool {
-        self.button_pressed[1]
+        self.buttons[1]
+    }
+
+    pub fn righ_button_pressed_in_last_frame(&self) -> bool {
+        self.buttons[1] && !self.old_buttons[1]
     }
 
     pub fn set_button_state(&mut self, button: usize, value: bool) {
-        self.button_pressed[button] = value;
+        self.buttons[button] = value;
     }
 
     pub fn set_new_position(&mut self, new_position: [f32; 2]) {
@@ -43,6 +57,7 @@ impl MouseState {
     }
     pub fn next_frame(&mut self) {
         self.mouse_moved = false;
+        self.old_buttons = self.buttons;
     }
 }
 
@@ -51,7 +66,8 @@ impl Default for MouseState {
         MouseState {
             current_position: [0.0; 2],
             previous_position: [0.0; 2],
-            button_pressed: [false; 8],
+            buttons: [false; 8],
+            old_buttons: [false; 8],
             mouse_moved: false,
         }
     }

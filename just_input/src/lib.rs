@@ -59,6 +59,12 @@ impl InputSystem {
             |args: (Data<MouseState>, usize)| args.0.is_button_down(args.1),
         );
 
+        registry.register_function(
+            "mouseKeyPressedInLastFrame",
+            Some(namespace),
+            |args: (Data<MouseState>, usize)| args.0.button_pressed_in_last_frame(args.1),
+        );
+
         registry.register_function("mousePosition", Some(namespace), |args: Data<MouseState>| {
             let pos = args.get_mouse_position();
             Vec2::new(pos[0], pos[1])
