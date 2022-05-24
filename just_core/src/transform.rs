@@ -7,13 +7,13 @@ pub trait Ident {
 
 impl Ident for Matrix {
     fn empty() -> Self {
-        Matrix::identity()
+        Matrix::IDENTITY
     }
 }
 
 impl Ident for Quat {
     fn empty() -> Self {
-        Quat::identity()
+        Quat::IDENTITY
     }
 }
 
@@ -49,9 +49,9 @@ unsafe impl Sync for Transform {}
 impl Transform {
     pub fn new() -> Self {
         Transform {
-            position: Vec3::zeros(),
+            position: Vec3::ZERO,
             scale: Vec3::new(1.0, 1.0, 1.0),
-            rotation: Quat::identity(),
+            rotation: Quat::IDENTITY,
             local_matrix: RefCell::new(MatrixState::new()),
             global_matrix: RefCell::new(MatrixState::new()),
         }

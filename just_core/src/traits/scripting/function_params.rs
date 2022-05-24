@@ -19,16 +19,15 @@ pub trait ParametersSource {
 
     fn read_native<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType>;
 
-    fn read_native_this<T: 'static + Send + Sync + Sized>(
-        &mut self,
-    ) -> Result<&mut T, Self::ErrorType>;
+    fn read_native_this<T: 'static + Send + Sync + Sized>(&mut self) -> Result<&mut T, Self::ErrorType>;
 
-    fn read_component<T: 'static + Send + Sync + Sized>(&mut self) -> Result<legion::borrow::RefMut<T>, Self::ErrorType>;
+    fn read_component<T: 'static + Send + Sync + Sized>(
+        &mut self,
+    ) -> Result<legion::borrow::RefMut<T>, Self::ErrorType>;
 
     fn read_component_this<T: 'static + Send + Sync + Sized>(
         &mut self,
     ) -> Result<legion::borrow::RefMut<T>, Self::ErrorType>;
-
 
     fn is_null(&self) -> bool;
 }
@@ -59,8 +58,7 @@ pub struct ComponentThis<T: 'static + Send + Sync> {
 
 impl<T: 'static + Send + Sync> FunctionParameter for Component<T> {
     fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
-        let component =
-            unsafe { std::mem::transmute::<&mut T, &'static mut T>(&mut *source.read_component()?) };
+        let component = unsafe { std::mem::transmute::<&mut T, &'static mut T>(&mut *source.read_component()?) };
         Result::Ok(Self { val: component })
     }
 }
@@ -80,8 +78,7 @@ impl<T: 'static + Send + Sync> std::ops::DerefMut for Component<T> {
 
 impl<T: 'static + Send + Sync> FunctionParameter for ComponentThis<T> {
     fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
-        let component =
-            unsafe { std::mem::transmute::<&mut T, &'static mut T>(&mut *source.read_component_this()?) };
+        let component = unsafe { std::mem::transmute::<&mut T, &'static mut T>(&mut *source.read_component_this()?) };
         Result::Ok(Self { val: component })
     }
 }
@@ -136,8 +133,7 @@ impl<T: FunctionParameter> FunctionParameter for Option<T> {
 
 impl<T: 'static + Send + Sync> FunctionParameter for This<T> {
     fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
-        let this =
-            unsafe { std::mem::transmute::<&mut T, &'static mut T>(source.read_native_this()?) };
+        let this = unsafe { std::mem::transmute::<&mut T, &'static mut T>(source.read_native_this()?) };
         Result::Ok(Self { val: this })
     }
 }
@@ -217,9 +213,7 @@ impl<A: FunctionParameter, B: FunctionParameter> FunctionParameter for (A, B) {
     }
 }
 
-impl<A: FunctionParameter, B: FunctionParameter, C: FunctionParameter> FunctionParameter
-    for (A, B, C)
-{
+impl<A: FunctionParameter, B: FunctionParameter, C: FunctionParameter> FunctionParameter for (A, B, C) {
     fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
         let a = A::read(source)?;
         let b = B::read(source)?;
@@ -228,21 +222,35 @@ impl<A: FunctionParameter, B: FunctionParameter, C: FunctionParameter> FunctionP
     }
 }
 
-impl<T: nalgebra_glm::Scalar + Send + Sync> FunctionParameter for nalgebra_glm::TVec2<T> {
+impl FunctionParameter for glam::Vec2 {
     fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
         let nat = source.read_native()?;
         Result::Ok(*nat)
     }
 }
 
-impl<T: nalgebra_glm::Scalar + Send + Sync> FunctionParameter for nalgebra_glm::TVec3<T> {
+impl FunctionParameter for glam::Vec3 {
     fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
         let nat = source.read_native()?;
         Result::Ok(*nat)
     }
 }
 
-impl<T: nalgebra_glm::Scalar + Send + Sync> FunctionParameter for nalgebra_glm::TVec4<T> {
+impl FunctionParameter for glam::Vec4 {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        let nat = source.read_native()?;
+        Result::Ok(*nat)
+    }
+}
+
+impl FunctionParameter for glam::Mat4 {
+    fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
+        let nat = source.read_native()?;
+        Result::Ok(*nat)
+    }
+}
+
+impl FunctionParameter for glam::Mat3 {
     fn read<PS: ParametersSource>(source: &mut PS) -> Result<Self, PS::ErrorType> {
         let nat = source.read_native()?;
         Result::Ok(*nat)

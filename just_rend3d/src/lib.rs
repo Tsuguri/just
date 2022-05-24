@@ -46,6 +46,7 @@ struct RenderingManager {
     tonemapping_routine: rend3_routine::tonemapping::TonemappingRoutine,
     directional_handle: rend3::types::DirectionalLightHandle,
     resolution: glam::UVec2,
+    // last_camera_data: CameraData,
 }
 fn vertex(pos: [f32; 3]) -> glam::Vec3 {
     glam::Vec3::from(pos)
@@ -174,7 +175,7 @@ impl RenderingSystem {
         let object_handle = renderer.add_object(object);
 
         let view_location = glam::Vec3::new(3.0, 3.0, -5.0);
-        let view = glam::Mat4::from_euler(glam::EulerRot::XYZ, -0.55, 0.5, 0.0);
+        let view = glam::Mat4::from_euler(glam::EulerRot::XYZ, -0.55, 0.2, 0.0);
         let view = view * glam::Mat4::from_translation(-view_location);
 
         // Set camera's location
@@ -205,6 +206,7 @@ impl RenderingSystem {
             tonemapping_routine,
             resolution,
             directional_handle,
+            // camera_data,
         });
         world.resources.insert::<RenderableCreationQueue>(Default::default());
     }
@@ -244,14 +246,7 @@ impl RenderingSystem {
         // update objects transforms
         let query = <Read<Renderable>>::query();
         for (id, renderable) in query.iter_entities_immutable(world) {
-            let gm = TransformHierarchy::get_global_matrix(world, id);
-            let global_matrix = glam::Mat4::from_cols(
-                glam::Vec4::new(gm.m11, gm.m12, gm.m13, gm.m14),
-                glam::Vec4::new(gm.m21, gm.m22, gm.m23, gm.m24),
-                glam::Vec4::new(gm.m31, gm.m32, gm.m33, gm.m34),
-                glam::Vec4::new(gm.m41, gm.m42, gm.m43, gm.m44),
-            )
-            .transpose();
+            let global_matrix = TransformHierarchy::get_global_matrix(world, id);
             manager
                 .renderer
                 .set_object_transform(renderable.object_handle.as_ref().unwrap(), global_matrix);
@@ -409,8 +404,8 @@ impl RenderingSystem {
     }
     fn initialize_state(world: &mut World) {
         world.resources.insert(CameraData {
-            position: Vec3::zeros(),
-            rotation: Quat::identity(),
+            position: Vec3::ZERO,
+            rotation: Quat::IDENTITY,
         });
         world.resources.insert(ViewportData {
             width: 0.0f32,

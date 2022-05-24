@@ -1,7 +1,8 @@
+use glam::Mat4;
+
 use super::game_object::GameObject;
 use super::transform::Transform;
 use crate::ecs::prelude::{Entity, World};
-use crate::glm;
 use crate::math::*;
 
 pub struct TransformHierarchy;
@@ -17,7 +18,7 @@ impl TransformHierarchy {
         let rotation = world.get_component::<Transform>(id).unwrap().rotation;
         let parent = world.get_component::<GameObject>(id).unwrap().parent;
         let parent_rotation = match parent {
-            None => Quat::identity(),
+            None => Quat::IDENTITY,
             Some(parent_id) => Self::get_global_rotation(world, parent_id),
         };
 
@@ -42,7 +43,7 @@ impl TransformHierarchy {
     fn get_parent_matrix(world: &World, id: Entity) -> Matrix {
         let parent = world.get_component::<GameObject>(id).unwrap().parent;
         match parent {
-            None => Matrix::identity(),
+            None => Matrix::IDENTITY,
             Some(parent_id) => Self::get_global_matrix(world, parent_id),
         }
     }
@@ -52,9 +53,8 @@ impl TransformHierarchy {
         let mut local_matrix = transform.local_matrix.borrow_mut();
 
         if local_matrix.changed {
-            local_matrix.item = glm::translation(&transform.position)
-                * glm::quat_to_mat4(&transform.rotation)
-                * glm::scaling(&transform.scale);
+            local_matrix.item =
+                Mat4::from_scale_rotation_translation(transform.scale, transform.rotation, transform.position);
             local_matrix.changed = false;
         }
 

@@ -74,6 +74,8 @@ impl FunctionResult for () {
     }
 }
 
-impl<T: nalgebra_glm::Scalar + Send + Sync> FunctionResult for nalgebra_glm::TVec2<T> {}
-impl<T: nalgebra_glm::Scalar + Send + Sync> FunctionResult for nalgebra_glm::TVec3<T> {}
-impl<T: nalgebra_glm::Scalar + Send + Sync> FunctionResult for nalgebra_glm::TVec4<T> {}
+impl FunctionResult for glam::Vec2 {}
+impl FunctionResult for glam::Vec3 {}
+impl FunctionResult for glam::Vec4 {}
+impl FunctionResult for glam::Mat3 {}
+impl FunctionResult for glam::Mat4 {}

@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 # math library
-nalgebra-glm ={version="0.4.0", features=["serde-serialize"]}
+glam = "0.20.0"
 # ecs representing entire gameobject world
 legion = "=0.2.1"
 # rand used in math and scripting bindings

@@ -1,24 +1,25 @@
-pub use crate::glm;
+use glam::Vec4Swizzles;
+
 use crate::traits::scripting::{function_params::This, ScriptApiRegistry};
 pub type Fl = f32;
 
-pub type Vec2 = glm::TVec2<Fl>;
-pub type Vec3 = glm::TVec3<Fl>;
-pub type Vec4 = glm::TVec4<Fl>;
-pub type Matrix3 = glm::TMat3<Fl>;
-pub type Matrix = glm::TMat4<Fl>;
-pub type Quat = glm::Qua<Fl>;
+pub type Vec2 = glam::Vec2;
+pub type Vec3 = glam::Vec3;
+pub type Vec4 = glam::Vec4;
+pub type Matrix3 = glam::Mat3;
+pub type Matrix = glam::Mat4;
+pub type Quat = glam::Quat;
 
 pub fn pos_vec(pos: &Vec3) -> Vec4 {
-    Vec4::new(pos.data[0], pos.data[1], pos.data[2], 1.0f32)
+    pos.extend(1.0f32)
 }
 
 pub fn dir_vec(pos: &Vec3) -> Vec4 {
-    Vec4::new(pos.data[0], pos.data[1], pos.data[2], 0.0f32)
+    pos.extend(0.0f32)
 }
 
 pub fn pos(vec: &Vec4) -> Vec3 {
-    glm::vec4_to_vec3(vec)
+    vec.xyz()
 }
 
 pub struct MathApi;
@@ -45,9 +46,7 @@ impl MathApi {
             .register_native_type_method::<Vec3, _, _, _>("Clone", |args: This<Vec3>| *args.val)
             .unwrap();
         registry
-            .register_native_type_method::<Vec3, _, _, _>("Len", |args: (This<Vec3>, Vec3)| {
-                glm::distance(&*args.0, &args.1) as f32
-            })
+            .register_native_type_method::<Vec3, _, _, _>("Len", |args: (This<Vec3>, Vec3)| args.0.distance(args.1))
             .unwrap();
 
         registry.register_native_type_property::<Vec3, _, _, _, _, _>(

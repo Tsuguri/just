@@ -5,7 +5,6 @@ pub mod traits;
 pub mod transform;
 
 pub use legion as ecs;
-pub use nalgebra_glm as glm;
 pub use shrev;
 
 pub use serde;
