@@ -24,5 +24,5 @@ impl traits::scripting::FunctionParameter for GameObjectData {
 
 #[derive(Debug, Clone, Default)]
 pub struct RenderableCreationQueue {
-    pub queue: Vec<(ecs::entity::Entity, String)>,
+    pub queue: Vec<(ecs::entity::Entity, String, Option<String>)>,
 }

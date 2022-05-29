@@ -9,6 +9,7 @@ use crate::{JsScript, EHM};
 
 struct Renderable {
     mesh: String,
+    texture: Option<String>,
 }
 
 struct Object<'a> {
@@ -98,7 +99,19 @@ fn hacky_js_creator<'a>(
             .filter(|x| x.is_string())
             .map(|x| x.to_string(scope).unwrap().to_rust_string_lossy(scope))
         {
-            obj_data.renderable = Some(Renderable { mesh: x });
+            obj_data.renderable = Some(Renderable { mesh: x, texture: None });
+        }
+
+        let mesh_key = v8::String::new(scope, "texture").unwrap();
+        if let Some(x) = obj
+            .get(scope, mesh_key.into())
+            .filter(|x| x.is_string())
+            .map(|x| x.to_string(scope).unwrap().to_rust_string_lossy(scope))
+        {
+            if !obj_data.renderable.is_some() {
+                return Result::Err("texture field can be specified only if mesh field is present".to_owned());
+            }
+            obj_data.renderable.as_mut().unwrap().texture = Some(x);
         }
 
         let controller_key = v8::String::new(scope, "controller").unwrap();
@@ -130,7 +143,7 @@ fn hacky_js_creator<'a>(
             }
             if let Some(x) = obj_data.renderable {
                 let mut renderable_queue = world.resources.get_mut::<RenderableCreationQueue>().unwrap();
-                renderable_queue.queue.push((id, x.mesh));
+                renderable_queue.queue.push((id, x.mesh, x.texture));
             }
             id
         };

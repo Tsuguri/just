@@ -46,7 +46,8 @@ class test2 {
             World.aniasFunction({
                 name: "heh2",
                 position: new Math.Vector3(this.last, Math.Sin(this.last), 5.0),
-                mesh: "cow1"
+                mesh: "cow1",
+                texture: "tex1"
             });
         }
         if (this.create && Time.elapsed() > this.last_dest + 2.0) {
@@ -66,6 +67,7 @@ console.log("initializing world");
 let floor = World.aniasFunction({
     name: "floor",
     mesh: "floor",
+    texture: "creature",
     position: new Math.Vector3(-20, -2, 20),
     scale: new Math.Vector3(10, 10, 10)
 });
