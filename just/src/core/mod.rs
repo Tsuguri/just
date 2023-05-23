@@ -1,9 +1,11 @@
 mod parent_child_manipulation;
 mod time;
 
+use std::f32::consts::PI;
+
 use time::TimeSystem;
 
-use just_core::math::Vec2;
+use just_core::math::{Quat, Vec2, Vec3};
 use just_core::{game_object, hierarchy};
 use just_input::InputSystem;
 
@@ -32,6 +34,13 @@ pub enum GameObjectError {
     IdNotExisting,
 }
 
+impl std::ops::Drop for Engine {
+    fn drop(&mut self) {
+        RenderingSystem::shut_down(&mut self.world);
+        AssetSystem::cleanup(&mut self.world);
+    }
+}
+
 impl Engine {
     pub fn new(res_path: &str) -> Self {
         let mut world = World::default();
@@ -42,22 +51,17 @@ impl Engine {
         GameObject::initialize(&mut world);
         TimeSystem::initialize(&mut world);
 
-        let eng = Engine {
+        let mut eng = Engine {
             event_loop: Some(event_loop),
             world,
         };
+
+        RenderingSystem::update(&mut eng.world);
+
+        eng.load_first_scene();
         eng
     }
-}
 
-impl std::ops::Drop for Engine {
-    fn drop(&mut self) {
-        RenderingSystem::shut_down(&mut self.world);
-        AssetSystem::cleanup(&mut self.world);
-    }
-}
-
-impl Engine {
     pub fn run(mut self) {
         use just_input::InputEvent;
         use just_input::KeyboardState;
@@ -146,11 +150,7 @@ impl Engine {
                         return;
                     }
 
-                    TimeSystem::update(&mut self.world);
-                    AssetSystem::update(&mut self.world);
-                    RenderingSystem::update(&mut self.world);
-
-                    GameObject::remove_marked(&mut self.world);
+                    self.update();
 
                     let (mut keyboard_state, mut mouse_state) =
                         <(Write<KeyboardState>, Write<MouseState>)>::fetch(&mut self.world.resources);
@@ -160,6 +160,32 @@ impl Engine {
                 _ => (),
             }
         });
+    }
+
+    fn load_first_scene(&mut self) {
+        {
+            let mut camera_data = self.world.resources.get_mut::<just_rend3d::CameraData>().unwrap();
+            camera_data.position = Vec3::new(10.0, 10.0, -10.0);
+            camera_data.rotation = Quat::from_euler(just_core::glam::EulerRot::XYZ, -PI / 4.0, PI / 6.0, 0.0);
+        }
+
+        let id = GameObject::create_empty(&mut self.world);
+        GameObject::set_name(&mut self.world, id, "duh".to_owned());
+        //TransformHierarchy::set_local_position(&mut self.world, id, Vec3::new(10.0, 20.0, 30.0));
+        self.add_renderable(id, "cow1", None);
+
+        let id2 = GameObject::create_empty(&mut self.world);
+        self.add_renderable(id2, "floor", Some("creature"));
+        TransformHierarchy::set_local_position(&mut self.world, id2, Vec3::new(-20.0, -2.0, 20.0));
+        TransformHierarchy::set_local_scale(&mut self.world, id2, Vec3::new(10.0, 10.0, 10.0));
+    }
+
+    fn update(&mut self) {
+        TimeSystem::update(&mut self.world);
+        AssetSystem::update(&mut self.world);
+        RenderingSystem::update(&mut self.world);
+
+        GameObject::remove_marked(&mut self.world);
     }
 }
 

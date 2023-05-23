@@ -8,6 +8,8 @@ pub use shrev;
 
 pub use serde;
 
+pub use glam;
+
 #[derive(Debug, Copy, Clone)]
 pub struct GameObjectData {
     pub id: ecs::entity::Entity,

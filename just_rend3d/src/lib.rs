@@ -143,6 +143,7 @@ impl RenderingSystem {
         });
         world.resources.insert::<RenderableCreationQueue>(Default::default());
     }
+
     pub fn maintain(_world: &mut World) {}
     pub fn update(world: &mut World) {
         let (
