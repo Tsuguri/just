@@ -1,5 +1,4 @@
-use just_core::{ecs::prelude::*, traits::scripting::ScriptApiRegistry};
-use std::any::TypeId;
+use just_core::ecs::prelude::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -44,9 +43,6 @@ impl AssetSystem {
 
         world.resources.insert::<AssetManager>(AssetManager { files_to_load });
     }
-
-    //pub fn register_api<'a, SAR: ScriptApiRegistry<'a>>(sar: &mut SAR) {}
-    pub fn register_api<'a, 'b, 'c, SAR: ScriptApiRegistry<'b, 'c>>(registry: &'a mut SAR) {}
 
     pub fn update(world: &mut World) {}
 

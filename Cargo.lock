@@ -898,7 +898,6 @@ dependencies = [
  "just_core",
  "just_input",
  "just_rend3d",
- "just_v8js",
  "lazy_static",
  "ron",
  "schemars",
@@ -949,16 +948,6 @@ dependencies = [
  "rend3-routine",
  "tobj",
  "winit",
-]
-
-[[package]]
-name = "just_v8js"
-version = "0.1.0"
-dependencies = [
- "failure",
- "just_core",
- "serde",
- "v8",
 ]
 
 [[package]]

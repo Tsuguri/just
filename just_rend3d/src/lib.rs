@@ -20,7 +20,7 @@ use just_assets::{AssetManager, AssetStorage};
 use just_core::ecs::prelude::*;
 use just_core::ecs::world::World;
 use just_core::hierarchy::TransformHierarchy;
-use just_core::traits::scripting::ScriptApiRegistry;
+use just_core::math::{Quat, Vec3};
 pub use winit;
 
 use winit::event_loop::EventLoop;
@@ -207,7 +207,6 @@ impl RenderingSystem {
         graph.execute(&manager.renderer, frame, cmd_bufs, &ready);
     }
 
-    pub fn register_api<'a, 'b, 'c, SAR: ScriptApiRegistry<'b, 'c>>(registry: &'a mut SAR) {}
     pub fn shut_down(world: &mut World) {
         RendererState::strip_down(world);
         let manago = world.resources.remove::<RenderingManager>();

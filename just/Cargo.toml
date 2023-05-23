@@ -3,11 +3,11 @@ name = "just"
 version = "0.1.0"
 authors = ["Adam Winiarczuk <adam@winiarcz.uk>"]
 edition = "2018"
+default-run = "just"
 
 [dependencies]
 just_core = {path="../just_core"}
 just_input = {path="../just_input"}
-just_v8js = {path="../just_v8js"}
 just_rend3d = {path="../just_rend3d"}
 just_assets = {path="../just_assets"}
 
