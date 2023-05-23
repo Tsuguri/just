@@ -5,6 +5,5 @@ members = [
     "just",
     "just_input",
     "just_assets",
-    "just_v8js",
     "just_rend3d"
 ]

@@ -1,14 +1,13 @@
 mod parent_child_manipulation;
 mod time;
 
-use just_v8js::engine::JsEngineConfig;
 use time::TimeSystem;
 
 // use crate::apis::ConsoleApi;
 // use crate::apis::RenderableApi;
 // use crate::apis::TransformApi;
 // use crate::apis::WorldApi;
-use just_core::math::{MathApi, Vec2};
+use just_core::math::Vec2;
 use just_core::{game_object, hierarchy};
 use just_input::InputSystem;
 
@@ -19,12 +18,9 @@ use winit::event_loop::EventLoop;
 use just_core::ecs::prelude::*;
 
 use just_assets::AssetSystem;
-use just_v8js::engine::V8Engine;
 
 pub use game_object::GameObject;
 pub use hierarchy::TransformHierarchy;
-
-use crate::apis::{ConsoleApi, RenderableApi, TransformApi, WorldApi};
 
 struct Animator;
 
@@ -33,11 +29,7 @@ struct Audio;
 pub struct Engine {
     event_loop: Option<EventLoop<()>>,
     pub world: World,
-
-    scripting_engine: V8Engine,
 }
-
-pub type JsEngine = Engine;
 
 #[derive(Debug)]
 pub enum GameObjectError {
@@ -45,7 +37,7 @@ pub enum GameObjectError {
 }
 
 impl Engine {
-    pub fn new(engine_config: JsEngineConfig, res_path: &str) -> Self {
+    pub fn new(res_path: &str) -> Self {
         let mut world = World::default();
         let event_loop = EventLoop::<()>::new();
         AssetSystem::initialize(&mut world, res_path);
@@ -55,26 +47,11 @@ impl Engine {
         GameObject::initialize(&mut world);
         TimeSystem::initialize(&mut world);
 
-        let scripting_engine = V8Engine::create(engine_config, &mut world, |sar| {
-            TransformApi::register_api(sar);
-            WorldApi::register_api(sar);
-            TimeSystem::register_api(sar);
-            MathApi::register_api(sar);
-            ConsoleApi::register_api(sar);
-            AssetSystem::register_api(sar);
-            RenderableApi::register_api(sar);
-        });
-
         let eng = Engine {
             event_loop: Some(event_loop),
             world,
-            scripting_engine,
         };
         eng
-    }
-
-    fn update_scripts(&mut self) {
-        self.scripting_engine.update(&mut self.world);
     }
 }
 
@@ -85,7 +62,7 @@ impl std::ops::Drop for Engine {
     }
 }
 
-impl JsEngine {
+impl Engine {
     pub fn run(mut self) {
         use just_input::InputEvent;
         use just_input::KeyboardState;
@@ -176,8 +153,6 @@ impl JsEngine {
 
                     TimeSystem::update(&mut self.world);
                     AssetSystem::update(&mut self.world);
-
-                    self.update_scripts();
                     RenderingSystem::update(&mut self.world);
 
                     GameObject::remove_marked(&mut self.world);
@@ -204,9 +179,5 @@ impl Engine {
 
     pub fn add_renderable(&mut self, id: Entity, mesh: &str, tex: Option<&str>) {
         just_rend3d::RenderingSystem::add_renderable(&mut self.world, id, mesh, tex);
-    }
-
-    pub fn add_script(&mut self, entity_id: Entity, typ: &str) {
-        self.scripting_engine.create_script(entity_id, typ, &mut self.world);
     }
 }

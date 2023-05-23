@@ -19,7 +19,6 @@ pub struct Object {
     name: String,
     position: Option<[f32; 3]>,
     renderable: Option<Renderable>,
-    script: Option<String>,
     children: Option<Vec<Object>>,
     scale: Option<[f32; 3]>,
 }
@@ -32,7 +31,7 @@ pub struct Scene {
     objects: Vec<Object>,
 }
 
-pub fn deserialize_scene(path: &str, engine: &mut crate::core::JsEngine) -> Result<(), String> {
+pub fn deserialize_scene(path: &str, engine: &mut crate::core::Engine) -> Result<(), String> {
     RenderingSystem::update(&mut engine.world);
     let data_string = std::fs::read_to_string(path).unwrap();
 
@@ -66,7 +65,7 @@ pub fn deserialize_scene(path: &str, engine: &mut crate::core::JsEngine) -> Resu
     Result::Ok(())
 }
 
-fn spawn_object(object: Object, parent: Option<ecs::prelude::Entity>, engine: &mut crate::core::JsEngine) {
+fn spawn_object(object: Object, parent: Option<ecs::prelude::Entity>, engine: &mut crate::core::Engine) {
     println!("loading object {}.", object.name);
     let obj = engine.create_game_object();
 
@@ -81,9 +80,6 @@ fn spawn_object(object: Object, parent: Option<ecs::prelude::Entity>, engine: &m
     }
     if let Some(x) = object.renderable {
         engine.add_renderable(obj, &x.mesh, Some(&x.texture));
-    }
-    if let Some(x) = object.script {
-        engine.add_script(obj, &x);
     }
 
     if object.children.is_some() {
