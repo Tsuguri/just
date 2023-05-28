@@ -46,12 +46,7 @@ impl GameObject {
     }
 
     pub fn delete(world: &mut World, id: Entity) {
-        world
-            .resources
-            .get_mut::<ObjectsToDelete>()
-            .unwrap()
-            .0
-            .push(id);
+        world.resources.get_mut::<ObjectsToDelete>().unwrap().0.push(id);
     }
 
     pub fn remove_marked(world: &mut World) {

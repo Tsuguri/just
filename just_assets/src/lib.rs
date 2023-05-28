@@ -18,7 +18,7 @@ impl AssetSystem {
         let mut files_to_load = HashMap::new();
 
         std::fs::read_dir(resources)
-            .map_err(|_| "counldn't read directory")
+            .map_err(|_| "couldn't read directory")
             .unwrap()
             .for_each(|x| {
                 let path = x.unwrap().path();

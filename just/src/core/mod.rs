@@ -1,3 +1,4 @@
+mod game;
 mod parent_child_manipulation;
 mod time;
 
@@ -19,6 +20,8 @@ use just_assets::AssetSystem;
 
 pub use game_object::GameObject;
 pub use hierarchy::TransformHierarchy;
+
+use game::GameLogic;
 
 struct Animator;
 
@@ -58,7 +61,7 @@ impl Engine {
 
         RenderingSystem::update(&mut eng.world);
 
-        eng.load_first_scene();
+        GameLogic::initialize(&mut eng.world);
         eng
     }
 
@@ -184,6 +187,8 @@ impl Engine {
         TimeSystem::update(&mut self.world);
         AssetSystem::update(&mut self.world);
         RenderingSystem::update(&mut self.world);
+
+        GameLogic::update(&mut self.world);
 
         GameObject::remove_marked(&mut self.world);
     }
