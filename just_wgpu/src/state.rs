@@ -11,8 +11,12 @@ pub struct RendererState;
 impl RendererState {
     pub(crate) fn initialize(world: &mut World) {
         world.resources.insert(CameraData {
-            position: Vec3::ZERO,
+            position: Vec3::new(0.0, 1.0, 2.0),
             rotation: Quat::IDENTITY,
+            aspect_ratio: 1.0,
+            fov_y: 45.0,
+            z_near: 0.1,
+            z_far: 100.0,
         });
         world.resources.insert(ViewportData {
             width: 0.0f32,

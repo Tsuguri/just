@@ -17,5 +17,5 @@ pub struct GameObjectData {
 
 #[derive(Debug, Clone, Default)]
 pub struct RenderableCreationQueue {
-    pub queue: Vec<(ecs::entity::Entity, String, Option<String>)>,
+    pub queue: Vec<(ecs::entity::Entity, String, String)>,
 }

@@ -8,7 +8,7 @@ default-run = "just"
 [dependencies]
 just_core = {path="../just_core"}
 just_input = {path="../just_input"}
-just_rend3d = {path="../just_rend3d"}
+just_wgpu = {path="../just_wgpu"}
 just_assets = {path="../just_assets"}
 
 slotmap = "0.3.0"

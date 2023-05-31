@@ -3,11 +3,9 @@ use hierarchy::TransformHierarchy;
 use just_core::ecs::prelude::*;
 use just_core::math::{Quat, Vec3};
 use just_core::{game_object, hierarchy};
-use just_input::{InputChannel, InputEvent, InputReader, KeyCode, KeyboardState, MouseState, UserInput};
-use just_rend3d::RenderingSystem;
+use just_input::{InputChannel, InputEvent, InputReader, KeyCode, KeyboardState, MouseState};
+use just_wgpu::RenderingSystem;
 use std::f32::consts::PI;
-
-use super::time::TimeSystem;
 
 struct GameState {
     input_reader: InputReader,
@@ -38,20 +36,20 @@ impl GameLogic {
         let id = GameObject::create_empty(world);
         GameObject::set_name(world, id, "duh".to_owned());
         //TransformHierarchy::set_local_position(&mut self.world, id, Vec3::new(10.0, 20.0, 30.0));
-        RenderingSystem::add_renderable(world, id, "cow1", None);
+        RenderingSystem::add_renderable(world, id, "cow1", "creature");
 
         let camera_lookat = GameObject::create_empty(world);
 
         let id2 = GameObject::create_empty(world);
         GameObject::set_name(world, id2, "duhesse".to_owned());
-        RenderingSystem::add_renderable(world, id2, "floor", Some("creature"));
+        RenderingSystem::add_renderable(world, id2, "floor", "creature");
         TransformHierarchy::set_local_position(world, id2, Vec3::new(-20.0, -2.0, 20.0));
         TransformHierarchy::set_local_scale(world, id2, Vec3::new(10.0, 10.0, 10.0));
 
         {
-            let mut camera_data = world.resources.get_mut::<just_rend3d::CameraData>().unwrap();
-            camera_data.position = Vec3::new(10.0, 10.0, -10.0);
-            camera_data.rotation = Quat::from_euler(just_core::glam::EulerRot::XYZ, -PI / 4.0, PI / 6.0, 0.0);
+            let mut camera_data = world.resources.get_mut::<just_wgpu::CameraData>().unwrap();
+            camera_data.position = Vec3::new(0.0, 1.0, 2.0);
+            //camera_data.rotation = Quat::from_euler(just_core::glam::EulerRot::XYZ, -PI / 4.0, PI / 6.0, 0.0);
         }
         world.resources.insert(GameState {
             input_reader: reader,
@@ -61,14 +59,12 @@ impl GameLogic {
     }
     pub fn update(world: &mut World) {
         let player_input = {
-            let (keyboard_state, mouse_state, mut camera_data, mut channel, mut state) =
-                <(
-                    Read<KeyboardState>,
-                    Read<MouseState>,
-                    Write<just_rend3d::CameraData>,
-                    Write<InputChannel>,
-                    Write<GameState>,
-                )>::fetch(&mut world.resources);
+            let (keyboard_state, mouse_state, mut channel, mut state) = <(
+                Read<KeyboardState>,
+                Read<MouseState>,
+                Write<InputChannel>,
+                Write<GameState>,
+            )>::fetch(&mut world.resources);
 
             let mut player_input = Input {
                 move_left: keyboard_state.is_button_down(KeyCode::A),
@@ -101,8 +97,9 @@ impl GameLogic {
             let new_lookat = lookat * 0.91 + player * 0.09;
             TransformHierarchy::set_local_position(world, camera, new_lookat);
             {
-                let mut camera_data = world.resources.get_mut::<just_rend3d::CameraData>().unwrap();
-                camera_data.position = new_lookat + Vec3::new(10.0, 10.0 * 2.0f32.sqrt() * 4.0 / 3.0, -10.0) * 0.75;
+                let mut camera_data = world.resources.get_mut::<just_wgpu::CameraData>().unwrap();
+                camera_data.position = new_lookat + Vec3::new(10.0, 10.0 * 2.0f32.sqrt() * 4.0 / 3.0, -10.0) * 0.5;
+                // camera_data.position = new_lookat + Vec3::new(0.0, 1.0, 2.0);
                 let cam_rot =
                     just_core::glam::Mat4::look_at_lh(camera_data.position, new_lookat, Vec3::new(0.0, 1.0, 0.0));
                 camera_data.rotation = Quat::from_mat4(&cam_rot);
