@@ -1,14 +1,19 @@
 mod camera;
 mod model;
 mod obj_loader;
+mod postprocessing;
+mod standard_pass;
 mod state;
 mod texture;
 mod vertex;
+
+mod tile_renderer;
 
 use std::collections::HashMap;
 use std::ops::Range;
 
 pub use camera::CameraData;
+use camera::CameraUniform;
 use just_core::hierarchy::TransformHierarchy;
 use model::{MeshData, MeshVertex};
 
@@ -17,14 +22,19 @@ use just_core::ecs::prelude::*;
 use just_core::ecs::world::World;
 use just_core::RenderableCreationQueue;
 use obj_loader::load_obj_model;
+use postprocessing::PostprocessingPass;
+use standard_pass::StandardPass;
 use state::RendererState;
-use wgpu::util::DeviceExt;
+use wgpu::Extent3d;
+
+use tile_renderer::TileRenderer;
 pub use winit;
 
 use texture::TextureData;
 
 use just_core::glam;
 
+use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::WindowBuilder;
 #[derive(Clone)]
@@ -58,35 +68,17 @@ struct RenderingManager {
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
     window: winit::window::Window,
-    render_pipeline: wgpu::RenderPipeline,
-    diffuse_data: TextureData,
     depth_texture: TextureData,
+    middle_render_target: TextureData,
+    mrt_bind_group: wgpu::BindGroup,
     texture_bind_group_layout: wgpu::BindGroupLayout,
-    default_texture_bind_group: wgpu::BindGroup,
     camera_uniform: CameraUniform,
-    camera_buffer: wgpu::Buffer,
-    camera_bind_group: wgpu::BindGroup,
     meshes: HashMap<Mesh, MeshData>,
     textures: HashMap<Texture, TextureData>,
     texture_bindings: HashMap<Texture, wgpu::BindGroup>,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-struct CameraUniform {
-    view_projection: [[f32; 4]; 4],
-}
-
-impl CameraUniform {
-    fn new() -> Self {
-        Self {
-            view_projection: glam::Mat4::IDENTITY.to_cols_array_2d(),
-        }
-    }
-
-    fn update_view_projection(&mut self, camera: &CameraData) {
-        self.view_projection = camera.view_projection().to_cols_array_2d();
-    }
+    tile_renderer: TileRenderer,
+    standard_pass: StandardPass,
+    postprocessing_pass: PostprocessingPass,
 }
 
 #[repr(C)]
@@ -129,7 +121,10 @@ where
 impl RenderingSystem {
     async fn initialize_wgpu(event_loop: &EventLoop<()>, world: &mut World) -> RenderingManager {
         let camera_data = world.resources.get::<CameraData>().unwrap();
-        let window = WindowBuilder::new().build(&event_loop).unwrap();
+        let window = WindowBuilder::new()
+            .with_inner_size(PhysicalSize::<u32>::new(1920, 1080))
+            .build(&event_loop)
+            .unwrap();
 
         let size = window.inner_size();
 
@@ -183,9 +178,18 @@ impl RenderingSystem {
         };
         surface.configure(&device, &config);
 
-        let diffuse_bytes = include_bytes!("happy-tree.png");
-        let diffuse_data = TextureData::from_bytes(&device, &queue, diffuse_bytes, "happy-tree").unwrap();
         let depth_texture = TextureData::create_depth_texture(&device, &config);
+
+        let middle_render_target = TextureData::create_render_target(
+            &device,
+            Extent3d {
+                width: config.width,
+                height: config.height,
+                depth_or_array_layers: 1,
+            },
+            config.format,
+            "middle target",
+        );
 
         let texture_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
@@ -208,105 +212,28 @@ impl RenderingSystem {
             ],
             label: Some("texture_bind_group_layout"),
         });
-
-        let default_texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        let mrt_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &texture_bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&diffuse_data.view),
+                    resource: wgpu::BindingResource::TextureView(&middle_render_target.view),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&diffuse_data.sampler),
+                    resource: wgpu::BindingResource::Sampler(&middle_render_target.sampler),
                 },
             ],
-            label: Some("texture_bind_group"),
+            label: Some("mrt_bind_group"),
         });
 
-        let mut camera_uniform = CameraUniform::new();
+        let mut camera_uniform = CameraUniform::new_uniform(&device);
         camera_uniform.update_view_projection(&camera_data);
 
-        let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Camera buffer"),
-            contents: bytemuck::cast_slice(&[camera_uniform]),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
-
-        let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            }],
-            label: Some("camera bind group layout"),
-        });
-
-        let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &camera_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: camera_buffer.as_entire_binding(),
-            }],
-            label: Some("Camera bind group"),
-        });
-
-        let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
-
-        let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("rd layout"),
-            bind_group_layouts: &[&texture_bind_group_layout, &camera_bind_group_layout],
-            push_constant_ranges: &[wgpu::PushConstantRange {
-                stages: wgpu::ShaderStages::VERTEX,
-                range: 0..std::mem::size_of::<[[f32; 4]; 4]>() as u32,
-            }],
-        });
-
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("RP"),
-            layout: Some(&render_pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: "vs_main",
-                buffers: &[MeshVertex::desc()],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: "fs_main",
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: config.format,
-                    blend: Some(wgpu::BlendState::REPLACE),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
-                front_face: wgpu::FrontFace::Cw,
-                cull_mode: Some(wgpu::Face::Back),
-                polygon_mode: wgpu::PolygonMode::Fill,
-                unclipped_depth: false,
-                conservative: false,
-            },
-            depth_stencil: Some(wgpu::DepthStencilState {
-                format: wgpu::TextureFormat::Depth32Float,
-                depth_write_enabled: true,
-                depth_compare: wgpu::CompareFunction::Less,
-                stencil: wgpu::StencilState::default(),
-                bias: wgpu::DepthBiasState::default(),
-            }),
-            multisample: wgpu::MultisampleState {
-                count: 1,
-                mask: !0,
-                alpha_to_coverage_enabled: false,
-            },
-            multiview: None,
-        });
+        let tiles = TileRenderer::new();
+        let standard_pass =
+            StandardPass::initialize(&device, config.format, &camera_uniform, &texture_bind_group_layout);
+        let postprocessing_pass = PostprocessingPass::initialize(&device, config.format, &texture_bind_group_layout);
 
         RenderingManager {
             surface,
@@ -315,17 +242,17 @@ impl RenderingSystem {
             config,
             size,
             window,
-            render_pipeline,
-            diffuse_data,
             depth_texture,
-            default_texture_bind_group,
+            middle_render_target,
+            mrt_bind_group,
             texture_bind_group_layout,
             camera_uniform,
-            camera_bind_group,
-            camera_buffer,
             meshes: Default::default(),
             textures: Default::default(),
             texture_bindings: Default::default(),
+            tile_renderer: tiles,
+            standard_pass,
+            postprocessing_pass,
         }
     }
 
@@ -337,6 +264,30 @@ impl RenderingSystem {
             manager.config.height = new_size.height;
             manager.surface.configure(&manager.device, &manager.config);
             manager.depth_texture = TextureData::create_depth_texture(&manager.device, &manager.config);
+            manager.middle_render_target = TextureData::create_render_target(
+                &manager.device,
+                Extent3d {
+                    width: manager.config.width,
+                    height: manager.config.height,
+                    depth_or_array_layers: 1,
+                },
+                manager.config.format,
+                "middle RT",
+            );
+            manager.mrt_bind_group = manager.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                layout: &manager.texture_bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(&manager.middle_render_target.view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&manager.middle_render_target.sampler),
+                    },
+                ],
+                label: Some("mrt_bind_group"),
+            });
         }
     }
 
@@ -389,9 +340,9 @@ impl RenderingSystem {
         // update camera data
         manager.camera_uniform.update_view_projection(&camera_data);
         manager.queue.write_buffer(
-            &manager.camera_buffer,
+            &manager.camera_uniform.buffer,
             0,
-            bytemuck::cast_slice(&[manager.camera_uniform]),
+            bytemuck::cast_slice(&[manager.camera_uniform.view_projection]),
         );
 
         let output = manager.surface.get_current_texture().unwrap();
@@ -409,13 +360,13 @@ impl RenderingSystem {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
+                    view: &manager.middle_render_target.view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.3,
-                            b: 0.3,
+                            r: 0.3,
+                            g: 0.0,
+                            b: 0.0,
                             a: 1.0,
                         }),
                         store: true,
@@ -430,9 +381,8 @@ impl RenderingSystem {
                     stencil_ops: None,
                 }),
             });
-            render_pass.set_pipeline(&manager.render_pipeline);
-            render_pass.set_bind_group(0, &manager.default_texture_bind_group, &[]);
-            render_pass.set_bind_group(1, &manager.camera_bind_group, &[]);
+            render_pass.set_pipeline(&manager.standard_pass.render_pipeline);
+            render_pass.set_bind_group(1, &manager.camera_uniform.bind_group, &[]);
 
             let query = <Read<Renderable>>::query();
             for (id, renderable) in query.iter_entities_immutable(world) {
@@ -445,6 +395,28 @@ impl RenderingSystem {
                 render_pass.set_push_constants(wgpu::ShaderStages::VERTEX, 0, bytemuck::cast_slice(&[model_uniform]));
                 render_pass.draw_mesh_instanced(&manager.meshes.get(&mesh).unwrap(), 0..1);
             }
+        }
+        {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("tiles rp"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.9,
+                            a: 1.0,
+                        }),
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            });
+            render_pass.set_pipeline(&manager.postprocessing_pass.render_pipeline);
+            render_pass.set_bind_group(0, &manager.mrt_bind_group, &[]);
+            render_pass.draw(0..3, 0..1)
         }
 
         manager.queue.submit(std::iter::once(encoder.finish()));

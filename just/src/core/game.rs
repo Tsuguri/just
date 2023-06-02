@@ -42,9 +42,10 @@ impl GameLogic {
 
         let id2 = GameObject::create_empty(world);
         GameObject::set_name(world, id2, "duhesse".to_owned());
-        RenderingSystem::add_renderable(world, id2, "floor", "creature");
+        RenderingSystem::add_renderable(world, id2, "floor", "grassland");
         TransformHierarchy::set_local_position(world, id2, Vec3::new(-20.0, -2.0, 20.0));
-        TransformHierarchy::set_local_scale(world, id2, Vec3::new(10.0, 10.0, 10.0));
+        TransformHierarchy::set_local_rotation(world, id2, Quat::from_rotation_y(-PI / 4.0));
+        //TransformHierarchy::set_local_scale(world, id2, Vec3::new(10.0, 10.0, 10.0));
 
         {
             let mut camera_data = world.resources.get_mut::<just_wgpu::CameraData>().unwrap();

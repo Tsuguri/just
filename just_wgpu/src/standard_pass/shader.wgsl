@@ -22,6 +22,7 @@ struct VertexInput {
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
+    @location(1) normal: vec3<f32>,
 };
 
 @vertex
@@ -30,6 +31,7 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
     out.tex_coords = mesh.tex_coords;
+    out.normal = (pc.model_matrix * vec4<f32>(mesh.position, 0.0)).xyz;
     out.clip_position = camera.view_projection * pc.model_matrix * vec4<f32>(mesh.position, 1.0);
     return out;
 }
