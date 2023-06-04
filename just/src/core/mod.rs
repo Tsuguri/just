@@ -49,8 +49,8 @@ impl Engine {
         let mut world = World::default();
         let event_loop = EventLoop::<()>::new();
         AssetSystem::initialize(&mut world, res_path);
-        RenderingSystem::initialize(&mut world, &event_loop);
         InputSystem::initialize(&mut world);
+        RenderingSystem::initialize(&mut world, &event_loop);
         GameObject::initialize(&mut world);
         TimeSystem::initialize(&mut world);
 
@@ -77,7 +77,10 @@ impl Engine {
         event_loop.run(move |event, _, control_flow| {
             //*control_flow = ControlFlow::Poll;
             match event {
-                Event::WindowEvent { window_id, ref event } => {
+                Event::WindowEvent {
+                    window_id: _,
+                    ref event,
+                } => {
                     match event {
                         WindowEvent::CloseRequested => {
                             end_requested = true;
@@ -156,11 +159,9 @@ impl Engine {
     fn update(&mut self) {
         TimeSystem::update(&mut self.world);
         AssetSystem::update(&mut self.world);
-        RenderingSystem::update(&mut self.world);
-
         GameLogic::update(&mut self.world);
-
         GameObject::remove_marked(&mut self.world);
+        RenderingSystem::update(&mut self.world);
     }
 }
 

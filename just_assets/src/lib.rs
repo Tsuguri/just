@@ -165,11 +165,11 @@ impl<T> AssetStorage<T> {
         Self { names, assets, last_id }
     }
 
-    pub fn process<F: FnMut(&[u8]) -> (T, bool)>(&mut self, manager: &mut AssetManager, ext: &str, mut p: F) {
+    pub fn process<F: FnMut(&[u8], &str) -> (T, bool)>(&mut self, manager: &mut AssetManager, ext: &str, mut p: F) {
         manager.process_extension(ext, |name, data| {
             println!("processing {} file: {:?}", ext, name);
-            let result = p(data);
             let name = name.file_stem().unwrap().to_str().unwrap();
+            let result = p(data, name);
             if self.names.contains_key(name) {
                 let id = self.names[name];
                 self.assets.get_mut(&id.id).unwrap().state = AssetState::Loaded(result.0);

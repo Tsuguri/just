@@ -7,8 +7,11 @@ edition = "2021"
 [dependencies]
 just_core = {path="../just_core"}
 just_assets = {path="../just_assets"}
+just_input = {path="../just_input"}
 
 wgpu = "0.16"
+egui = "0.22"
+egui-wgpu = "0.22"
 
 # windowing
 winit = "0.28"

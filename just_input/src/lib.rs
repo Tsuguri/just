@@ -28,6 +28,7 @@ pub enum InputEvent {
 
 pub type InputChannel = EventChannel<InputEvent>;
 pub type InputReader = shrev::ReaderId<InputEvent>;
+pub type InputEvents<'a> = shrev::EventIterator<'a, InputEvent>;
 
 pub struct InputSystem {}
 

@@ -4,7 +4,7 @@ use just_core::ecs::prelude::*;
 use just_core::math::{Quat, Vec3};
 use just_core::{game_object, hierarchy};
 use just_input::{InputChannel, InputEvent, InputReader, KeyCode, KeyboardState, MouseState};
-use just_wgpu::RenderingSystem;
+use just_wgpu::{RenderingSystem, Ui};
 use std::f32::consts::PI;
 
 struct GameState {
@@ -60,7 +60,8 @@ impl GameLogic {
     }
     pub fn update(world: &mut World) {
         let player_input = {
-            let (keyboard_state, mouse_state, mut channel, mut state) = <(
+            let (ui, keyboard_state, mouse_state, mut channel, mut state) = <(
+                Read<Ui>,
                 Read<KeyboardState>,
                 Read<MouseState>,
                 Write<InputChannel>,
@@ -75,10 +76,13 @@ impl GameLogic {
                 ..Default::default()
             };
 
-            // will do something eventually
-            for event in channel.read(&mut state.input_reader) {
+            for event in ui.filter_input(channel.read(&mut state.input_reader)) {
+                // will do something eventually
                 match event {
                     InputEvent::KeyPressed(KeyCode::I) => player_input.open_inventory = true,
+                    InputEvent::MouseButtonPressed(0) => {
+                        println!("not ignoring press")
+                    }
                     _ => {}
                 }
             }

@@ -5,15 +5,18 @@ mod postprocessing;
 mod standard_pass;
 mod state;
 mod texture;
+mod ui;
 mod vertex;
 
 mod tile_renderer;
 
 use std::collections::HashMap;
-use std::ops::Range;
+use std::ops::{Deref, DerefMut, Range};
 
 pub use camera::CameraData;
 use camera::CameraUniform;
+use egui::RawInput;
+use egui_wgpu::renderer::ScreenDescriptor;
 use just_core::hierarchy::TransformHierarchy;
 use model::{MeshData, MeshVertex};
 
@@ -21,10 +24,12 @@ use just_assets::{AssetManager, AssetStorage};
 use just_core::ecs::prelude::*;
 use just_core::ecs::world::World;
 use just_core::RenderableCreationQueue;
+use just_input::{InputChannel, KeyboardState, MouseState};
 use obj_loader::load_obj_model;
 use postprocessing::PostprocessingPass;
 use standard_pass::StandardPass;
 use state::RendererState;
+pub use ui::Ui;
 use wgpu::Extent3d;
 
 use tile_renderer::TileRenderer;
@@ -59,6 +64,18 @@ pub struct RenderingSystem {}
 pub struct Renderable {
     mesh: Mesh,
     texture: Texture,
+}
+
+struct EguiSystem {
+    renderer: egui_wgpu::Renderer,
+}
+
+impl EguiSystem {
+    pub fn initialize(world: &mut World, device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
+        let renderer = egui_wgpu::renderer::Renderer::new(device, format, None, 1);
+        Ui::initialize(world);
+        EguiSystem { renderer }
+    }
 }
 
 struct RenderingManager {
@@ -229,11 +246,15 @@ impl RenderingSystem {
 
         let mut camera_uniform = CameraUniform::new_uniform(&device);
         camera_uniform.update_view_projection(&camera_data);
+        drop(camera_data);
 
         let tiles = TileRenderer::new();
         let standard_pass =
             StandardPass::initialize(&device, config.format, &camera_uniform, &texture_bind_group_layout);
         let postprocessing_pass = PostprocessingPass::initialize(&device, config.format, &texture_bind_group_layout);
+
+        let egui = EguiSystem::initialize(world, &device, config.format);
+        world.resources.insert(egui);
 
         RenderingManager {
             surface,
@@ -305,29 +326,35 @@ impl RenderingSystem {
     pub fn update(world: &mut World) {
         let (
             mut manager,
+            mut egui,
             mut asset_manager,
             mut texture_storage,
             mut mesh_storage,
+            mut ui,
+            keyboard,
             camera_data,
             _viewport_data,
             mut creation_queue,
         ) = <(
             Write<RenderingManager>,
+            Write<EguiSystem>,
             Write<AssetManager>,
             Write<AssetStorage<Texture>>,
             Write<AssetStorage<Mesh>>,
+            Write<Ui>,
+            Read<KeyboardState>,
             Read<CameraData>,
             Read<ViewportData>,
             Write<RenderableCreationQueue>,
         )>::fetch(&mut world.resources);
 
         // loading requested assets
-        texture_storage.process(&mut asset_manager, "png", |data| {
-            (Self::load_png_texture(&mut manager, data), false)
+        texture_storage.process(&mut asset_manager, "png", |data, name| {
+            (Self::load_png_texture(&mut manager, data, name), false)
         });
 
-        mesh_storage.process(&mut asset_manager, "obj", |data| {
-            (load_obj_model(&mut manager, data, "no-name"), false)
+        mesh_storage.process(&mut asset_manager, "obj", |data, name| {
+            (load_obj_model(&mut manager, data, name), false)
         });
 
         //creating renderables requested by game logic
@@ -345,6 +372,7 @@ impl RenderingSystem {
             bytemuck::cast_slice(&[manager.camera_uniform.view_projection]),
         );
 
+        let egui_output = Ui::update(world);
         let output = manager.surface.get_current_texture().unwrap();
 
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
@@ -398,7 +426,7 @@ impl RenderingSystem {
         }
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("tiles rp"),
+                label: Some("pp rp"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
@@ -417,6 +445,38 @@ impl RenderingSystem {
             render_pass.set_pipeline(&manager.postprocessing_pass.render_pipeline);
             render_pass.set_bind_group(0, &manager.mrt_bind_group, &[]);
             render_pass.draw(0..3, 0..1)
+        }
+
+        let device = &manager.device;
+        let queue = &manager.queue;
+        let screen_descriptor = ScreenDescriptor {
+            size_in_pixels: [manager.config.width, manager.config.height],
+            pixels_per_point: 1.0f32,
+        };
+        let paint_jobs = ui.tessellate(egui_output.shapes);
+        for update in egui_output.textures_delta.set {
+            egui.renderer.update_texture(device, queue, update.0, &update.1);
+        }
+        for free in egui_output.textures_delta.free {
+            egui.renderer.free_texture(&free);
+        }
+
+        egui.renderer
+            .update_buffers(device, queue, &mut encoder, &paint_jobs, &screen_descriptor);
+        {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("egui rp"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            });
+            egui.renderer.render(&mut render_pass, &paint_jobs, &screen_descriptor);
         }
 
         manager.queue.submit(std::iter::once(encoder.finish()));
@@ -452,8 +512,8 @@ impl RenderingSystem {
 }
 
 impl RenderingSystem {
-    fn load_png_texture(renderer: &mut RenderingManager, data: &[u8]) -> Texture {
-        let image_data = TextureData::from_bytes(&renderer.device, &renderer.queue, data, "uhhh").unwrap();
+    fn load_png_texture(renderer: &mut RenderingManager, data: &[u8], name: &str) -> Texture {
+        let image_data = TextureData::from_bytes(&renderer.device, &renderer.queue, data, name).unwrap();
 
         let last_key = renderer.textures.keys().map(|i| i.0).max().unwrap_or(0);
         let new_key = last_key + 1;
@@ -470,7 +530,7 @@ impl RenderingSystem {
                     resource: wgpu::BindingResource::Sampler(&image_data.sampler),
                 },
             ],
-            label: Some("texture_bind_group"),
+            label: Some(&format!("{} texture bind group", name)),
         });
         renderer.texture_bindings.insert(key, texture_bind_group);
         renderer.textures.insert(key, image_data);
