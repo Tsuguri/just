@@ -2,11 +2,13 @@ mod camera;
 mod model;
 mod obj_loader;
 mod postprocessing;
+mod screen_data;
 mod standard_pass;
 mod state;
 mod texture;
 mod ui;
 mod vertex;
+mod viewport;
 
 mod tile_renderer;
 
@@ -19,6 +21,8 @@ use egui::RawInput;
 use egui_wgpu::renderer::ScreenDescriptor;
 use just_core::hierarchy::TransformHierarchy;
 use model::{MeshData, MeshVertex};
+pub use screen_data::ScreenData;
+use viewport::ViewportData;
 
 use just_assets::{AssetManager, AssetStorage};
 use just_core::ecs::prelude::*;
@@ -42,15 +46,6 @@ use just_core::glam;
 use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::WindowBuilder;
-#[derive(Clone)]
-pub struct ViewportData {
-    pub camera_lens_height: f32,
-    pub height: f32,
-    pub width: f32,
-    pub ratio: f32,
-}
-
-impl ViewportData {}
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Default)]
 pub struct Mesh(u32);
@@ -137,7 +132,7 @@ where
 
 impl RenderingSystem {
     async fn initialize_wgpu(event_loop: &EventLoop<()>, world: &mut World) -> RenderingManager {
-        let camera_data = world.resources.get::<CameraData>().unwrap();
+        let screen_data = world.resources.get::<ScreenData>().unwrap();
         let window = WindowBuilder::new()
             .with_inner_size(PhysicalSize::<u32>::new(1920, 1080))
             .build(&event_loop)
@@ -146,7 +141,7 @@ impl RenderingSystem {
         let size = window.inner_size();
 
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::VULKAN,
+            backends: wgpu::Backends::PRIMARY,
             dx12_shader_compiler: Default::default(),
         });
 
@@ -245,8 +240,8 @@ impl RenderingSystem {
         });
 
         let mut camera_uniform = CameraUniform::new_uniform(&device);
-        camera_uniform.update_view_projection(&camera_data);
-        drop(camera_data);
+        camera_uniform.update_view_projection(&screen_data.camera);
+        drop(screen_data);
 
         let tiles = TileRenderer::new();
         let standard_pass =
@@ -279,6 +274,10 @@ impl RenderingSystem {
 
     pub fn resize(world: &mut World, new_size: winit::dpi::PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
+            {
+                let mut screen_data = world.resources.get_mut::<ScreenData>().unwrap();
+                screen_data.viewport.viewport_resized(&new_size);
+            }
             let mut manager = world.resources.get_mut::<RenderingManager>().unwrap();
             manager.size = new_size;
             manager.config.width = new_size.width;
@@ -332,8 +331,7 @@ impl RenderingSystem {
             mut mesh_storage,
             mut ui,
             keyboard,
-            camera_data,
-            _viewport_data,
+            screen_data,
             mut creation_queue,
         ) = <(
             Write<RenderingManager>,
@@ -343,8 +341,7 @@ impl RenderingSystem {
             Write<AssetStorage<Mesh>>,
             Write<Ui>,
             Read<KeyboardState>,
-            Read<CameraData>,
-            Read<ViewportData>,
+            Read<ScreenData>,
             Write<RenderableCreationQueue>,
         )>::fetch(&mut world.resources);
 
@@ -365,7 +362,7 @@ impl RenderingSystem {
         }
 
         // update camera data
-        manager.camera_uniform.update_view_projection(&camera_data);
+        manager.camera_uniform.update_view_projection(&screen_data.camera);
         manager.queue.write_buffer(
             &manager.camera_uniform.buffer,
             0,
